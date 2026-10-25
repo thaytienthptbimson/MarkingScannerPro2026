@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="OMR Pro 2026">
+  <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACPUlEQVR4nO2bsU7DMBCGDerExAYLYmCEN+gLIPEKlZi6MTYrA2s6snXlFSrxAuUJ4AEqFroxMSHB5Mp2Y599vsSOz99U13Zy9+vu6rixEBXeHGEmTZ9+/qgNoWLzeBLkk/fgnJ224SOGlwCm85+vz1ibeufi9kFrQyI4O1XHc3bahiqGTYhj2+SxOy+EbrcthTsFKMF5CSSCNQLMyWPG5ceBAFKlUpyXSH/MKNAKQ4jz201DZx0Bl9PWa5wsjLIoOlPARm7OC4G3aYK90en5tfb999cHygAsXfffbhrvSJDsI6DU3DcxawEqBUqCvQDBNUAydM73dX/2EcBeAHQK2Jg3y/3nVbs46D97udt/3s3WQfOha2MgFWDeLDXDzLbqvGyrIrjmQ9fGwj4F2AtAmgKrduHM091s7awBrvnQtbGQF0HIsK7C5zufymkV9ilQBUhtQGoGXwjF9EOLKAyDLoRi2tAiCgv7FGAvwKALoZh+aBGFZfCFUEw/ldMqNQXAAe271r56u+/NGAomxq74b3PjHF8jABpgKgj9AxOz4wP1+zwNhv4xQloEY3Z8oHbdEeoJ9gKQpkDMjg/UP5odoZgdH6i/7gj1QBUgtQGpqQKkNiA16F+BHN8RwsA+AqoAqQ1IDepN0RxflBTC71GY5E3R0GfuIcDahP4VyFEEDFoEyLAwj52Ughn+QnSkQKkidDkvBFADShHB5UenAKpKYxcBOjhljYASRPA5NVbPDfpemPXJUZOcxQg9O8yef7abUTOf/dEpAAAAAElFTkSuQmCC">
   <link rel="apple-touch-icon" href="data:image/png;base64,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">
   <!-- Thư viện xử lý Excel SheetJS -->
@@ -701,9 +702,10 @@
           <span style="font-size:0.78rem; color:#475569; font-weight:700; display:block;">TRẠNG THÁI THIẾT BỊ APPLE / iOS:</span>
           <strong id="iosEnvStatus" style="color:#0369a1; font-size:0.92rem;">Đang kiểm tra...</strong>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="shareAppOnIOS()">
-          📤 Mở Menu Chia Sẻ iPhone
-        </button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-success btn-sm" onclick="downloadIOSMobileConfig()">⬇️ Tải Gói Cài Đặt (.mobileconfig)</button>
+          <button class="btn btn-primary btn-sm" onclick="shareAppOnIOS()">📤 Mở Menu Chia Sẻ iPhone</button>
+        </div>
       </div>
 
       <div class="guide-step">
@@ -2864,6 +2866,77 @@ function downloadSheetImage() {
   const c = document.getElementById('sheetCanvas');
   drawStandardSheet(c);
   triggerImageDownload(c.toDataURL('image/png'), `Phieu_OMR_${currentTemplate}.png`);
+}
+
+
+function downloadIOSMobileConfig() {
+  const appUrl = window.location.href.startsWith('http') ? window.location.href : 'https://username.github.io/omr-pro-2026/';
+  const mobileConfigXml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>FullScreen</key>
+            <true/>
+            <key>IsRemovable</key>
+            <true/>
+            <key>Label</key>
+            <string>OMR Pro 2026</string>
+            <key>PayloadDescription</key>
+            <string>Cấu hình cài đặt ứng dụng chấm thi OMR Pro 2026 trên iPhone</string>
+            <key>PayloadDisplayName</key>
+            <string>OMR Pro 2026 WebApp</string>
+            <key>PayloadIdentifier</key>
+            <string>vn.edu.bimson.omrpro2026.webclip</string>
+            <key>PayloadType</key>
+            <string>com.apple.webClip.managed</string>
+            <key>PayloadUUID</key>
+            <string>8A7B6C5D-1111-2222-3333-094393078701</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>Precomposed</key>
+            <true/>
+            <key>URL</key>
+            <string>${appUrl}</string>
+        </dict>
+    </array>
+    <key>PayloadDescription</key>
+    <string>Gói cài đặt ứng dụng Chấm Thi Trắc Nghiệm OMR Pro 2026 (Bản quyền: 0943.930.787)</string>
+    <key>PayloadDisplayName</key>
+    <string>Cài đặt OMR Pro 2026 (iOS)</string>
+    <key>PayloadIdentifier</key>
+    <string>vn.edu.bimson.omrpro2026.profile</string>
+    <key>PayloadOrganization</key>
+    <string>OMR Pro 2026 - 0943.930.787</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>8A7B6C5D-1111-2222-3333-094393078700</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>`;
+
+  const blob = new Blob([mobileConfigXml], { type: 'application/x-apple-aspen-config' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'OMR_Pro_2026_iPhone_Installer.mobileconfig';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  showAppToast('Đã tải gói cấu hình iPhone (.mobileconfig)! Vào Cài đặt iPhone -> Đã tải về hồ sơ để cài đặt.', 'success');
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
