@@ -184,14 +184,27 @@
     }
 
     /* Camera & Live OpenCV Overlay */
-    .scanner-box {
-      position: relative; width: 100%; max-width: 900px; margin: 0 auto;
-      background: #0f172a; border-radius: 12px; overflow: hidden;
-      border: 2px solid #3b82f6; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    /* ===== CAMERA TOÀN MÀN HÌNH: phủ kín cả trang, có nút quay lại màn hình chính ===== */
+    body.cam-fs-open { overflow: hidden; }
+    .cam-wrap {
+      position: fixed; inset: 0; z-index: 2000; background: #000;
+      flex-direction: column; /* display:flex do JS bật khi mở camera */
+      padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+      touch-action: none; overscroll-behavior: contain;
     }
-    video {
-      width: 100%; height: auto; min-height: 240px;
-      max-height: calc(100vh - 195px); max-height: calc(100dvh - 195px);
+    .cam-status-bar {
+      flex: none; display: flex; align-items: center; gap: 8px;
+      background: rgba(15, 23, 42, 0.95); color: #fff; padding: 6px 8px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .cam-status-bar #camLiveStatus { flex: 1 1 auto; min-width: 0; line-height: 1.25; }
+    .cam-back-btn {
+      flex: none; background: #fff; color: #1e3a8a; font-weight: 800; font-size: 0.82rem;
+      padding: 9px 12px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .scanner-box { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; background: #000; overflow: hidden; }
+    .scanner-box video {
+      position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: contain; display: block; background: #000; /* contain: thấy trọn khung hình, không bị cắt mất chấm đen ở góc */
     }
     #liveOverlayCanvas {
@@ -200,24 +213,19 @@
       background: transparent !important; box-shadow: none !important;
       max-width: none; object-fit: contain; /* cùng cách hiển thị với <video> để khung ngắm khớp hình */
     }
-    /* Khung quét: thanh trạng thái ở TRÊN, camera ở GIỮA, các nút ở DƯỚI — không còn đè lên hình camera */
-    .cam-wrap { width: 100%; max-width: 900px; margin: 0 auto; }
-    @media (max-width: 640px) {
-      /* Điện thoại: cho camera tràn sát mép, bỏ phần lề của thẻ bao quanh */
-      .cam-wrap { width: calc(100% + 20px); max-width: none; margin-left: -10px; margin-right: -10px; }
-      .scanner-box { border-radius: 8px; border-width: 1px; }
+    .cam-last-result {
+      flex: none; background: #052e16; color: #bbf7d0; border-top: 1px solid #16a34a;
+      padding: 6px 10px; font-size: 0.8rem; font-weight: 700; text-align: center; line-height: 1.3;
     }
-    .cam-status-bar {
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 8px;
-      background: #1e293b; color: #fff; padding: 3px 8px; margin-bottom: 4px;
-      border-radius: 6px; font-size: 0.72rem; font-weight: 600;
-    }
-    .cam-status-bar #camLiveStatus { flex: 1 1 200px; min-width: 0; }
-    .cam-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .cam-bottom-bar {
-      display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin-top: 6px;
+      flex: none; display: flex; flex-wrap: nowrap; gap: 8px; padding: 8px 10px;
+      background: rgba(15, 23, 42, 0.95);
     }
-    .cam-bottom-bar .btn { flex: 1 1 160px; justify-content: center; text-align: center; }
+    .cam-bottom-bar .btn {
+      flex: 1 1 0; min-width: 0; justify-content: center; text-align: center;
+      white-space: normal; line-height: 1.2; padding: 11px 6px; font-size: 0.82rem;
+    }
+    .card { scroll-margin-top: 112px; } /* khi cuộn tới kết quả không bị thanh trên cùng che */
 
     .canvas-preview-wrap {
       width: 100%; overflow-x: auto; text-align: center; background: #e2e8f0;
@@ -470,8 +478,9 @@
         <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
       </div>
 
-      <div id="cameraContainer" class="cam-wrap" style="display:none; margin-top:8px;">
+      <div id="cameraContainer" class="cam-wrap" style="display:none;">
         <div class="cam-status-bar">
+          <button type="button" class="btn cam-back-btn" onclick="exitCameraFullscreen()" title="Tắt camera và quay lại màn hình chính để xem kết quả">⬅ Màn hình chính</button>
           <span id="camLiveStatus">📷 Đang khởi động ống kính Camera...</span>
         </div>
 
@@ -479,6 +488,8 @@
           <video id="video" playsinline webkit-playsinline autoplay muted></video>
           <canvas id="liveOverlayCanvas"></canvas>
         </div>
+
+        <div id="camLastResult" class="cam-last-result" style="display:none;"></div>
 
         <div class="cam-bottom-bar">
           <button type="button" class="btn btn-success" onclick="captureAndGrade()" style="box-shadow:0 2px 6px rgba(0,0,0,0.18);">
@@ -538,7 +549,7 @@
         <span>Thiết Lập Đáp Án & Thang Điểm Theo Mã Đề</span>
         <div class="row" style="margin:0;">
           <label>Mã đề:</label>
-          <input type="text" id="keyExamCode" value="101" maxlength="3" inputmode="numeric" title="Gõ mã đề (3 chữ số) rồi Enter. Mã chưa có sẽ được tạo mới." style="width:75px; font-weight:bold; text-align:center;" onchange="onExamCodeInputChange()">
+          <input type="text" id="keyExamCode" value="1001" maxlength="4" inputmode="numeric" title="Gõ mã đề (4 chữ số) rồi Enter. Mã chưa có sẽ được tạo mới." style="width:85px; font-weight:bold; text-align:center;" onchange="onExamCodeInputChange()">
           <button class="btn btn-outline" onclick="randomFillKey()">🎲 Tạo Đáp Án Mẫu</button>
           <button class="btn btn-primary" onclick="saveCurrentKey()">💾 Lưu Đáp Án</button>
         </div>
@@ -706,10 +717,10 @@
       <button class="btn btn-danger btn-sm" onclick="closeAddCodesModal()">✕ Đóng</button>
     </div>
     <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
-      <label for="addCodesInput">Nhập các mã đề (mỗi mã gồm 3 chữ số):</label>
-      <textarea id="addCodesInput" class="modal-textarea" placeholder="VD: 101, 102, 103, 104&#10;hoặc nhập dải: 201-208" oninput="updateAddCodesPreview()"></textarea>
+      <label for="addCodesInput">Nhập các mã đề (mỗi mã gồm 4 chữ số):</label>
+      <textarea id="addCodesInput" class="modal-textarea" placeholder="VD: 1001, 1002, 1003, 1004&#10;hoặc nhập dải: 2001-2008" oninput="updateAddCodesPreview()"></textarea>
       <p style="font-size:0.78rem; color:#64748b; margin:4px 0 8px;">
-        Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">201-208</span> = 8 mã đề). Tối đa 100 mã mỗi lần.
+        Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">2001-2008</span> = 8 mã đề). Tối đa 100 mã mỗi lần.
       </p>
       <div id="addCodesPreview"></div>
 
@@ -967,6 +978,9 @@ let autoScanTimer = null;
 let stableCornerFrames = 0;
 let isProcessingFrame = false;
 
+const EXAM_CODE_LEN = 4;            // Mã đề gồm 4 chữ số
+const DEFAULT_EXAM_CODE = '1001';   // Mã đề mặc định khi chưa có mã nào
+
 let currentTemplate = '2026_2P';
 let answerKeys = JSON.parse(safeGetStorage('omr_keys_ult2026', '{}'));
 let gradedList = JSON.parse(safeGetStorage('omr_graded_ult2026', '[]'));
@@ -995,10 +1009,10 @@ function getSheetGeometry(template) {
     geo.sbd.push(colArr);
   }
 
-  for (let col = 0; col < 3; col++) {
+  for (let col = 0; col < 4; col++) {
     const colArr = [];
     for (let d = 0; d <= 9; d++) {
-      colArr.push({ digit: d.toString(), x: 680 + col * 26, y: 58 + d * 19.5 });
+      colArr.push({ digit: d.toString(), x: 674 + col * 26, y: 58 + d * 19.5 });
     }
     geo.made.push(colArr);
   }
@@ -1314,7 +1328,7 @@ function createDefaultKey() {
 }
 
 function renderAnswerKeyUI() {
-  const code = document.getElementById('keyExamCode').value.trim() || '101';
+  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   const currentKey = answerKeys[code];
   const geo = getSheetGeometry(currentTemplate);
@@ -1401,13 +1415,13 @@ function renderAnswerKeyUI() {
 }
 
 function setP2Key(q, sub, val) {
-  const code = document.getElementById('keyExamCode').value.trim() || '101';
+  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   answerKeys[code].p2[q][sub] = val;
   renderAnswerKeyUI();
 }
 
 function updateP3Key(q, val) {
-  const code = document.getElementById('keyExamCode').value.trim() || '101';
+  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   if (!answerKeys[code].p3) answerKeys[code].p3 = {};
   answerKeys[code].p3[q] = val.trim();
 }
@@ -1433,7 +1447,7 @@ function createRandomKey() {
 }
 
 function randomFillKey() {
-  const code = document.getElementById('keyExamCode').value.trim() || '101';
+  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   answerKeys[code] = createRandomKey();
   saveCurrentKey();
   renderAnswerKeyUI();
@@ -1451,13 +1465,13 @@ function saveCurrentKey() {
 /********************************************************************
  * 4b. QUẢN LÝ NHIỀU MÃ ĐỀ (THÊM HÀNG LOẠT / CHUYỂN / XÓA)
  ********************************************************************/
-// Mã đề trên phiếu luôn là 3 chữ số (VD: "7" -> "007") nên chuẩn hóa để tra đáp án khớp với mã quét được
+// Mã đề trên phiếu luôn là 4 chữ số (VD: "7" -> "0007", "101" -> "0101") nên chuẩn hóa để tra đáp án khớp với mã quét được
 function normalizeExamCode(raw) {
-  const digits = String(raw || '').replace(/\D/g, '').slice(0, 3);
-  return digits ? digits.padStart(3, '0') : '';
+  const digits = String(raw || '').replace(/\D/g, '').slice(0, EXAM_CODE_LEN);
+  return digits ? digits.padStart(EXAM_CODE_LEN, '0') : '';
 }
 
-// Chuyển các mã đề cũ đã lưu không đủ 3 chữ số (nếu có) về dạng chuẩn
+// Chuyển các mã đề cũ đã lưu không đủ 4 chữ số (VD: mã 3 số "101" -> "0101") về dạng chuẩn
 (function migrateAnswerKeyCodes() {
   let changed = false;
   Object.keys(answerKeys).forEach(k => {
@@ -1501,13 +1515,13 @@ function selectExamCode(code) {
   renderAnswerKeyUI();
 }
 
-// Gõ trực tiếp vào ô "Mã đề": chuẩn hóa 3 chữ số, mã chưa có thì tạo mới
+// Gõ trực tiếp vào ô "Mã đề": chuẩn hóa 4 chữ số, mã chưa có thì tạo mới
 function onExamCodeInputChange() {
   const input = document.getElementById('keyExamCode');
   const code = normalizeExamCode(input.value);
   if (!code) {
-    input.value = getSortedExamCodes()[0] || '101';
-    showAppToast('Mã đề chỉ gồm chữ số (VD: 101).', 'warn');
+    input.value = getSortedExamCodes()[0] || DEFAULT_EXAM_CODE;
+    showAppToast('Mã đề chỉ gồm chữ số (VD: 1001).', 'warn');
   } else {
     input.value = code;
     if (!answerKeys[code]) {
@@ -1519,14 +1533,14 @@ function onExamCodeInputChange() {
   renderAnswerKeyUI();
 }
 
-// Tách chuỗi nhập thành danh sách mã đề. Hỗ trợ: "101, 102 103", xuống dòng, và dải "201-208"
+// Tách chuỗi nhập thành danh sách mã đề. Hỗ trợ: "1001, 1002 1003", xuống dòng, và dải "2001-2008"
 function parseExamCodeList(text) {
   const result = { codes: [], invalid: [] };
   const seen = new Set();
   const cleaned = String(text || '').replace(/\s*[-–—]\s*/g, '-');
   cleaned.split(/[\s,;]+/).filter(Boolean).forEach(tok => {
     let nums;
-    const range = tok.match(/^(\d{1,3})-(\d{1,3})$/);
+    const range = tok.match(/^(\d{1,4})-(\d{1,4})$/);
     if (range) {
       const a = parseInt(range[1], 10), b = parseInt(range[2], 10);
       const lo = Math.min(a, b), hi = Math.max(a, b);
@@ -1536,14 +1550,14 @@ function parseExamCodeList(text) {
       }
       nums = [];
       for (let n = lo; n <= hi; n++) nums.push(n);
-    } else if (/^\d{1,3}$/.test(tok)) {
+    } else if (/^\d{1,4}$/.test(tok)) {
       nums = [parseInt(tok, 10)];
     } else {
       result.invalid.push(tok);
       return;
     }
     nums.forEach(n => {
-      const code = String(n).padStart(3, '0');
+      const code = String(n).padStart(EXAM_CODE_LEN, '0');
       if (!seen.has(code)) {
         seen.add(code);
         result.codes.push(code);
@@ -2039,7 +2053,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
   });
 
-  const fallbackCode = document.getElementById('keyExamCode').value.trim() || '101';
+  const fallbackCode = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
   if (!answerKeys[maDeStr] && !isInitialPreview) {
     showAppToast(`⚠️ Mã đề ${maDeStr} chưa có đáp án! Đang chấm tạm theo đáp án mã đề ${fallbackCode}.`, 'warn');
@@ -2179,6 +2193,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     gradedList.unshift(record);
     safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
     renderResultsTable();
+    updateCamLastResult(record);
     playScanResultSound(answerKeys[maDeStr] ? 'ok' : 'warn');
 
     // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
@@ -2416,13 +2431,13 @@ const preferredFacingMode = 'environment'; // luôn dùng camera sau
 function buildRandomMockSheetData() {
   const randomSbd = '0209' + String(1 + Math.floor(Math.random() * 99)).padStart(2, '0');
 
-  const code = document.getElementById('keyExamCode').value.trim() || '101';
+  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   const key = answerKeys[code];
 
   const mock = {
     sbd: randomSbd.split(''),
-    made: code.padStart(3, '0').split(''),
+    made: normalizeExamCode(code).split(''),
     p1: {},
     p2: {},
     p3: {}
@@ -2453,8 +2468,12 @@ async function startCamera() {
   const statusEl = document.getElementById('camLiveStatus');
 
   // Hiển thị ngay khung ngắm Camera để người dùng luôn thấy giao diện quét
-  camBox.style.display = 'block';
+  camBox.style.display = 'flex';
   video.style.display = 'block';
+  document.body.classList.add('cam-fs-open');
+  pushCamFsHistory();
+  const lastRes = document.getElementById('camLastResult');
+  if (lastRes) { lastRes.style.display = 'none'; lastRes.innerText = ''; }
   if (statusEl) statusEl.innerText = '⏳ Đang kết nối ống kính Camera...';
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -2521,7 +2540,45 @@ function stopCamera(hideBox = true) {
   }
   if (hideBox) {
     document.getElementById('cameraContainer').style.display = 'none';
+    document.body.classList.remove('cam-fs-open');
+    releaseCamFsHistory();
   }
+}
+
+// Nút "Màn hình chính": tắt camera, trở về trang chính và cuộn tới khung kết quả vừa chấm
+function exitCameraFullscreen() {
+  stopCamera();
+  setTimeout(() => {
+    const sbd = document.getElementById('resStudentSBD');
+    const card = sbd && sbd.closest('.card');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 60);
+}
+
+// Nút Back của điện thoại / trình duyệt cũng chỉ thoát camera toàn màn hình, không thoát khỏi ứng dụng
+let camFsHistoryPushed = false;
+function pushCamFsHistory() {
+  if (camFsHistoryPushed) return;
+  try { history.pushState({ camFs: 1 }, ''); camFsHistoryPushed = true; } catch (e) {}
+}
+function releaseCamFsHistory() {
+  if (!camFsHistoryPushed) return;
+  camFsHistoryPushed = false;
+  try { history.back(); } catch (e) {}
+}
+window.addEventListener('popstate', () => {
+  if (camFsHistoryPushed) {
+    camFsHistoryPushed = false;
+    stopCamera();
+  }
+});
+
+// Hiện kết quả vừa chấm ngay trong màn hình camera để biết phiếu đã được chấm
+function updateCamLastResult(rec) {
+  const el = document.getElementById('camLastResult');
+  if (!el || !document.body.classList.contains('cam-fs-open')) return;
+  el.style.display = 'block';
+  el.innerText = `✅ Vừa chấm: SBD ${rec.sbd} · Mã đề ${rec.made} · ${Number(rec.total).toFixed(2)} điểm — bảng điểm có ${gradedList.length} bài`;
 }
 
 function drawViewfinderGuide(oCtx, w, h, detectedCorners = null) {
@@ -2649,6 +2706,7 @@ function handleImageUpload(e) {
       c.width = img.width;
       c.height = img.height;
       c.getContext('2d').drawImage(img, 0, 0);
+      if (document.body.classList.contains('cam-fs-open')) stopCamera();
       processOMRCanvas(c);
       const resEl = document.getElementById('resultCanvas');
       if (resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3041,6 +3099,9 @@ window.addEventListener('DOMContentLoaded', () => {
   initImageDB();
   loadOpenCVWithFallback(0);
   document.getElementById('scanSoundToggle').checked = safeGetStorage('omr_scan_sound', '1') !== '0';
+  const keyInput = document.getElementById('keyExamCode');
+  const savedCodes = getSortedExamCodes();
+  if (savedCodes.length && !answerKeys[keyInput.value.trim()]) keyInput.value = savedCodes[0];
   onTemplateChange();
   renderResultsTable();
 });
