@@ -202,10 +202,6 @@
       flex: none; background: #fff; color: #1e3a8a; font-weight: 800; font-size: 0.82rem;
       padding: 9px 12px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
-    .cam-rot-btn {
-      flex: none; background: #fff; color: #1e3a8a; font-weight: 800; font-size: 0.82rem;
-      padding: 9px 12px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    }
     .scanner-box { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; background: #000; overflow: hidden; }
     .scanner-box video {
       position: absolute; inset: 0; width: 100%; height: 100%;
@@ -485,7 +481,6 @@
       <div id="cameraContainer" class="cam-wrap" style="display:none;">
         <div class="cam-status-bar">
           <button type="button" class="btn cam-back-btn" onclick="exitCameraFullscreen()" title="Tắt camera và quay lại màn hình chính để xem kết quả">⬅ Màn hình chính</button>
-          <button type="button" class="btn cam-rot-btn" onclick="rotateCamera()" title="Xoay khung hình camera 90° (nếu hình đang bị nằm ngang)">🔄 Xoay</button>
           <span id="camLiveStatus">📷 Đang khởi động ống kính Camera...</span>
         </div>
 
@@ -2465,78 +2460,69 @@ function buildRandomMockSheetData() {
   return mock;
 }
 
-// ===== XOAY KHUNG HÌNH CAMERA THEO CHIỀU ĐỨNG (phiếu A4 là khổ đứng) =====
-// camRotation: góc xoay (theo chiều kim đồng hồ) áp dụng cho cả hình hiển thị lẫn ảnh dùng để nhận diện/chấm.
-let camRotation = 0;
-let camRotationManual = false;
+// ===== CAMERA CỐ ĐỊNH 1 DẠNG ĐỨNG THEO CHIỀU PHIẾU — không xoay hình, không xoay theo máy =====
+let camFsByUs = false;
 
-function camFrameSize(video) {
+// Khung hình dùng để quét: luôn là khổ đứng. Nếu luồng camera là hình ngang thì chỉ cắt giữa thành khổ đứng 3:4 (KHÔNG xoay hình).
+function camCropRect(video) {
   const vw = video.videoWidth || 640, vh = video.videoHeight || 850;
-  return (camRotation % 180 !== 0) ? { w: vh, h: vw } : { w: vw, h: vh };
+  if (vw > vh) { const sw = Math.round(vh * 0.75); return { sx: Math.round((vw - sw) / 2), sy: 0, sw: sw, sh: vh }; }
+  return { sx: 0, sy: 0, sw: vw, sh: vh };
 }
+function camFrameSize(video) { const r = camCropRect(video); return { w: r.sw, h: r.sh }; }
 
-// Luồng camera đang ngang (rộng > cao) trong khi màn hình để đứng → tự xoay 90° cho thành khung đứng
-function autoSetCamRotation() {
-  const video = document.getElementById('video');
-  if (!video || camRotationManual) { applyCamRotation(); return; }
-  const vw = video.videoWidth, vh = video.videoHeight;
-  const ang = Math.abs((screen.orientation && screen.orientation.angle) || window.orientation || 0);
-  const screenPortrait = window.innerHeight >= window.innerWidth;
-  if (vw && vh && vw > vh && screenPortrait) camRotation = (ang === 180) ? 270 : 90;
-  else camRotation = 0;
-  applyCamRotation();
-}
-
-function applyCamRotation() {
-  const video = document.getElementById('video');
-  const box = video && video.parentElement;
-  if (!video || !box) return;
-  if (camRotation % 180 !== 0) {
-    // Hộp video đổi chỗ rộng↔cao rồi xoay, để sau khi xoay vừa khít vùng hiển thị
-    video.style.inset = 'auto';
-    video.style.left = '50%'; video.style.top = '50%';
-    video.style.width = box.clientHeight + 'px';
-    video.style.height = box.clientWidth + 'px';
-    video.style.transform = 'translate(-50%, -50%) rotate(' + camRotation + 'deg)';
-  } else {
-    video.style.inset = '0';
-    video.style.left = ''; video.style.top = '';
-    video.style.width = '100%'; video.style.height = '100%';
-    video.style.transform = camRotation ? 'rotate(' + camRotation + 'deg)' : '';
-  }
-}
-
-function rotateCamera() {
-  camRotationManual = true;
-  camRotation = (camRotation + 90) % 360;
-  stableCornerFrames = 0;
-  applyCamRotation();
-}
-
-// Lấy 1 khung hình từ video đã xoay đúng chiều đứng
+// Lấy 1 khung hình đứng (không xoay) để nhận diện / chấm
 function grabVideoFrame(video) {
-  const vw = video.videoWidth, vh = video.videoHeight;
-  const sz = camFrameSize(video);
+  const r = camCropRect(video);
   const c = document.createElement('canvas');
-  c.width = sz.w; c.height = sz.h;
-  const ctx = c.getContext('2d');
-  ctx.translate(sz.w / 2, sz.h / 2);
-  ctx.rotate(camRotation * Math.PI / 180);
-  ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh);
+  c.width = r.sw; c.height = r.sh;
+  c.getContext('2d').drawImage(video, r.sx, r.sy, r.sw, r.sh, 0, 0, r.sw, r.sh);
   return c;
 }
 
+// Đặt video + khung ngắm thành 1 khung đứng căn giữa, cùng tỉ lệ với khung hình dùng để quét
+function layoutCamStage() {
+  const video = document.getElementById('video');
+  const overlay = document.getElementById('liveOverlayCanvas');
+  const box = video && video.parentElement;
+  if (!video || !overlay || !box || !box.clientWidth || !box.clientHeight) return;
+  const fs = camFrameSize(video);
+  const A = fs.w / fs.h;
+  let sw = box.clientWidth, sh = sw / A;
+  if (sh > box.clientHeight) { sh = box.clientHeight; sw = sh * A; }
+  [video, overlay].forEach(el => {
+    el.style.inset = 'auto';
+    el.style.left = '50%'; el.style.top = '50%';
+    el.style.width = Math.round(sw) + 'px'; el.style.height = Math.round(sh) + 'px';
+    el.style.transform = 'translate(-50%, -50%)';
+  });
+  video.style.objectFit = 'cover';
+}
 window.addEventListener('resize', () => {
-  if (document.body.classList.contains('cam-fs-open')) autoSetCamRotation();
+  if (document.body.classList.contains('cam-fs-open')) layoutCamStage();
 });
-window.addEventListener('orientationchange', () => {
-  setTimeout(() => { if (document.body.classList.contains('cam-fs-open')) autoSetCamRotation(); }, 250);
-});
+
+// Khóa màn hình ở chiều đứng khi quét (nơi trình duyệt cho phép)
+async function lockCamPortrait() {
+  try { if (screen.orientation && screen.orientation.lock) { await screen.orientation.lock('portrait'); return; } } catch (e) {}
+  try {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
+      camFsByUs = true;
+      await screen.orientation.lock('portrait');
+    }
+  } catch (e) {}
+}
+function unlockCamPortrait() {
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+  try { if (camFsByUs && document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+  camFsByUs = false;
+}
 
 async function startCamera() {
   if (!isLicenseValid()) { openLicenseModal(); return; }
   stopCamera(false);
-  camRotation = 0; camRotationManual = false;
+  lockCamPortrait();
   const camBox = document.getElementById('cameraContainer');
   const video = document.getElementById('video');
   const statusEl = document.getElementById('camLiveStatus');
@@ -2589,7 +2575,7 @@ async function startCamera() {
       setTimeout(done, 1200);
     });
     await video.play().catch(() => {});
-    autoSetCamRotation();
+    layoutCamStage();
 
     if (statusEl) {
       statusEl.innerText = '🟢 Camera Sau đang hoạt động — Canh 4 chấm đen ở 4 góc phiếu vào khung ngắm';
@@ -2616,6 +2602,7 @@ function stopCamera(hideBox = true) {
   if (hideBox) {
     document.getElementById('cameraContainer').style.display = 'none';
     document.body.classList.remove('cam-fs-open');
+    unlockCamPortrait();
     releaseCamFsHistory();
   }
 }
