@@ -44,6 +44,14 @@
     .cv-badge.ready { background: #22c55e; color: #fff; }
     .cv-badge.error { background: #ef4444; color: #fff; }
 
+    /* Bản quyền: dùng thử 10 ngày / kích hoạt 365 ngày */
+    .lic-badge { cursor: pointer; border: 1px solid rgba(255,255,255,0.35); }
+    .lic-badge.trial { background: #f59e0b; color: #fff; }
+    .lic-badge.active { background: #16a34a; color: #fff; }
+    .lic-badge.expired { background: #dc2626; color: #fff; }
+    @keyframes licShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+    .lic-shake { animation: licShake 0.3s; }
+
     /* Navigation 4 Tabs */
     .tabs {
       display: grid; grid-template-columns: repeat(4, 1fr);
@@ -361,6 +369,7 @@
   <div class="header-actions">
     <button class="ios-btn" onclick="openIOSGuideModal()">🍎 Cài App iPhone / iOS</button>
     <button class="android-btn" onclick="openAndroidGuideModal()">📱 Cài App Android / APK</button>
+    <span id="licBadge" class="cv-badge lic-badge trial" onclick="openLicenseModal()" title="Bấm để xem / nhập mật khẩu kích hoạt">🕒 Dùng thử</span>
     <span id="cvStatus" class="cv-badge">⏳ Đang nạp OpenCV.js...</span>
   </div>
 </header>
@@ -632,6 +641,29 @@
 
 <!-- TOAST THÔNG BÁO CHUẨN ANDROID (THAY THẾ ALERT) -->
 <div id="appToastContainer"></div>
+
+<!-- MODAL BẢN QUYỀN: DÙNG THỬ 10 NGÀY / KÍCH HOẠT 365 NGÀY -->
+<div id="licenseModal" class="modal-backdrop" style="z-index:3000;" onclick="if(event.target===this && isLicenseValid()) closeLicenseModal()">
+  <div class="modal-card" style="max-width: 420px;">
+    <div class="modal-header">
+      <strong id="licTitle">🔑 Kích hoạt bản quyền</strong>
+      <button id="licCloseBtn" class="btn btn-danger btn-sm" onclick="closeLicenseModal()">✕</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:16px; text-align:left; font-size:0.9rem; color:#1e293b;">
+      <p id="licStatusText" style="margin-bottom:12px; line-height:1.5;"></p>
+      <label for="licPassInput" style="display:block; margin-bottom:5px;">Mật khẩu kích hoạt</label>
+      <input type="password" id="licPassInput" autocomplete="off" placeholder="Nhập mật khẩu..."
+             style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; outline:none;"
+             onkeydown="if(event.key==='Enter') submitLicensePassword()">
+      <p id="licError" style="color:#dc2626; font-size:0.8rem; font-weight:600; min-height:1.1em; margin-top:6px;"></p>
+      <p style="font-size:0.76rem; color:#64748b; margin-top:4px;">Nhập đúng mật khẩu để sử dụng thêm 365 ngày.</p>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button id="licLaterBtn" class="btn btn-outline" onclick="closeLicenseModal()">Để sau</button>
+      <button class="btn btn-primary" onclick="submitLicensePassword()">🔓 Kích hoạt 365 ngày</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL XÁC NHẬN (THAY THẾ CONFIRM) -->
 <div id="confirmModal" class="modal-backdrop" onclick="if(event.target===this) closeAppConfirm(false)">
@@ -2026,6 +2058,7 @@ function rejectScanNoMarkers(reason) {
 // Trả về true nếu đã chấm, false nếu bị chặn vì chưa thấy đủ 4 chấm đen.
 // (Phiếu mẫu hiển thị lúc mở app / đổi mẫu — isInitialPreview — chỉ để xem trước, không tính là quét thật.)
 async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
+  if (!isInitialPreview && !isLicenseValid()) { openLicenseModal(); return false; }
   const thresholdRatio = parseInt(document.getElementById('fillThreshold').value, 10) / 100;
   let rawSheetColor, rawSheetBin;
   let src = null, gray = null, blurred = null, thresh = null;
@@ -2584,6 +2617,7 @@ function buildRandomMockSheetData() {
 }
 
 async function startCamera() {
+  if (!isLicenseValid()) { openLicenseModal(); return; }
   stopCamera(false);
   const camBox = document.getElementById('cameraContainer');
   const video = document.getElementById('video');
@@ -3107,6 +3141,139 @@ function downloadIOSMobileConfig() {
   showAppToast('Đã tải gói cấu hình iPhone (.mobileconfig)! Vào Cài đặt iPhone -> Đã tải về hồ sơ để cài đặt.', 'success');
 }
 
+/********************************************************************
+ * BẢN QUYỀN: DÙNG THỬ 10 NGÀY → NHẬP MẬT KHẨU ĐỂ DÙNG 365 NGÀY
+ ********************************************************************/
+const LIC_TRIAL_DAYS = 10;
+const LIC_ACTIVE_DAYS = 365;
+const LIC_DAY_MS = 86400000;
+const LIC_SALT = 'OMR-PRO-2026|';
+const LIC_PASS_HASH = 'ky96u4h57y'; // mã băm của mật khẩu kích hoạt (không lưu mật khẩu dạng chữ)
+const LIC_KEY_START = 'omr_lic_trial_start';
+const LIC_KEY_UNTIL = 'omr_lic_unlock_until';
+const LIC_KEY_SEEN = 'omr_lic_last_seen';
+
+function licHash(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0, ch; i < str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+// Thời gian "hiện tại" có chống lùi đồng hồ: không bao giờ nhỏ hơn mốc đã từng ghi nhận
+function licNow() {
+  const seen = parseInt(safeGetStorage(LIC_KEY_SEEN, '0'), 10) || 0;
+  const now = Math.max(Date.now(), seen);
+  if (now > seen) safeSetStorage(LIC_KEY_SEEN, String(now));
+  return now;
+}
+
+// mode: 'active' (đã kích hoạt) | 'trial' (đang dùng thử) | 'expired' (hết hạn, cần mật khẩu)
+function getLicenseState() {
+  const now = licNow();
+  let start = parseInt(safeGetStorage(LIC_KEY_START, '0'), 10) || 0;
+  if (!start) {
+    start = now;
+    safeSetStorage(LIC_KEY_START, String(start));
+  }
+  const until = parseInt(safeGetStorage(LIC_KEY_UNTIL, '0'), 10) || 0;
+  if (until > now) {
+    return { mode: 'active', daysLeft: Math.ceil((until - now) / LIC_DAY_MS), until };
+  }
+  const trialEnd = start + LIC_TRIAL_DAYS * LIC_DAY_MS;
+  if (trialEnd > now) {
+    return { mode: 'trial', daysLeft: Math.ceil((trialEnd - now) / LIC_DAY_MS), until: trialEnd };
+  }
+  return { mode: 'expired', daysLeft: 0, until: Math.max(until, trialEnd) };
+}
+
+function isLicenseValid() {
+  return getLicenseState().mode !== 'expired';
+}
+
+function formatLicDate(ts) {
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+function updateLicenseUI() {
+  const st = getLicenseState();
+  const badge = document.getElementById('licBadge');
+  if (badge) {
+    badge.classList.remove('trial', 'active', 'expired');
+    badge.classList.add(st.mode);
+    badge.innerText = st.mode === 'active'
+      ? `✅ Đã kích hoạt · còn ${st.daysLeft} ngày`
+      : (st.mode === 'trial' ? `🕒 Dùng thử · còn ${st.daysLeft} ngày` : '🔒 Hết hạn dùng thử');
+  }
+  if (st.mode === 'expired') openLicenseModal();
+  return st;
+}
+
+function openLicenseModal() {
+  const st = getLicenseState();
+  const locked = st.mode === 'expired';
+  const title = document.getElementById('licTitle');
+  const text = document.getElementById('licStatusText');
+  if (title) title.innerText = locked ? '🔒 Đã hết hạn dùng thử' : '🔑 Kích hoạt bản quyền';
+  if (text) {
+    text.innerText = locked
+      ? `Thời gian dùng thử ${LIC_TRIAL_DAYS} ngày đã kết thúc. Vui lòng nhập mật khẩu để tiếp tục sử dụng trong ${LIC_ACTIVE_DAYS} ngày.`
+      : (st.mode === 'active'
+          ? `Bản quyền đang hoạt động — còn ${st.daysLeft} ngày (đến ${formatLicDate(st.until)}). Nhập lại mật khẩu để gia hạn thêm ${LIC_ACTIVE_DAYS} ngày kể từ hôm nay.`
+          : `Đang dùng thử — còn ${st.daysLeft} ngày (đến ${formatLicDate(st.until)}). Có thể nhập mật khẩu ngay để dùng ${LIC_ACTIVE_DAYS} ngày.`);
+  }
+  const closeBtn = document.getElementById('licCloseBtn');
+  const laterBtn = document.getElementById('licLaterBtn');
+  if (closeBtn) closeBtn.style.display = locked ? 'none' : '';
+  if (laterBtn) laterBtn.style.display = locked ? 'none' : '';
+  const err = document.getElementById('licError');
+  if (err) err.innerText = '';
+  const input = document.getElementById('licPassInput');
+  if (input) input.value = '';
+  document.getElementById('licenseModal').classList.add('open');
+  if (input) setTimeout(() => { try { input.focus(); } catch (e) {} }, 60);
+}
+
+function closeLicenseModal() {
+  if (!isLicenseValid()) return; // hết hạn thì không đóng được
+  document.getElementById('licenseModal').classList.remove('open');
+}
+
+function submitLicensePassword() {
+  const input = document.getElementById('licPassInput');
+  const err = document.getElementById('licError');
+  const val = (input ? input.value : '').trim();
+  if (licHash(LIC_SALT + val) === LIC_PASS_HASH) {
+    const now = licNow();
+    safeSetStorage(LIC_KEY_UNTIL, String(now + LIC_ACTIVE_DAYS * LIC_DAY_MS));
+    document.getElementById('licenseModal').classList.remove('open');
+    const st = updateLicenseUI();
+    showAppToast(`✅ Kích hoạt thành công! Sử dụng đến ${formatLicDate(st.until)} (${st.daysLeft} ngày).`, 'success');
+  } else {
+    if (err) err.innerText = '❌ Mật khẩu không đúng. Vui lòng thử lại.';
+    if (input) {
+      input.value = '';
+      input.classList.remove('lic-shake');
+      void input.offsetWidth;
+      input.classList.add('lic-shake');
+      input.focus();
+    }
+  }
+}
+
+function initLicense() {
+  updateLicenseUI();
+  setInterval(updateLicenseUI, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) updateLicenseUI(); });
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -3114,6 +3281,7 @@ if ('serviceWorker' in navigator) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  initLicense();
   initImageDB();
   loadOpenCVWithFallback(0);
   document.getElementById('webhookUrl').value = safeGetStorage('omr_webhook_ult', '');
