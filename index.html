@@ -1004,7 +1004,7 @@ function getSheetGeometry(template) {
   for (let col = 0; col < 6; col++) {
     const colArr = [];
     for (let d = 0; d <= 9; d++) {
-      colArr.push({ digit: d.toString(), x: 475 + col * 25, y: 58 + d * 19.5 });
+      colArr.push({ digit: d.toString(), x: 509 + col * 25, y: 58 + d * 19.5 });
     }
     geo.sbd.push(colArr);
   }
@@ -1012,7 +1012,7 @@ function getSheetGeometry(template) {
   for (let col = 0; col < 4; col++) {
     const colArr = [];
     for (let d = 0; d <= 9; d++) {
-      colArr.push({ digit: d.toString(), x: 674 + col * 26, y: 58 + d * 19.5 });
+      colArr.push({ digit: d.toString(), x: 708 + col * 26, y: 58 + d * 19.5 });
     }
     geo.made.push(colArr);
   }
@@ -1129,7 +1129,7 @@ function drawStandardSheet(targetCanvas, mockData = null) {
 
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 1.4;
-  ctx.strokeRect(28, 16, 405, 235);
+  ctx.strokeRect(28, 16, 439, 235);
 
   ctx.fillStyle = '#000000';
   ctx.font = 'bold 15.5px Arial';
@@ -1146,12 +1146,12 @@ function drawStandardSheet(targetCanvas, mockData = null) {
   ctx.font = 'italic 11.5px Arial';
   ctx.fillText('Lưu ý: Tô kín bằng bút chì đen. Không làm bẩn 4 ô vuông góc.', 42, 232);
 
-  ctx.strokeRect(448, 16, 185, 235);
-  ctx.strokeRect(648, 16, 130, 235);
+  ctx.strokeRect(482, 16, 185, 235);
+  ctx.strokeRect(682, 16, 130, 235);
   ctx.font = 'bold 12.5px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('SỐ BÁO DANH', 540, 35);
-  ctx.fillText('MÃ ĐỀ', 713, 35);
+  ctx.fillText('SỐ BÁO DANH', 574, 35);
+  ctx.fillText('MÃ ĐỀ', 747, 35);
 
   geo.sbd.forEach((col, cIdx) => {
     col.forEach(b => drawBubble(ctx, b.x, b.y, 8.5, b.digit, mockData && mockData.sbd[cIdx] === b.digit));
