@@ -270,13 +270,6 @@
     }
     input, select, table { user-select: text; }
     .header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .android-btn {
-      font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
-      background: #f59e0b; color: #fff; border: none; font-weight: 700;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .android-btn:hover { background: #d97706; }
     #appToastContainer {
       position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
       z-index: 3000; display: flex; flex-direction: column; gap: 8px;
@@ -344,13 +337,6 @@
     footer {
       padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
     }
-    .ios-btn {
-      font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
-      background: #0ea5e9; color: #fff; border: none; font-weight: 700;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .ios-btn:hover { background: #0284c7; }
     @supports (-webkit-touch-callout: none) {
       select, input[type="text"], input[type="number"] {
         font-size: 16px !important;
@@ -367,8 +353,6 @@
     <h1>OMR PRO 2026 - iOS IPHONE & ANDROID AI</h1>
   </div>
   <div class="header-actions">
-    <button class="ios-btn" onclick="openIOSGuideModal()">🍎 Cài App iPhone / iOS</button>
-    <button class="android-btn" onclick="openAndroidGuideModal()">📱 Cài App Android / APK</button>
     <span id="licBadge" class="cv-badge lic-badge trial" onclick="openLicenseModal()" title="Bấm để xem / nhập mật khẩu kích hoạt">🕒 Dùng thử</span>
     <span id="cvStatus" class="cv-badge">⏳ Đang nạp OpenCV.js...</span>
   </div>
@@ -719,109 +703,6 @@
   </div>
 </div>
 
-<!-- MODAL HƯỚNG DẪN CÀI ĐẶT & ĐÓNG GÓI ANDROID APK -->
-<div id="androidGuideModal" class="modal-backdrop" onclick="if(event.target===this) closeAndroidGuideModal()">
-  <div class="modal-card" style="max-width: 680px;">
-    <div class="modal-header">
-      <strong>📱 Cài Đặt & Đóng Gói Ứng Dụng OMR Pro 2026 Trên Android</strong>
-      <button class="btn btn-danger btn-sm" onclick="closeAndroidGuideModal()">✕ Đóng</button>
-    </div>
-    <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
-      <div style="display:flex; justify-content:space-between; align-items:center; background:#eff6ff; border:1px solid #93c5fd; padding:10px 12px; border-radius:8px; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-        <div>
-          <span style="font-size:0.78rem; color:#475569; font-weight:700; display:block;">MÔI TRƯỜNG HIỆN TẠI:</span>
-          <strong id="androidEnvStatus" style="color:#1e40af; font-size:0.92rem;">Đang kiểm tra...</strong>
-        </div>
-        <button id="btnInstallPWA" class="btn btn-success" onclick="installPWAApp()" style="display:none;">
-          📲 Cài App Vào Màn Hình Chính
-        </button>
-      </div>
-
-      <div class="guide-step">
-        <strong>Cách 1: Biên dịch file cài đặt <span class="code-pill">.APK</span> tự động qua GitHub Actions (Không cần cài Android Studio)</strong>
-        <p style="margin-top:4px; color:#334155;">
-          1. Giải nén file gói dự án <span class="code-pill">OMR_Pro_2026_Android_Package.zip</span> đi kèm.<br>
-          2. Tải toàn bộ thư mục lên một kho lưu trữ (Repository) trên GitHub.<br>
-          3. Mở tab <strong>Actions</strong> trên GitHub → Quy trình <em>Build OMR Pro 2026 Android APK</em> sẽ tự động chạy và xuất ra file <span class="code-pill">OMR-Pro-2026-debug.apk</span> sau ~2 phút để tải thẳng về điện thoại Android!
-        </p>
-      </div>
-
-      <div class="guide-step">
-        <strong>Cách 2: Xuất file <span class="code-pill">.APK</span> trực tiếp bằng Android Studio hoặc Script 1-Click</strong>
-        <p style="margin-top:4px; color:#334155;">
-          1. Mở thư mục dự án trong <strong>Android Studio</strong> (hoặc chạy <span class="code-pill">build_apk.bat</span> trên Windows / <span class="code-pill">./build_apk.sh</span> trên macOS/Linux).<br>
-          2. Chọn menu <strong>Build → Build Bundle(s) / APK(s) → Build APK(s)</strong>.<br>
-          3. Dự án đã tích hợp sẵn <strong>AndroidBridge Native</strong>: tự động cấp quyền Camera sau để quét phiếu OMR, lưu ảnh bài chấm <span class="code-pill">.JPG</span>, gói <span class="code-pill">.ZIP</span> và bảng điểm <span class="code-pill">.XLSX</span> vào thư mục <span class="code-pill">Downloads/OMR_Pro_2026</span> cũng như chia sẻ trực tiếp qua Zalo.
-        </p>
-      </div>
-
-      <div class="guide-step" style="margin-bottom:0;">
-        <strong>Cách 3: Cài đặt trực tiếp dạng WebAPK (PWA) ngay trên trình duyệt Chrome Android</strong>
-        <p style="margin-top:4px; color:#334155;">
-          Mở ứng dụng này bằng <strong>Google Chrome</strong> trên điện thoại Android → Bấm biểu tượng menu <strong>⋮ (3 chấm góc phải)</strong> → Chọn <strong>"Thêm vào màn hình chính" (Add to Home screen / Cài đặt ứng dụng)</strong>. Ứng dụng sẽ chạy toàn màn hình với biểu tượng riêng như một App gốc.
-        </p>
-      </div>
-    </div>
-    <div class="modal-footer" style="justify-content:flex-end;">
-      <button class="btn btn-primary" onclick="closeAndroidGuideModal()">Đã hiểu</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- MODAL HƯỚNG DẪN CÀI ĐẶT & ĐÓNG GÓI TRÊN iOS / IPHONE -->
-<div id="iosGuideModal" class="modal-backdrop" onclick="if(event.target===this) closeIOSGuideModal()">
-  <div class="modal-card" style="max-width: 680px;">
-    <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #0284c7);">
-      <strong>🍎 Cài Đặt & Đóng Gói Ứng Dụng OMR Pro 2026 Trên iPhone (iOS)</strong>
-      <button class="btn btn-danger btn-sm" onclick="closeIOSGuideModal()">✕ Đóng</button>
-    </div>
-    <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
-      <div style="display:flex; justify-content:space-between; align-items:center; background:#f0f9ff; border:1px solid #7dd3fc; padding:10px 12px; border-radius:8px; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-        <div>
-          <span style="font-size:0.78rem; color:#475569; font-weight:700; display:block;">TRẠNG THÁI THIẾT BỊ APPLE / iOS:</span>
-          <strong id="iosEnvStatus" style="color:#0369a1; font-size:0.92rem;">Đang kiểm tra...</strong>
-        </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button class="btn btn-success btn-sm" onclick="downloadIOSMobileConfig()">⬇️ Tải Gói Cài Đặt (.mobileconfig)</button>
-          <button class="btn btn-primary btn-sm" onclick="shareAppOnIOS()">📤 Mở Menu Chia Sẻ iPhone</button>
-        </div>
-      </div>
-
-      <div class="guide-step">
-        <strong>Cách 1: Cài trực tiếp lên Màn hình chính iPhone trong 10 giây (Không cần máy tính / Không cần Jailbreak)</strong>
-        <p style="margin-top:4px; color:#334155;">
-          1. Mở ứng dụng này bằng trình duyệt <strong>Safari</strong> trên điện thoại iPhone.<br>
-          2. Bấm vào nút <strong>Chia sẻ (Share - biểu tượng ô vuông có mũi tên hướng lên ⬆️)</strong> ở thanh công cụ dưới đáy màn hình Safari.<br>
-          3. Kéo xuống và chọn <strong>"Thêm vào MH chính" (Add to Home Screen ➕)</strong> → Bấm <strong>Thêm (Add)</strong> ở góc phải trên cùng.<br>
-          4. Ứng dụng <strong>OMR Pro 2026</strong> sẽ xuất hiện ngoài màn hình chính iPhone với biểu tượng riêng, chạy toàn màn hình (hỗ trợ Dynamic Island / Tai thỏ), mở Camera sau quét phiếu siêu mượt và lưu ảnh chấm vào <strong>Thư viện Ảnh / Tệp (Files)</strong>!
-        </p>
-      </div>
-
-      <div class="guide-step">
-        <strong>Cách 2: Tự động biên dịch file <span class="code-pill">.IPA</span> trên đám mây bằng GitHub Actions (Không cần máy Mac)</strong>
-        <p style="margin-top:4px; color:#334155;">
-          1. Giải nén gói <span class="code-pill">OMR_Pro_2026_iOS_iPhone_Package.zip</span> và tải lên một kho lưu trữ GitHub.<br>
-          2. Vào tab <strong>Actions</strong> → Chạy workflow <em>Build OMR Pro 2026 iOS IPA</em> (chạy trên máy chủ <span class="code-pill">macos-latest</span> của GitHub).<br>
-          3. Tải file <span class="code-pill">OMR-Pro-2026-iOS.ipa</span> vừa xuất ra và cài vào iPhone thông qua <strong>Sideloadly</strong>, <strong>AltStore</strong> (miễn phí bằng tài khoản Apple ID cá nhân) hoặc <strong>TrollStore / ESign</strong>.
-        </p>
-      </div>
-
-      <div class="guide-step" style="margin-bottom:0;">
-        <strong>Cách 3: Biên dịch và cài trực tiếp từ Xcode trên máy Mac (<span class="code-pill">OMRPro2026.xcodeproj</span>)</strong>
-        <p style="margin-top:4px; color:#334155;">
-          1. Mở file <span class="code-pill">OMRPro2026.xcodeproj</span> trong gói giải nén bằng phần mềm <strong>Xcode</strong>.<br>
-          2. Cắm cáp iPhone vào máy Mac, chọn tài khoản Apple ID tại mục <em>Signing & Capabilities → Team</em> và bấm nút <strong>Run (▶)</strong>.<br>
-          3. Dự án đã tích hợp sẵn cầu nối <strong>Swift WKWebView Native (<span class="code-pill">iOSBridge</span>)</strong>: tự động duyệt quyền Camera sau trên iOS 15–18+, lưu ảnh trực tiếp vào <strong>Photos (Альбом ảnh iPhone)</strong>, xuất file Excel/ZIP vào ứng dụng <strong>Tệp (Files → On My iPhone)</strong>, hỗ trợ in phiếu qua <strong>AirPrint</strong> và gửi ảnh bài chấm qua <strong>Zalo / AirDrop</strong>.
-        </p>
-      </div>
-    </div>
-    <div class="modal-footer" style="justify-content:flex-end;">
-      <button class="btn btn-primary" onclick="closeIOSGuideModal()">Đã hiểu</button>
-    </div>
-  </div>
-</div>
-
 <footer>
   Hệ thống Chấm thi Trắc nghiệm OMR Pro 2026 | Bản quyền thuộc về số ĐT: 0943.930.787
 </footer>
@@ -831,7 +712,6 @@
 /********************************************************************
  * HỆ THỐNG CẦU NỐI ANDROID NATIVE BRIDGE (APK WEBVIEW) & PWA DIALOGS
  ********************************************************************/
-let deferredPWAPrompt = null;
 let confirmDialogCallback = null;
 
 function isAndroidNativeAPK() {
@@ -859,46 +739,6 @@ function postToIOSBridge(payload) {
     } catch (e) {}
   }
   return false;
-}
-
-function openIOSGuideModal() {
-  const statusEl = document.getElementById('iosEnvStatus');
-  if (statusEl) {
-    if (isIOSNativeApp()) {
-      statusEl.innerText = '✅ Đang chạy trong Ứng dụng iOS Native (.IPA WKWebView Bridge Active)';
-      statusEl.style.color = '#16a34a';
-    } else if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
-      statusEl.innerText = '✅ Đang chạy ở chế độ Ứng dụng toàn màn hình trên iPhone (iOS WebApp)';
-      statusEl.style.color = '#16a34a';
-    } else if (isIOSDevice()) {
-      statusEl.innerText = '🍎 Đang mở trên trình duyệt iPhone/iPad (Bấm Chia sẻ ⬆️ → Thêm vào MH chính để cài App)';
-      statusEl.style.color = '#0284c7';
-    } else {
-      statusEl.innerText = '💻 Đang xem trên Máy tính / Khung xem trước (Sẵn sàng cài lên iPhone hoặc đóng gói .IPA)';
-      statusEl.style.color = '#0369a1';
-    }
-  }
-  const modal = document.getElementById('iosGuideModal');
-  if (modal) modal.classList.add('open');
-}
-
-function closeIOSGuideModal() {
-  const modal = document.getElementById('iosGuideModal');
-  if (modal) modal.classList.remove('open');
-}
-
-async function shareAppOnIOS() {
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: 'OMR Pro 2026 - Chấm Thi Trắc Nghiệm AI',
-        text: 'Ứng dụng Chấm Thi Trắc Nghiệm OpenCV AI & Lưu Ảnh Minh Chứng trên iPhone',
-        url: window.location.href
-      });
-      return;
-    } catch (e) {}
-  }
-  showAppToast('Trên Safari iPhone: Hãy bấm biểu tượng Chia sẻ (⬆️) ở dưới đáy màn hình → Chọn "Thêm vào MH chính"!', 'info');
 }
 
 function showAppToast(message, type = 'info') {
@@ -940,48 +780,6 @@ function closeAppConfirm(accepted) {
   if (accepted && typeof cb === 'function') {
     cb();
   }
-}
-
-function openAndroidGuideModal() {
-  const statusEl = document.getElementById('androidEnvStatus');
-  if (statusEl) {
-    if (isAndroidNativeAPK()) {
-      statusEl.innerText = '✅ Đang chạy trong Ứng dụng Android APK (Native Bridge Active)';
-      statusEl.style.color = '#16a34a';
-    } else if (window.matchMedia('(display-mode: standalone)').matches) {
-      statusEl.innerText = '✅ Đang chạy ở chế độ Ứng dụng toàn màn hình (PWA Standalone)';
-      statusEl.style.color = '#16a34a';
-    } else {
-      statusEl.innerText = '🌐 Đang chạy trên Trình duyệt / Khung xem trước (Sẵn sàng đóng gói APK)';
-      statusEl.style.color = '#1e40af';
-    }
-  }
-  const modal = document.getElementById('androidGuideModal');
-  if (modal) modal.classList.add('open');
-}
-
-function closeAndroidGuideModal() {
-  const modal = document.getElementById('androidGuideModal');
-  if (modal) modal.classList.remove('open');
-}
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPWAPrompt = e;
-  const btn = document.getElementById('btnInstallPWA');
-  if (btn) btn.style.display = 'inline-flex';
-});
-
-async function installPWAApp() {
-  if (!deferredPWAPrompt) {
-    showAppToast('Hãy mở menu trình duyệt Chrome (⋮) và chọn "Thêm vào màn hình chính"!', 'info');
-    return;
-  }
-  deferredPWAPrompt.prompt();
-  await deferredPWAPrompt.userChoice;
-  deferredPWAPrompt = null;
-  const btn = document.getElementById('btnInstallPWA');
-  if (btn) btn.style.display = 'none';
 }
 
 function safeGetStorage(key, fallback) {
@@ -3076,70 +2874,6 @@ function downloadSheetImage() {
   triggerImageDownload(c.toDataURL('image/png'), `Phieu_OMR_${currentTemplate}.png`);
 }
 
-
-function downloadIOSMobileConfig() {
-  const appUrl = window.location.href.startsWith('http') ? window.location.href : 'https://username.github.io/omr-pro-2026/';
-  const mobileConfigXml = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>PayloadContent</key>
-    <array>
-        <dict>
-            <key>FullScreen</key>
-            <true/>
-            <key>IsRemovable</key>
-            <true/>
-            <key>Label</key>
-            <string>OMR Pro 2026</string>
-            <key>PayloadDescription</key>
-            <string>Cấu hình cài đặt ứng dụng chấm thi OMR Pro 2026 trên iPhone</string>
-            <key>PayloadDisplayName</key>
-            <string>OMR Pro 2026 WebApp</string>
-            <key>PayloadIdentifier</key>
-            <string>vn.edu.bimson.omrpro2026.webclip</string>
-            <key>PayloadType</key>
-            <string>com.apple.webClip.managed</string>
-            <key>PayloadUUID</key>
-            <string>8A7B6C5D-1111-2222-3333-094393078701</string>
-            <key>PayloadVersion</key>
-            <integer>1</integer>
-            <key>Precomposed</key>
-            <true/>
-            <key>URL</key>
-            <string>${appUrl}</string>
-        </dict>
-    </array>
-    <key>PayloadDescription</key>
-    <string>Gói cài đặt ứng dụng Chấm Thi Trắc Nghiệm OMR Pro 2026 (Bản quyền: 0943.930.787)</string>
-    <key>PayloadDisplayName</key>
-    <string>Cài đặt OMR Pro 2026 (iOS)</string>
-    <key>PayloadIdentifier</key>
-    <string>vn.edu.bimson.omrpro2026.profile</string>
-    <key>PayloadOrganization</key>
-    <string>OMR Pro 2026 - 0943.930.787</string>
-    <key>PayloadRemovalDisallowed</key>
-    <false/>
-    <key>PayloadType</key>
-    <string>Configuration</string>
-    <key>PayloadUUID</key>
-    <string>8A7B6C5D-1111-2222-3333-094393078700</string>
-    <key>PayloadVersion</key>
-    <integer>1</integer>
-</dict>
-</plist>`;
-
-  const blob = new Blob([mobileConfigXml], { type: 'application/x-apple-aspen-config' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'OMR_Pro_2026_iPhone_Installer.mobileconfig';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
-  showAppToast('Đã tải gói cấu hình iPhone (.mobileconfig)! Vào Cài đặt iPhone -> Đã tải về hồ sơ để cài đặt.', 'success');
-}
 
 /********************************************************************
  * BẢN QUYỀN: DÙNG THỬ 10 NGÀY → NHẬP MẬT KHẨU ĐỂ DÙNG 365 NGÀY
