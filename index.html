@@ -149,6 +149,11 @@
     th, td { padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: center; }
     th { background: #f8fafc; font-weight: 700; color: #334155; }
 
+    .modal { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.88); z-index: 200; align-items: center; justify-content: center; padding: 12px; }
+    .modal.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 12px; padding: 10px; width: 100%; max-width: 520px; max-height: 94vh; overflow-y: auto; }
+    .modal-box img { width: 100%; display: block; border-radius: 8px; margin-bottom: 10px; }
+
     footer {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #0f172a; color: #cbd5e1; text-align: center;
@@ -241,6 +246,11 @@
       <!-- Hiển thị chi tiết chuỗi số đọc được ở Phần III -->
       <div id="p3ReadoutBox" class="p3-readout"></div>
 
+      <div class="row">
+        <button class="btn btn-success" onclick="saveResultImage()">Lưu ảnh kết quả vào điện thoại</button>
+        <label><input type="checkbox" id="autoSaveImg"> Tự tải ảnh sau mỗi lần chấm</label>
+      </div>
+
       <div class="canvas-preview-wrap">
         <canvas id="resultCanvas" width="840" height="1180"></canvas>
       </div>
@@ -332,6 +342,7 @@
               <th>Điểm P3 (TLN)</th>
               <th>Bài làm P3 (C1..C6)</th>
               <th>Tổng điểm</th>
+              <th>Ảnh</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -340,6 +351,16 @@
     </div>
   </div>
 
+</div>
+
+<div id="imgModal" class="modal" onclick="if (event.target === this) closeImgModal()">
+  <div class="modal-box">
+    <img id="modalImg" alt="Ảnh kết quả chấm bài">
+    <div class="row" style="justify-content:center; margin:0;">
+      <button class="btn btn-success" onclick="saveModalImage()">Lưu ảnh vào điện thoại</button>
+      <button class="btn btn-outline" onclick="closeImgModal()">Đóng</button>
+    </div>
+  </div>
 </div>
 
 <footer>
@@ -1094,7 +1115,9 @@ function processOMRCanvas(sourceCanvas) {
 
     // Lưu lịch sử chấm
     const record = {
+      id: Date.now(),
       time: new Date().toLocaleTimeString('vi-VN'),
+      date: new Date().toLocaleString('vi-VN'),
       sbd: sbdStr,
       made: maDeStr,
       scoreP1: +scoreP1.toFixed(2),
@@ -1108,6 +1131,7 @@ function processOMRCanvas(sourceCanvas) {
     localStorage.setItem('omr_graded_full2026', JSON.stringify(gradedList));
     renderResultsTable();
     sendToWebhook(record);
+    storeResultImage(record);
     playBeep(1046, 120);
 
   } catch (e) {
@@ -1296,8 +1320,100 @@ function renderResultsTable() {
       <td>${r.scoreP3}</td>
       <td style="font-size:0.76rem; color:#334155;">${r.p3Text || ''}</td>
       <td><strong style="color:#dc2626">${r.total.toFixed(2)}</strong></td>
+      <td>${r.id ? `<button class="btn btn-outline" onclick="viewResultImage(${r.id})">Xem</button>` : '-'}</td>
     </tr>
   `).join('');
+}
+
+/* ---- LƯU ẢNH KẾT QUẢ: chia sẻ/lưu vào thư viện ảnh điện thoại, xem lại trong bảng điểm ---- */
+let lastResult = null, modalBlob = null, modalRec = null, modalUrl = null;
+
+function imgDbOp(mode, fn) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open('omr_images', 1);
+    open.onupgradeneeded = () => open.result.createObjectStore('imgs');
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const rq = fn(open.result.transaction('imgs', mode).objectStore('imgs'));
+      rq.onsuccess = () => resolve(rq.result);
+      rq.onerror = () => reject(rq.error);
+    };
+  });
+}
+
+// Ghép thanh điểm số lên đầu ảnh phiếu đã chấm (có khoanh xanh/đỏ/vàng)
+function buildResultImage(rec) {
+  const src = document.getElementById('resultCanvas');
+  const H = 150;
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height + H;
+  const x = c.getContext('2d');
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = '#1e3a8a'; x.fillRect(0, 0, c.width, H);
+  x.fillStyle = '#ffffff'; x.textAlign = 'left';
+  x.font = 'bold 26px Arial';
+  x.fillText(`SBD: ${rec.sbd}   |   Mã đề: ${rec.made}`, 24, 42);
+  x.font = '18px Arial';
+  x.fillText(`Phần I: ${rec.scoreP1.toFixed(2)}   Phần II: ${rec.scoreP2.toFixed(2)}   Phần III: ${rec.scoreP3.toFixed(2)}`, 24, 78);
+  x.fillText(`${rec.mau || ''} - ${rec.date}`, 24, 108);
+  if (rec.p3Text) { x.font = '14px Arial'; x.fillText(rec.p3Text, 24, 134, c.width - 48); }
+  x.textAlign = 'right';
+  x.font = 'bold 56px Arial'; x.fillText(rec.total.toFixed(2), c.width - 24, 76);
+  x.font = '16px Arial'; x.fillText('TỔNG ĐIỂM', c.width - 24, 104);
+  x.drawImage(src, 0, H);
+  return c;
+}
+
+function imageFileName(rec) { return `OMR_SBD${rec.sbd}_MD${rec.made}_${rec.id}.jpg`; }
+
+async function storeResultImage(rec) {
+  try {
+    const blob = await new Promise(r => buildResultImage(rec).toBlob(r, 'image/jpeg', 0.88));
+    lastResult = { rec, blob };
+    await imgDbOp('readwrite', st => st.put(blob, rec.id));
+    if (document.getElementById('autoSaveImg').checked) downloadBlob(blob, imageFileName(rec));
+  } catch (e) { console.warn('Không lưu được ảnh kết quả:', e); }
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+// Điện thoại: mở bảng chia sẻ (chọn "Lưu ảnh"/"Lưu vào Thư viện"). Máy tính: tải file về.
+async function saveBlob(blob, name, title) {
+  const file = new File([blob], name, { type: 'image/jpeg' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  downloadBlob(blob, name);
+}
+
+function saveResultImage() {
+  if (!lastResult) { alert('Chưa có kết quả để lưu. Hãy chấm một bài trước!'); return; }
+  saveBlob(lastResult.blob, imageFileName(lastResult.rec), 'Kết quả OMR - SBD ' + lastResult.rec.sbd);
+}
+
+async function viewResultImage(id) {
+  let blob = null;
+  try { blob = await imgDbOp('readonly', st => st.get(id)); } catch (e) {}
+  if (!blob) { alert('Không tìm thấy ảnh của bài này (có thể đã bị xóa).'); return; }
+  modalBlob = blob;
+  modalRec = gradedList.find(r => r.id === id);
+  if (modalUrl) URL.revokeObjectURL(modalUrl);
+  modalUrl = URL.createObjectURL(blob);
+  document.getElementById('modalImg').src = modalUrl;
+  document.getElementById('imgModal').classList.add('open');
+}
+
+function closeImgModal() { document.getElementById('imgModal').classList.remove('open'); }
+
+function saveModalImage() {
+  if (modalBlob && modalRec) saveBlob(modalBlob, imageFileName(modalRec), 'Kết quả OMR - SBD ' + modalRec.sbd);
 }
 
 function exportExcel() {
@@ -1327,6 +1443,8 @@ function clearResults() {
   if (confirm('Xóa toàn bộ lịch sử chấm bài?')) {
     gradedList = [];
     localStorage.removeItem('omr_graded_full2026');
+    imgDbOp('readwrite', st => st.clear()).catch(() => {});
+    lastResult = null;
     renderResultsTable();
   }
 }
