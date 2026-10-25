@@ -131,6 +131,9 @@
     }
     #liveOverlayCanvas {
       position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2;
+      /* QUAN TRỌNG: ghi đè quy tắc chung `canvas {background:#fff}` — nếu không lớp phủ sẽ che trắng toàn bộ video */
+      background: transparent !important; box-shadow: none !important;
+      max-width: none; object-fit: cover; /* cùng cách cắt với <video> để khung ngắm khớp hình */
     }
     .cam-status-bar {
       position: absolute; top: 8px; left: 8px; right: 8px; z-index: 3;
@@ -2668,7 +2671,9 @@ function scanVideoFrameWithOpenCV() {
     } else {
       stableCornerFrames = 0;
     }
-  } catch (e) {}
+  } catch (e) {
+    try { drawViewfinderGuide(oCtx, w, h, null); } catch (_) {}
+  }
   isProcessingFrame = false;
 }
 
