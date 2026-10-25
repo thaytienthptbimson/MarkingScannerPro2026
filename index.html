@@ -1109,15 +1109,35 @@ function getSheetGeometry(template) {
 /********************************************************************
  * 3. VẼ PHIẾU TRẢ LỜI CHUẨN & PHIẾU GIẢ LẬP
  ********************************************************************/
-function drawStandardSheet(targetCanvas, mockData = null) {
+// scale = 1: kích thước chuẩn 920x1260 (dùng cho phiếu mẫu giả lập/chấm). scale > 1: vẽ lại sắc nét hơn để in / tải ảnh.
+// Phiếu để IN / TẢI ẢNH: vẽ ở độ phân giải cao nhất mà thiết bị cho phép (3.75x ≈ 3450x4725 px, ~420 dpi trên khổ A4).
+// Mức 3.75x nằm dưới giới hạn ~16,7 triệu điểm ảnh của canvas trên iPhone/Safari; nếu thiết bị vẫn không đủ thì tự hạ mức.
+const SHEET_PRINT_SCALES = [3.75, 3, 2, 1];
+function drawPrintSheet(canvas) {
+  for (const sc of SHEET_PRINT_SCALES) {
+    drawStandardSheet(canvas, null, sc);
+    try {
+      const o = Math.round(MARGIN * sc);
+      const px = canvas.getContext('2d').getImageData(o, o, 1, 1).data; // tâm ô vuông đen góc phải là đen thật
+      if (px[3] === 255 && px[0] < 60) return sc;
+    } catch (e) {}
+  }
+  drawStandardSheet(canvas, null, 1);
+  return 1;
+}
+
+function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
   const ctx = targetCanvas.getContext('2d');
-  targetCanvas.width = WARP_W + MARGIN * 2;
-  targetCanvas.height = WARP_H + MARGIN * 2;
+  targetCanvas.width = Math.round((WARP_W + MARGIN * 2) * scale);
+  targetCanvas.height = Math.round((WARP_H + MARGIN * 2) * scale);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if ('textRendering' in ctx) ctx.textRendering = 'geometricPrecision';
 
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
 
   ctx.save();
+  ctx.scale(scale, scale);
   ctx.translate(MARGIN, MARGIN);
 
   const corners = [[0, 0], [WARP_W, 0], [WARP_W, WARP_H], [0, WARP_H]];
@@ -2970,7 +2990,7 @@ function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
   btn.classList.add('active');
-  if (tabId === 'tab-sheet') drawStandardSheet(document.getElementById('sheetCanvas'));
+  if (tabId === 'tab-sheet') drawPrintSheet(document.getElementById('sheetCanvas'));
   if (tabId === 'tab-results') renderResultsTable();
 }
 
@@ -2991,15 +3011,17 @@ function onTemplateChange() {
   if (cfgCur) cfgCur.innerText = cfgMap[currentTemplate] || '';
   document.getElementById('p3ReadoutBox').innerHTML = '';
   renderAnswerKeyUI();
-  drawStandardSheet(document.getElementById('sheetCanvas'));
+  drawPrintSheet(document.getElementById('sheetCanvas'));
   // Luôn hiển thị ngay hình ảnh phiếu đã chấm mẫu trên khung kết quả để không bao giờ bị trắng trang
   runSimulatedTest(true);
 }
 
 function downloadSheetImage() {
   const c = document.getElementById('sheetCanvas');
-  drawStandardSheet(c);
-  triggerImageDownload(c.toDataURL('image/png'), `Phieu_OMR_${currentTemplate}.png`);
+  drawPrintSheet(c);
+  let url = c.toDataURL('image/png');
+  if (url.length < 100) { drawStandardSheet(c, null, 2); url = c.toDataURL('image/png'); } // dự phòng nếu máy không xuất nổi ảnh quá lớn
+  triggerImageDownload(url, `Phieu_OMR_${currentTemplate}.png`);
 }
 
 
