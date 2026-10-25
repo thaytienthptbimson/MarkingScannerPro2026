@@ -189,6 +189,7 @@
         <span>Chọn Mẫu Phiếu & Điều Khiển Quét</span>
         <select id="templateSelect" onchange="onTemplateChange()">
           <option value="2026_FULL">Mẫu Chuẩn 2026 Đủ 3 Phần (P1: 18 câu + P2: 4 câu Đ/S + P3: 6 câu TLN)</option>
+          <option value="2026_2P">Mẫu 2 Phần: Lịch sử / Địa lí / GDKT&amp;PL (P1: 24 câu ABCD + P2: 4 câu Đ/S)</option>
           <option value="40Q">Mẫu Ngoại Ngữ 40 Câu (100% Trắc nghiệm ABCD)</option>
         </select>
       </div>
@@ -201,7 +202,7 @@
           Tải Ảnh Phiếu
           <input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
         </label>
-        <button class="btn btn-warning" onclick="runSimulatedTest()">Chấm Thử Phiếu Giả Lập (Đủ 3 Phần)</button>
+        <button class="btn btn-warning" onclick="runSimulatedTest()">Chấm Thử Phiếu Giả Lập</button>
       </div>
 
       <div class="row"><label><input type="checkbox" id="autoCapture" checked> Tự động chụp &amp; chấm khi OpenCV nhận đủ 4 ô vuông góc (giữ yên phiếu khoảng 1 giây)</label></div>
@@ -274,8 +275,10 @@
         <h4 style="margin: 14px 0 6px; color:#1e293b;">PHẦN II: Trắc nghiệm Đúng / Sai (4 câu x 4 ý a, b, c, d)</h4>
         <div id="keyGridP2"></div>
 
+        <div id="keyP3Wrap">
         <h4 style="margin: 14px 0 6px; color:#1e293b;">PHẦN III: Trả lời ngắn (Nhập tối đa 4 ký tự: dấu -, dấu phẩy , và chữ số 0-9)</h4>
         <div id="keyGridP3" class="key-grid-p3"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -323,6 +326,7 @@
               <th>Giờ chấm</th>
               <th>SBD</th>
               <th>Mã đề</th>
+              <th>Mẫu</th>
               <th>Điểm P1</th>
               <th>Điểm P2 (Đ/S)</th>
               <th>Điểm P3 (TLN)</th>
@@ -355,6 +359,7 @@ const R_BUBBLE = 8.5; // Bán kính ô tròn vừa vặn cho cả 3 phần trên
 let cvReady = false;
 let videoStream = null;
 let currentTemplate = '2026_FULL';
+const TEMPLATE_LABELS = { '2026_FULL': '3 phần 2026', '2026_2P': '2 phần (Sử/Địa/KTPL)', '40Q': '40 câu ABCD' };
 let answerKeys = JSON.parse(localStorage.getItem('omr_keys_full2026') || '{}');
 let gradedList = JSON.parse(localStorage.getItem('omr_graded_full2026') || '[]');
 
@@ -396,6 +401,26 @@ function getSheetGeometry(template) {
       geo.p1.push({
         q: i + 1,
         opts: labels.map((lbl, idx) => ({ label: lbl, x: baseX + idx * 32, y }))
+      });
+    }
+    return geo;
+  }
+
+  // --- MẪU 2 PHẦN (Lịch sử, Địa lí, GDKT&PL): P1 24 câu + P2 4 câu Đúng/Sai ---
+  if (template === '2026_2P') {
+    for (let i = 0; i < 24; i++) {
+      const col = Math.floor(i / 8), row = i % 8;
+      const baseX = 95 + col * 255, y = 305 + row * 40;
+      geo.p1.push({ q: i + 1, opts: labels.map((lbl, idx) => ({ label: lbl, x: baseX + idx * 33, y })) });
+    }
+    for (let qIdx = 0; qIdx < 4; qIdx++) {
+      const baseX = 88 + qIdx * 192;
+      geo.p2.push({
+        q: qIdx + 1,
+        statements: ['a', 'b', 'c', 'd'].map((sub, sIdx) => {
+          const y = 745 + sIdx * 52;
+          return { sub, trueOpt: { x: baseX + 24, y }, falseOpt: { x: baseX + 72, y } };
+        })
       });
     }
     return geo;
@@ -517,7 +542,7 @@ function drawStandardSheet(targetCanvas, mockData = null) {
   ctx.font = 'bold 13.5px Arial';
   ctx.fillStyle = '#000';
   ctx.fillText('PHẦN I: TRẮC NGHIỆM NHIỀU LỰA CHỌN (Mỗi câu chỉ tô một phương án A, B, C hoặc D)', 28, 272);
-  ctx.strokeRect(28, 280, 784, currentTemplate === '40Q' ? 840 : 230);
+  ctx.strokeRect(28, 280, 784, currentTemplate === '40Q' ? 840 : currentTemplate === '2026_2P' ? 330 : 230);
 
   geo.p1.forEach(item => {
     ctx.fillStyle = '#000';
@@ -530,24 +555,27 @@ function drawStandardSheet(targetCanvas, mockData = null) {
     });
   });
 
-  if (currentTemplate === '2026_FULL') {
+  const L = currentTemplate === '2026_2P'
+    ? { h: 650, y: 658, bh: 282, q: 690, s: 712 }
+    : { h: 532, y: 540, bh: 168, q: 558, s: 570 };
+  if (geo.p2.length) {
     // VẼ PHẦN II: ĐÚNG / SAI
     ctx.textAlign = 'left';
     ctx.font = 'bold 13.5px Arial';
     ctx.fillStyle = '#000';
-    ctx.fillText('PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (Trong mỗi ý a, b, c, d ở mỗi câu, chọn Đúng hoặc Sai)', 28, 532);
-    ctx.strokeRect(28, 540, 784, 168);
+    ctx.fillText('PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (Trong mỗi ý a, b, c, d ở mỗi câu, chọn Đúng hoặc Sai)', 28, L.h);
+    ctx.strokeRect(28, L.y, 784, L.bh);
 
     geo.p2.forEach(item => {
       const hx = item.statements[0].trueOpt.x - 10;
       ctx.fillStyle = '#000';
       ctx.font = 'bold 12px Arial';
       ctx.textAlign = 'left';
-      ctx.fillText('Câu ' + item.q, hx, 558);
+      ctx.fillText('Câu ' + item.q, hx, L.q);
       ctx.font = 'bold 11px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Đúng', item.statements[0].trueOpt.x, 570);
-      ctx.fillText('Sai', item.statements[0].falseOpt.x, 570);
+      ctx.fillText('Đúng', item.statements[0].trueOpt.x, L.s);
+      ctx.fillText('Sai', item.statements[0].falseOpt.x, L.s);
 
       item.statements.forEach(st => {
         ctx.fillStyle = '#000';
@@ -560,56 +588,58 @@ function drawStandardSheet(targetCanvas, mockData = null) {
       });
     });
 
-    // VẼ PHẦN III: TRẢ LỜI NGẮN (6 CÂU TÔ SỐ)
-    ctx.textAlign = 'left';
-    ctx.font = 'bold 13.5px Arial';
-    ctx.fillStyle = '#000';
-    ctx.fillText('PHẦN III: TRẢ LỜI NGẮN (Viết kết quả vào 4 ô vuông đầu câu và tô tròn tương ứng theo từng cột)', 28, 730);
-    ctx.strokeRect(28, 738, 784, 405);
-
-    const rowLabels = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-
-    geo.p3.forEach(item => {
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(item.boxLeft, 746, 120, 388);
-
-      // Tiêu đề Câu 1..6
+    if (geo.p3.length) {
+      // VẼ PHẦN III: TRẢ LỜI NGẮN (6 CÂU TÔ SỐ)
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 13.5px Arial';
       ctx.fillStyle = '#000';
-      ctx.font = 'bold 12px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Câu ' + item.q, item.boxLeft + 60, 763);
+      ctx.fillText('PHẦN III: TRẢ LỜI NGẮN (Viết kết quả vào 4 ô vuông đầu câu và tô tròn tương ứng theo từng cột)', 28, 730);
+      ctx.strokeRect(28, 738, 784, 405);
 
-      // 4 ô vuông viết tay kết quả trên đầu mỗi cột
-      const mockStr = (mockData && mockData.p3 && mockData.p3[item.q]) ? mockData.p3[item.q] : '';
-      const paddedChars = mockStr.replace('.', ',').split('').slice(0, 4);
+      const rowLabels = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
-      item.cols.forEach((col, cIdx) => {
-        ctx.strokeStyle = '#000';
-        ctx.strokeRect(col.cx - 11, 770, 22, 24);
-        if (paddedChars[cIdx]) {
-          ctx.fillStyle = '#1e3a8a';
-          ctx.font = 'bold 13px Arial';
-          ctx.fillText(paddedChars[cIdx], col.cx, 787);
-        }
-      });
+      geo.p3.forEach(item => {
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(item.boxLeft, 746, 120, 388);
 
-      // Nhãn hàng bên trái mỗi khối câu
-      ctx.fillStyle = '#334155';
-      ctx.font = 'bold 10px Arial';
-      ctx.textAlign = 'center';
-      rowLabels.forEach((rl, rIdx) => {
-        ctx.fillText(rl, item.boxLeft + 9, 815 + rIdx * 26.5 + 3.5);
-      });
+        // Tiêu đề Câu 1..6
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Câu ' + item.q, item.boxLeft + 60, 763);
 
-      // Vẽ các ô tròn trong 4 cột
-      item.cols.forEach((col, cIdx) => {
-        const targetChar = paddedChars[cIdx] || null;
-        col.bubbles.forEach(b => {
-          drawBubble(ctx, b.x, b.y, R_BUBBLE, b.char, targetChar === b.char);
+        // 4 ô vuông viết tay kết quả trên đầu mỗi cột
+        const mockStr = (mockData && mockData.p3 && mockData.p3[item.q]) ? mockData.p3[item.q] : '';
+        const paddedChars = mockStr.replace('.', ',').split('').slice(0, 4);
+
+        item.cols.forEach((col, cIdx) => {
+          ctx.strokeStyle = '#000';
+          ctx.strokeRect(col.cx - 11, 770, 22, 24);
+          if (paddedChars[cIdx]) {
+            ctx.fillStyle = '#1e3a8a';
+            ctx.font = 'bold 13px Arial';
+            ctx.fillText(paddedChars[cIdx], col.cx, 787);
+          }
+        });
+
+        // Nhãn hàng bên trái mỗi khối câu
+        ctx.fillStyle = '#334155';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        rowLabels.forEach((rl, rIdx) => {
+          ctx.fillText(rl, item.boxLeft + 9, 815 + rIdx * 26.5 + 3.5);
+        });
+
+        // Vẽ các ô tròn trong 4 cột
+        item.cols.forEach((col, cIdx) => {
+          const targetChar = paddedChars[cIdx] || null;
+          col.bubbles.forEach(b => {
+            drawBubble(ctx, b.x, b.y, R_BUBBLE, b.char, targetChar === b.char);
+          });
         });
       });
-    });
+    }
   }
 
   ctx.restore();
@@ -681,6 +711,7 @@ function renderAnswerKeyUI() {
     sec23.style.display = 'none';
   } else {
     sec23.style.display = 'block';
+    document.getElementById('keyP3Wrap').style.display = currentTemplate === '2026_2P' ? 'none' : 'block';
 
     // Render Phần II
     const gridP2 = document.getElementById('keyGridP2');
@@ -972,7 +1003,7 @@ function processOMRCanvas(sourceCanvas) {
     // 4. Chấm Phần II (Đúng/Sai lũy tiến)
     let scoreP2 = 0;
     const progScale = [0, 0.1, 0.25, 0.5, 1.0];
-    if (currentTemplate === '2026_FULL') {
+    if (geo.p2.length) {
       geo.p2.forEach(item => {
         let clusterRight = 0;
         item.statements.forEach(st => {
@@ -1004,7 +1035,7 @@ function processOMRCanvas(sourceCanvas) {
     const readoutBox = document.getElementById('p3ReadoutBox');
     readoutBox.innerHTML = '';
 
-    if (currentTemplate === '2026_FULL') {
+    if (geo.p3.length) {
       geo.p3.forEach(item => {
         let studentStr = '';
         const chosenBubbles = [];
@@ -1070,6 +1101,7 @@ function processOMRCanvas(sourceCanvas) {
       scoreP2: +scoreP2.toFixed(2),
       scoreP3: +scoreP3.toFixed(2),
       p3Text: p3Details.join(' | '),
+    mau: TEMPLATE_LABELS[currentTemplate],
       total: totalScore
     };
     gradedList.unshift(record);
@@ -1258,6 +1290,7 @@ function renderResultsTable() {
       <td>${r.time}</td>
       <td><strong>${r.sbd}</strong></td>
       <td>${r.made}</td>
+      <td style="font-size:0.76rem;">${r.mau || ''}</td>
       <td>${r.scoreP1}</td>
       <td>${r.scoreP2}</td>
       <td>${r.scoreP3}</td>
@@ -1277,6 +1310,7 @@ function exportExcel() {
     'Giờ chấm': r.time,
     'Số Báo Danh': r.sbd,
     'Mã Đề': r.made,
+    'Mẫu phiếu': r.mau || '',
     'Điểm Phần I (ABCD)': r.scoreP1,
     'Điểm Phần II (Đ/S)': r.scoreP2,
     'Điểm Phần III (TLN)': r.scoreP3,
@@ -1329,7 +1363,7 @@ function switchTab(tabId, btn) {
 
 function onTemplateChange() {
   currentTemplate = document.getElementById('templateSelect').value;
-  if (currentTemplate === '40Q') {
+  if (currentTemplate === '40Q' || currentTemplate === '2026_2P') {
     document.getElementById('ptP1').value = 0.25;
   }
   renderAnswerKeyUI();
