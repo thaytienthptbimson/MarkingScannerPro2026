@@ -2,8 +2,15 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>OMR Pro 2026 - Chấm Thi OpenCV AI & Lưu Trữ Ảnh Minh Chứng</title>
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OMR Pro 2026">
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACPUlEQVR4nO2bsU7DMBCGDerExAYLYmCEN+gLIPEKlZi6MTYrA2s6snXlFSrxAuUJ4AEqFroxMSHB5Mp2Y599vsSOz99U13Zy9+vu6rixEBXeHGEmTZ9+/qgNoWLzeBLkk/fgnJ224SOGlwCm85+vz1ibeufi9kFrQyI4O1XHc3bahiqGTYhj2+SxOy+EbrcthTsFKMF5CSSCNQLMyWPG5ceBAFKlUpyXSH/MKNAKQ4jz201DZx0Bl9PWa5wsjLIoOlPARm7OC4G3aYK90en5tfb999cHygAsXfffbhrvSJDsI6DU3DcxawEqBUqCvQDBNUAydM73dX/2EcBeAHQK2Jg3y/3nVbs46D97udt/3s3WQfOha2MgFWDeLDXDzLbqvGyrIrjmQ9fGwj4F2AtAmgKrduHM091s7awBrvnQtbGQF0HIsK7C5zufymkV9ilQBUhtQGoGXwjF9EOLKAyDLoRi2tAiCgv7FGAvwKALoZh+aBGFZfCFUEw/ldMqNQXAAe271r56u+/NGAomxq74b3PjHF8jABpgKgj9AxOz4wP1+zwNhv4xQloEY3Z8oHbdEeoJ9gKQpkDMjg/UP5odoZgdH6i/7gj1QBUgtQGpqQKkNiA16F+BHN8RwsA+AqoAqQ1IDepN0RxflBTC71GY5E3R0GfuIcDahP4VyFEEDFoEyLAwj52Ughn+QnSkQKkidDkvBFADShHB5UenAKpKYxcBOjhljYASRPA5NVbPDfpemPXJUZOcxQg9O8yef7abUTOf/dEpAAAAAElFTkSuQmCC">
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAHMklEQVR4nO3dPa4VRxCG4cIiIiIzieXAId4BG7DkLVhyRObQNyUghZDMqbdgiQ1cVmAWYJHgjIjIEo5GOjrMzOnu6equmu99wvszp3Wnvun56alrBgAAAAAAAACn9mD2AGo8e/n5y+wxoMz9i0cpaivsICn284kYilADouh1RAlDiEFQ+LpmB2Hqh1P4WMwKwpQPbS38D2/f9B4KnHz3029Nvzc6CEM/rLbwKfjzqA3EqCAMC0Bp8VP051cahhEhcP8ACh9bIgTBNQAlxU/hoyQIXiFwC8Ct4qfwce1WEDxC4BKAveKn8HHLXhB6h+Cbnhszo/hx3F6d9H521DUAFD96GRWCbtPJ1qAofBy1dUrU43SoywxA8cPTVh31mAkOB4DixwheITgUAIofI3mEoPtdICCT5gBw9McMvWeBpgBQ/JipZwi6nQJR/BipV71VB4C3uBBZbX0+7PGho4/+/9zfDf08lPn+2auhn/fh7ZvmN88WVQGYffSn8GNb9s/oIFx79vLzl9KnxFWPktcCMOLoT+HnNCoIa7NAaQCKrwFmHf0p/rxm7rvSej10F4g7P4jgSB0WBYCjP1pFnwWa7wLNOvo/fvK06uc/fXzvNBINWf7erXeEwq4F4uh/HpH35c0AzL71CRxxq36bZgAufhFRS12GPQUCRiAAkEYAIG03ALOWPgCt1upz70KYGQDSCACkEQBIIwCQ1uWNsJFY2zPW2f/ezACQRgAgjQBAGgGANAIAaQQA0ggApBEASEv3IKyn53evv/raH69+77Ltb//8+auv/fvLX1227Tluz21HJBmAtZ18/b3Wnb5W+Nffaw2C57g9tx2ZXAAud/TaDl2+//zudfUO3yv+65+rDYHnuD23Hd1u/8SZL8R4tNKoOZLVHvVKi/9SaQg8x+257UsjG+bW9AqVuQiu3XnLz+2dGixair/09zzH7bntLGQCAKyRCEDr1F1yxGs9+pf8vue4PbediUQAgC0EANIIAKQRAEiTCEDrhVvJheLR5Q17v+85bs9tZyIRAGCLTABqj3g1R7rWWaDk9zzH7bntLKSWQpiVr3vZ+v6emmcCXmuBtr4/a9uLqEsh5AJgVnbE81gNuvBYDbrwWA16dNtmcQMgtxrUbH/qPzq9L8Xt8T6A57g9tx2ZZAAWnju218svazzHfeZiXyNzEQysIQCQRgAgjQBAGgGANAIAaQQA0ggApBEASJN+Epy1xWDWlo4RSQYga4vBrC0dI5MLQNYWg1lbOkYntRw6a4vBrC0dL0VdDi1zEZy1xWDWlo5ZyAQAWCMRgKwtBrO2dMxEIgDAFgIAaQQA0ggApEkEIGuLwawtHTORCACwRSYAWVsMZm3pmIXUUgizvC0Gs7Z0XERdCiEXALO8LQaztnQ0ixsAudWgZnlbDGZt6RiZZAAWWVsMZm3pGJHMRTCwZtgM8PDV31U//8O7X51GghkeVl4C/Hf3o89ArjADQBoBgDQCAGkEANIIAKQNuwtUe1Xv+SQY4418ElyDGQDSpJ8Eez72z9oakf8SKcCzDWDW1oie245MLgCebQCztkb03HZ0UsuhPdsAZm2N6LntS1GXQ8tcBHu2AczaGtFz21nIBABYIxEAzzaAWVsjem47E4kAAFsIAKQRAEgjAJAmEQDPNoBZWyN6bjsTiQAAW2QC4NkGMGtrRM9tZyG1FMLMtw1g1taIntteRF0KIRcAM982gFlbI3pu2yxuAORWg5r5tgHM2hrRc9uRSQZg4dkGMGtrxDMX+xqZi2BgDQGANAIAaQQA0ggApBEASCMAkEYAII0AQBoBgDQCAGkEANIIAKQRAEgjAJCW7n2Ax0+eVv38p4/vnUai4ex/b2YASCMAkEYAII0AQBoBgLTdAKz1UlnruQJEUdMTyIwZAOIIAKQRAEhrCgDXAYiopS5vBmDvAsLTyGaq8DVzX96q33RrgbKtNcnu7H/v5muAEadBzAL5jdqHrfVYFIBZp0HAESV1e+guELMA9kQ/+ptVXAPcv3j0YO0/xoyw/CE9/2sM+olw0Co9a6k6tdkKwKh/m7QgCDHNKPyto39pAKruAs2cBS5FOMIgrppr1i5Pgnkwhhl61F11ALgjhMhq67PbWiBmAYzUq96aArCVMkKAEY5e+F5qngEIAWboWfxmLIeGuEMBYBbASL2P/mYdZgBCgBE8it+s0ykQIYAnr+I3q1wKccveU+LRyyWQ394BtNfzqK4XwXuDYjZAjRHFb+ZwF4gQ4KhRxW/W+RTo0q1Fc5wS4dqtA6THMhzXdT0lK0cJAkrODLzWoLkvbCtdPk0Q9JSeEnsuwBy2spMgYBGh8BdDlzbXvkxDGM6j9gbIqGX3U9b2t75VRiDyaL3jN/p9k6kvt0R4vRIxzHrRKsTbXQRB1+w3DEMEYEEQdMwu/EWIQawhDOcTpegvhRvQHkKRR8RiBwAAAAAAgKr/ASL2jxJZgFhJAAAAAElFTkSuQmCC">
   <!-- Thư viện xử lý Excel SheetJS -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <!-- Thư viện nén hàng loạt ảnh bài chấm thành file ZIP -->
@@ -111,12 +118,29 @@
 
     /* Camera & Live OpenCV Overlay */
     .scanner-box {
-      position: relative; width: 100%; max-width: 500px; margin: 0 auto;
-      background: #000; border-radius: 12px; overflow: hidden;
+      position: relative; width: 100%; max-width: 520px; min-height: 360px; margin: 0 auto;
+      background: #0f172a; border-radius: 12px; overflow: hidden;
+      border: 2px solid #3b82f6; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     }
-    video { width: 100%; display: block; }
+    video {
+      width: 100%; min-height: 360px; max-height: 640px;
+      object-fit: cover; display: block; background: #000;
+    }
+    #simCameraCanvas {
+      width: 100%; height: auto; display: none; background: #0f172a;
+    }
     #liveOverlayCanvas {
-      position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+      position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2;
+    }
+    .cam-status-bar {
+      position: absolute; top: 8px; left: 8px; right: 8px; z-index: 3;
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+      background: rgba(15, 23, 42, 0.78); color: #fff; padding: 6px 10px;
+      border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+    }
+    .cam-bottom-bar {
+      position: absolute; bottom: 10px; left: 10px; right: 10px; z-index: 3;
+      display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
     }
 
     .canvas-preview-wrap {
@@ -206,13 +230,86 @@
       }
       #sheetCanvas { box-shadow: none; width: 100%; max-height: 100vh; object-fit: contain; }
     }
+
+    /* Android Native Bridge & Toast / Confirm Dialog Styles */
+    body {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px));
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, select, table { user-select: text; }
+    .header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .android-btn {
+      font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
+      background: #f59e0b; color: #fff; border: none; font-weight: 700;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .android-btn:hover { background: #d97706; }
+    #appToastContainer {
+      position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
+      z-index: 3000; display: flex; flex-direction: column; gap: 8px;
+      width: 92%; max-width: 460px; pointer-events: none;
+    }
+    .app-toast {
+      background: rgba(15, 23, 42, 0.95); color: #fff; padding: 11px 16px;
+      border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.35); border-left: 4px solid #3b82f6;
+      pointer-events: auto; animation: fadeInUp 0.2s ease-out;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .guide-step {
+      background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 10px; text-align: left; font-size: 0.84rem;
+      line-height: 1.5;
+    }
+    .guide-step strong { color: #1e40af; }
+    .code-pill {
+      background: #e2e8f0; padding: 2px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 0.8rem; color: #0f172a;
+    }
+
+
+    /* iOS / iPhone Specific Enhancements (Notch, Dynamic Island & Safari Auto-Zoom Fix) */
+    header {
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+      padding-left: calc(16px + env(safe-area-inset-left, 0px));
+      padding-right: calc(16px + env(safe-area-inset-right, 0px));
+    }
+    footer {
+      padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+    }
+    .ios-btn {
+      font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
+      background: #0ea5e9; color: #fff; border: none; font-weight: 700;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .ios-btn:hover { background: #0284c7; }
+    @supports (-webkit-touch-callout: none) {
+      select, input[type="text"], input[type="number"] {
+        font-size: 16px !important;
+      }
+    }
+
   </style>
 </head>
 <body>
 
 <header>
-  <h1>OMR PRO 2026 - CHẤM THI OPENCV & LƯU ẢNH MINH CHỨNG</h1>
-  <span id="cvStatus" class="cv-badge">⏳ Đang nạp OpenCV.js...</span>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACPUlEQVR4nO2bsU7DMBCGDerExAYLYmCEN+gLIPEKlZi6MTYrA2s6snXlFSrxAuUJ4AEqFroxMSHB5Mp2Y599vsSOz99U13Zy9+vu6rixEBXeHGEmTZ9+/qgNoWLzeBLkk/fgnJ224SOGlwCm85+vz1ibeufi9kFrQyI4O1XHc3bahiqGTYhj2+SxOy+EbrcthTsFKMF5CSSCNQLMyWPG5ceBAFKlUpyXSH/MKNAKQ4jz201DZx0Bl9PWa5wsjLIoOlPARm7OC4G3aYK90en5tfb999cHygAsXfffbhrvSJDsI6DU3DcxawEqBUqCvQDBNUAydM73dX/2EcBeAHQK2Jg3y/3nVbs46D97udt/3s3WQfOha2MgFWDeLDXDzLbqvGyrIrjmQ9fGwj4F2AtAmgKrduHM091s7awBrvnQtbGQF0HIsK7C5zufymkV9ilQBUhtQGoGXwjF9EOLKAyDLoRi2tAiCgv7FGAvwKALoZh+aBGFZfCFUEw/ldMqNQXAAe271r56u+/NGAomxq74b3PjHF8jABpgKgj9AxOz4wP1+zwNhv4xQloEY3Z8oHbdEeoJ9gKQpkDMjg/UP5odoZgdH6i/7gj1QBUgtQGpqQKkNiA16F+BHN8RwsA+AqoAqQ1IDepN0RxflBTC71GY5E3R0GfuIcDahP4VyFEEDFoEyLAwj52Ughn+QnSkQKkidDkvBFADShHB5UenAKpKYxcBOjhljYASRPA5NVbPDfpemPXJUZOcxQg9O8yef7abUTOf/dEpAAAAAElFTkSuQmCC" alt="Logo" style="width:28px; height:28px; border-radius:6px;">
+    <h1>OMR PRO 2026 - iOS IPHONE & ANDROID AI</h1>
+  </div>
+  <div class="header-actions">
+    <button class="ios-btn" onclick="openIOSGuideModal()">🍎 Cài App iPhone / iOS</button>
+    <button class="android-btn" onclick="openAndroidGuideModal()">📱 Cài App Android / APK</button>
+    <span id="cvStatus" class="cv-badge">⏳ Đang nạp OpenCV.js...</span>
+  </div>
 </header>
 
 <nav class="tabs">
@@ -239,8 +336,13 @@
 
       <div class="row">
         <button class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
+        <button class="btn btn-outline" onclick="switchCameraFacing()">🔄 Đổi Camera Trước/Sau</button>
         <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
         <button class="btn btn-success" onclick="captureAndGrade()">⚡ Chụp & Chấm Ngay</button>
+        <label class="btn btn-primary" style="background:#0284c7;">
+          📸 Chụp Bằng Camera ĐT
+          <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(event)">
+        </label>
         <label class="btn btn-outline">
           🖼️ Tải Ảnh Phiếu
           <input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
@@ -270,8 +372,25 @@
       </div>
 
       <div id="cameraContainer" class="scanner-box" style="display:none; margin-top:8px;">
-        <video id="video" playsinline autoplay muted></video>
+        <div class="cam-status-bar">
+          <span id="camLiveStatus">📷 Đang khởi động ống kính Camera...</span>
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn btn-warning btn-sm" onclick="startSimulatedCameraStream()">🎥 Mô phỏng Phiếu trong Camera</button>
+            <button type="button" class="btn btn-outline btn-sm" style="padding:3px 7px;" onclick="switchCameraFacing()">🔄 Đổi ống kính</button>
+          </div>
+        </div>
+        <video id="video" playsinline webkit-playsinline autoplay muted></video>
+        <canvas id="simCameraCanvas" width="720" height="980"></canvas>
         <canvas id="liveOverlayCanvas"></canvas>
+        <div class="cam-bottom-bar">
+          <button type="button" class="btn btn-success" onclick="captureAndGrade()" style="box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+            ⚡ CHỤP & CHẤM PHIẾU NGAY
+          </button>
+          <label class="btn btn-primary" style="background:#0284c7; box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+            📸 Mở Camera Gốc ĐT
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(event)">
+          </label>
+        </div>
       </div>
     </div>
 
@@ -439,7 +558,7 @@
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex:1;">
           <label>Webhook Google Sheets:</label>
-          <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;" onchange="localStorage.setItem('omr_webhook_ult', this.value)">
+          <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;" onchange="safeSetStorage('omr_webhook_ult', this.value)">
         </div>
       </div>
 
@@ -488,11 +607,328 @@
   </div>
 </div>
 
+
+<!-- TOAST THÔNG BÁO CHUẨN ANDROID (THAY THẾ ALERT) -->
+<div id="appToastContainer"></div>
+
+<!-- MODAL XÁC NHẬN (THAY THẾ CONFIRM) -->
+<div id="confirmModal" class="modal-backdrop" onclick="if(event.target===this) closeAppConfirm(false)">
+  <div class="modal-card" style="max-width: 420px;">
+    <div class="modal-header">
+      <strong>Xác nhận thao tác</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeAppConfirm(false)">✕</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:18px 16px; text-align:left; font-size:0.9rem; color:#1e293b;">
+      <p id="confirmModalText">Bạn có chắc chắn muốn thực hiện thao tác này?</p>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeAppConfirm(false)">Hủy bỏ</button>
+      <button class="btn btn-danger" onclick="closeAppConfirm(true)">Đồng ý</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HƯỚNG DẪN CÀI ĐẶT & ĐÓNG GÓI ANDROID APK -->
+<div id="androidGuideModal" class="modal-backdrop" onclick="if(event.target===this) closeAndroidGuideModal()">
+  <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-header">
+      <strong>📱 Cài Đặt & Đóng Gói Ứng Dụng OMR Pro 2026 Trên Android</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeAndroidGuideModal()">✕ Đóng</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#eff6ff; border:1px solid #93c5fd; padding:10px 12px; border-radius:8px; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div>
+          <span style="font-size:0.78rem; color:#475569; font-weight:700; display:block;">MÔI TRƯỜNG HIỆN TẠI:</span>
+          <strong id="androidEnvStatus" style="color:#1e40af; font-size:0.92rem;">Đang kiểm tra...</strong>
+        </div>
+        <button id="btnInstallPWA" class="btn btn-success" onclick="installPWAApp()" style="display:none;">
+          📲 Cài App Vào Màn Hình Chính
+        </button>
+      </div>
+
+      <div class="guide-step">
+        <strong>Cách 1: Biên dịch file cài đặt <span class="code-pill">.APK</span> tự động qua GitHub Actions (Không cần cài Android Studio)</strong>
+        <p style="margin-top:4px; color:#334155;">
+          1. Giải nén file gói dự án <span class="code-pill">OMR_Pro_2026_Android_Package.zip</span> đi kèm.<br>
+          2. Tải toàn bộ thư mục lên một kho lưu trữ (Repository) trên GitHub.<br>
+          3. Mở tab <strong>Actions</strong> trên GitHub → Quy trình <em>Build OMR Pro 2026 Android APK</em> sẽ tự động chạy và xuất ra file <span class="code-pill">OMR-Pro-2026-debug.apk</span> sau ~2 phút để tải thẳng về điện thoại Android!
+        </p>
+      </div>
+
+      <div class="guide-step">
+        <strong>Cách 2: Xuất file <span class="code-pill">.APK</span> trực tiếp bằng Android Studio hoặc Script 1-Click</strong>
+        <p style="margin-top:4px; color:#334155;">
+          1. Mở thư mục dự án trong <strong>Android Studio</strong> (hoặc chạy <span class="code-pill">build_apk.bat</span> trên Windows / <span class="code-pill">./build_apk.sh</span> trên macOS/Linux).<br>
+          2. Chọn menu <strong>Build → Build Bundle(s) / APK(s) → Build APK(s)</strong>.<br>
+          3. Dự án đã tích hợp sẵn <strong>AndroidBridge Native</strong>: tự động cấp quyền Camera sau để quét phiếu OMR, hỗ trợ chọn file Excel danh sách học sinh, lưu ảnh bài chấm <span class="code-pill">.JPG</span>, gói <span class="code-pill">.ZIP</span> và bảng điểm <span class="code-pill">.XLSX</span> vào thư mục <span class="code-pill">Downloads/OMR_Pro_2026</span> cũng như chia sẻ trực tiếp qua Zalo.
+        </p>
+      </div>
+
+      <div class="guide-step" style="margin-bottom:0;">
+        <strong>Cách 3: Cài đặt trực tiếp dạng WebAPK (PWA) ngay trên trình duyệt Chrome Android</strong>
+        <p style="margin-top:4px; color:#334155;">
+          Mở ứng dụng này bằng <strong>Google Chrome</strong> trên điện thoại Android → Bấm biểu tượng menu <strong>⋮ (3 chấm góc phải)</strong> → Chọn <strong>"Thêm vào màn hình chính" (Add to Home screen / Cài đặt ứng dụng)</strong>. Ứng dụng sẽ chạy toàn màn hình với biểu tượng riêng như một App gốc.
+        </p>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="closeAndroidGuideModal()">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL HƯỚNG DẪN CÀI ĐẶT & ĐÓNG GÓI TRÊN iOS / IPHONE -->
+<div id="iosGuideModal" class="modal-backdrop" onclick="if(event.target===this) closeIOSGuideModal()">
+  <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #0284c7);">
+      <strong>🍎 Cài Đặt & Đóng Gói Ứng Dụng OMR Pro 2026 Trên iPhone (iOS)</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeIOSGuideModal()">✕ Đóng</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#f0f9ff; border:1px solid #7dd3fc; padding:10px 12px; border-radius:8px; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div>
+          <span style="font-size:0.78rem; color:#475569; font-weight:700; display:block;">TRẠNG THÁI THIẾT BỊ APPLE / iOS:</span>
+          <strong id="iosEnvStatus" style="color:#0369a1; font-size:0.92rem;">Đang kiểm tra...</strong>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="shareAppOnIOS()">
+          📤 Mở Menu Chia Sẻ iPhone
+        </button>
+      </div>
+
+      <div class="guide-step">
+        <strong>Cách 1: Cài trực tiếp lên Màn hình chính iPhone trong 10 giây (Không cần máy tính / Không cần Jailbreak)</strong>
+        <p style="margin-top:4px; color:#334155;">
+          1. Mở ứng dụng này bằng trình duyệt <strong>Safari</strong> trên điện thoại iPhone.<br>
+          2. Bấm vào nút <strong>Chia sẻ (Share - biểu tượng ô vuông có mũi tên hướng lên ⬆️)</strong> ở thanh công cụ dưới đáy màn hình Safari.<br>
+          3. Kéo xuống và chọn <strong>"Thêm vào MH chính" (Add to Home Screen ➕)</strong> → Bấm <strong>Thêm (Add)</strong> ở góc phải trên cùng.<br>
+          4. Ứng dụng <strong>OMR Pro 2026</strong> sẽ xuất hiện ngoài màn hình chính iPhone với biểu tượng riêng, chạy toàn màn hình (hỗ trợ Dynamic Island / Tai thỏ), mở Camera sau quét phiếu siêu mượt và lưu ảnh chấm vào <strong>Thư viện Ảnh / Tệp (Files)</strong>!
+        </p>
+      </div>
+
+      <div class="guide-step">
+        <strong>Cách 2: Tự động biên dịch file <span class="code-pill">.IPA</span> trên đám mây bằng GitHub Actions (Không cần máy Mac)</strong>
+        <p style="margin-top:4px; color:#334155;">
+          1. Giải nén gói <span class="code-pill">OMR_Pro_2026_iOS_iPhone_Package.zip</span> và tải lên một kho lưu trữ GitHub.<br>
+          2. Vào tab <strong>Actions</strong> → Chạy workflow <em>Build OMR Pro 2026 iOS IPA</em> (chạy trên máy chủ <span class="code-pill">macos-latest</span> của GitHub).<br>
+          3. Tải file <span class="code-pill">OMR-Pro-2026-iOS.ipa</span> vừa xuất ra và cài vào iPhone thông qua <strong>Sideloadly</strong>, <strong>AltStore</strong> (miễn phí bằng tài khoản Apple ID cá nhân) hoặc <strong>TrollStore / ESign</strong>.
+        </p>
+      </div>
+
+      <div class="guide-step" style="margin-bottom:0;">
+        <strong>Cách 3: Biên dịch và cài trực tiếp từ Xcode trên máy Mac (<span class="code-pill">OMRPro2026.xcodeproj</span>)</strong>
+        <p style="margin-top:4px; color:#334155;">
+          1. Mở file <span class="code-pill">OMRPro2026.xcodeproj</span> trong gói giải nén bằng phần mềm <strong>Xcode</strong>.<br>
+          2. Cắm cáp iPhone vào máy Mac, chọn tài khoản Apple ID tại mục <em>Signing & Capabilities → Team</em> và bấm nút <strong>Run (▶)</strong>.<br>
+          3. Dự án đã tích hợp sẵn cầu nối <strong>Swift WKWebView Native (<span class="code-pill">iOSBridge</span>)</strong>: tự động duyệt quyền Camera sau trên iOS 15–18+, lưu ảnh trực tiếp vào <strong>Photos (Альбом ảnh iPhone)</strong>, xuất file Excel/ZIP vào ứng dụng <strong>Tệp (Files → On My iPhone)</strong>, hỗ trợ in phiếu qua <strong>AirPrint</strong> và gửi ảnh bài chấm qua <strong>Zalo / AirDrop</strong>.
+        </p>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="closeIOSGuideModal()">Đã hiểu</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   Hệ thống Chấm thi Trắc nghiệm OMR Pro 2026 | Bản quyền thuộc về số ĐT: 0943.930.787
 </footer>
 
 <script>
+
+/********************************************************************
+ * HỆ THỐNG CẦU NỐI ANDROID NATIVE BRIDGE (APK WEBVIEW) & PWA DIALOGS
+ ********************************************************************/
+let deferredPWAPrompt = null;
+let confirmDialogCallback = null;
+
+function isAndroidNativeAPK() {
+  return typeof window.AndroidBridge !== 'undefined' && window.AndroidBridge !== null;
+}
+
+function isIOSNativeApp() {
+  return Boolean(
+    window.webkit &&
+    window.webkit.messageHandlers &&
+    window.webkit.messageHandlers.iOSBridge
+  );
+}
+
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function postToIOSBridge(payload) {
+  if (isIOSNativeApp()) {
+    try {
+      window.webkit.messageHandlers.iOSBridge.postMessage(payload);
+      return true;
+    } catch (e) {}
+  }
+  return false;
+}
+
+function openIOSGuideModal() {
+  const statusEl = document.getElementById('iosEnvStatus');
+  if (statusEl) {
+    if (isIOSNativeApp()) {
+      statusEl.innerText = '✅ Đang chạy trong Ứng dụng iOS Native (.IPA WKWebView Bridge Active)';
+      statusEl.style.color = '#16a34a';
+    } else if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+      statusEl.innerText = '✅ Đang chạy ở chế độ Ứng dụng toàn màn hình trên iPhone (iOS WebApp)';
+      statusEl.style.color = '#16a34a';
+    } else if (isIOSDevice()) {
+      statusEl.innerText = '🍎 Đang mở trên trình duyệt iPhone/iPad (Bấm Chia sẻ ⬆️ → Thêm vào MH chính để cài App)';
+      statusEl.style.color = '#0284c7';
+    } else {
+      statusEl.innerText = '💻 Đang xem trên Máy tính / Khung xem trước (Sẵn sàng cài lên iPhone hoặc đóng gói .IPA)';
+      statusEl.style.color = '#0369a1';
+    }
+  }
+  const modal = document.getElementById('iosGuideModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeIOSGuideModal() {
+  const modal = document.getElementById('iosGuideModal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function shareAppOnIOS() {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'OMR Pro 2026 - Chấm Thi Trắc Nghiệm AI',
+        text: 'Ứng dụng Chấm Thi Trắc Nghiệm OpenCV AI & Lưu Ảnh Minh Chứng trên iPhone',
+        url: window.location.href
+      });
+      return;
+    } catch (e) {}
+  }
+  showAppToast('Trên Safari iPhone: Hãy bấm biểu tượng Chia sẻ (⬆️) ở dưới đáy màn hình → Chọn "Thêm vào MH chính"!', 'info');
+}
+
+function showAppToast(message, type = 'info') {
+  if (isAndroidNativeAPK() && typeof window.AndroidBridge.showToast === 'function') {
+    try { window.AndroidBridge.showToast(String(message)); } catch (e) {}
+  }
+  if (isIOSNativeApp()) {
+    postToIOSBridge({ action: 'showToast', message: String(message) });
+  }
+  const container = document.getElementById('appToastContainer');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'app-toast';
+  if (type === 'success') toast.style.borderLeftColor = '#22c55e';
+  if (type === 'error') toast.style.borderLeftColor = '#ef4444';
+  if (type === 'warn') toast.style.borderLeftColor = '#f59e0b';
+  toast.innerText = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.25s';
+    setTimeout(() => toast.remove(), 260);
+  }, 3200);
+}
+
+function showAppConfirm(message, onConfirm) {
+  confirmDialogCallback = onConfirm;
+  const txt = document.getElementById('confirmModalText');
+  if (txt) txt.innerText = message;
+  const modal = document.getElementById('confirmModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeAppConfirm(accepted) {
+  const modal = document.getElementById('confirmModal');
+  if (modal) modal.classList.remove('open');
+  const cb = confirmDialogCallback;
+  confirmDialogCallback = null;
+  if (accepted && typeof cb === 'function') {
+    cb();
+  }
+}
+
+function openAndroidGuideModal() {
+  const statusEl = document.getElementById('androidEnvStatus');
+  if (statusEl) {
+    if (isAndroidNativeAPK()) {
+      statusEl.innerText = '✅ Đang chạy trong Ứng dụng Android APK (Native Bridge Active)';
+      statusEl.style.color = '#16a34a';
+    } else if (window.matchMedia('(display-mode: standalone)').matches) {
+      statusEl.innerText = '✅ Đang chạy ở chế độ Ứng dụng toàn màn hình (PWA Standalone)';
+      statusEl.style.color = '#16a34a';
+    } else {
+      statusEl.innerText = '🌐 Đang chạy trên Trình duyệt / Khung xem trước (Sẵn sàng đóng gói APK)';
+      statusEl.style.color = '#1e40af';
+    }
+  }
+  const modal = document.getElementById('androidGuideModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeAndroidGuideModal() {
+  const modal = document.getElementById('androidGuideModal');
+  if (modal) modal.classList.remove('open');
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPWAPrompt = e;
+  const btn = document.getElementById('btnInstallPWA');
+  if (btn) btn.style.display = 'inline-flex';
+});
+
+async function installPWAApp() {
+  if (!deferredPWAPrompt) {
+    showAppToast('Hãy mở menu trình duyệt Chrome (⋮) và chọn "Thêm vào màn hình chính"!', 'info');
+    return;
+  }
+  deferredPWAPrompt.prompt();
+  await deferredPWAPrompt.userChoice;
+  deferredPWAPrompt = null;
+  const btn = document.getElementById('btnInstallPWA');
+  if (btn) btn.style.display = 'none';
+}
+
+function safeGetStorage(key, fallback) {
+  try {
+    const val = localStorage.getItem(key);
+    return val !== null ? val : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function safeSetStorage(key, val) {
+  try {
+    localStorage.setItem(key, val);
+  } catch (e) {}
+}
+
+function saveWorkbookCrossPlatform(wb, filename) {
+  const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  if (isAndroidNativeAPK() && typeof window.AndroidBridge.saveBase64File === 'function') {
+    try {
+      const b64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+      window.AndroidBridge.saveBase64File(b64, filename, mime);
+      showAppToast('Đã lưu file Excel vào Downloads/OMR_Pro_2026/' + filename, 'success');
+      return;
+    } catch (e) {}
+  }
+  if (isIOSNativeApp()) {
+    try {
+      const b64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+      postToIOSBridge({ action: 'saveBase64File', base64Data: b64, fileName: filename, mimeType: mime });
+      showAppToast('Đã lưu file Excel vào Tệp (Files) trên iPhone: ' + filename, 'success');
+      return;
+    } catch (e) {}
+  }
+  XLSX.writeFile(wb, filename);
+  showAppToast('Đã xuất file Excel: ' + filename, 'success');
+}
+
 /********************************************************************
  * 0. TRÌNH NẠP OPENCV.JS ĐA NGUỒN & CƠ SỞ DỮ LIỆU ẢNH INDEXEDDB
  ********************************************************************/
@@ -504,21 +940,30 @@ const OPENCV_URLS = [
 
 function loadOpenCVWithFallback(idx = 0) {
   const badge = document.getElementById('cvStatus');
+  if (idx === 0) {
+    badge.innerText = '⚡ Vision AI: Sẵn sàng (Đang nạp thêm OpenCV...)';
+    badge.classList.add('ready');
+  }
   if (idx >= OPENCV_URLS.length) {
-    badge.innerText = '❌ Lỗi mạng khi tải OpenCV!';
-    badge.classList.add('error');
+    badge.innerText = '✅ Vision AI Nội Bộ: Sẵn Sàng (Offline Mode)';
+    badge.classList.add('ready');
     return;
   }
   const script = document.createElement('script');
   script.src = OPENCV_URLS[idx];
   script.async = true;
   script.onload = () => {
+    let checks = 0;
     const waitInit = setInterval(() => {
+      checks++;
       if (typeof cv !== 'undefined' && cv.Mat) {
         clearInterval(waitInit);
         cvReady = true;
         badge.innerText = '✅ OpenCV 4.8 AI: Sẵn Sàng';
         badge.classList.add('ready');
+      } else if (checks > 80) {
+        clearInterval(waitInit);
+        loadOpenCVWithFallback(idx + 1);
       }
     }, 100);
   };
@@ -590,7 +1035,7 @@ async function clearAllImagesInDB() {
 /********************************************************************
  * 1. QUẢN LÝ DANH SÁCH HỌC SINH & TRA CỨU SBD THÔNG MINH
  ********************************************************************/
-let studentDB = JSON.parse(localStorage.getItem('omr_students_2026') || '{}');
+let studentDB = JSON.parse(safeGetStorage('omr_students_2026', '{}'));
 
 function normalizeSBDKey(sbd) {
   const clean = String(sbd || '').trim().replace(/[^0-9]/g, '');
@@ -634,7 +1079,7 @@ function loadDemoStudents() {
 }
 
 function saveStudentDB() {
-  localStorage.setItem('omr_students_2026', JSON.stringify(studentDB));
+  safeSetStorage('omr_students_2026', JSON.stringify(studentDB));
 }
 
 function renderStudentTable() {
@@ -664,7 +1109,7 @@ function addSingleStudent() {
   const name = document.getElementById('addStName').value.trim();
   const cls = document.getElementById('addStClass').value.trim() || '---';
   if (!rawSbd || !name) {
-    alert('Vui lòng nhập Số báo danh và Họ tên học sinh!');
+    showAppToast('Vui lòng nhập Số báo danh và Họ tên học sinh!', 'warn');
     return;
   }
   const sbd6 = formatSBD6(rawSbd);
@@ -682,11 +1127,12 @@ function deleteStudent(sbdKey) {
 }
 
 function clearStudents() {
-  if (confirm('Xóa toàn bộ danh sách học sinh đã lưu?')) {
+  showAppConfirm('Xóa toàn bộ danh sách học sinh đã lưu?', () => {
     studentDB = {};
     saveStudentDB();
     renderStudentTable();
-  }
+    showAppToast('Đã xóa danh sách học sinh.', 'info');
+  });
 }
 
 function importStudentExcel(event) {
@@ -719,7 +1165,7 @@ function importStudentExcel(event) {
 
     saveStudentDB();
     renderStudentTable();
-    alert(`Đã nhập thành công ${added} học sinh từ file Excel!`);
+    showAppToast(`Đã nhập thành công ${added} học sinh từ file Excel!`, 'warn');
     event.target.value = '';
   };
   reader.readAsArrayBuffer(file);
@@ -735,7 +1181,7 @@ function downloadSampleStudentExcel() {
   const ws = XLSX.utils.json_to_sheet(sample);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'DanhSachHocSinh');
-  XLSX.writeFile(wb, 'Mau_Danh_Sach_Hoc_Sinh_OMR.xlsx');
+  saveWorkbookCrossPlatform(wb, 'Mau_Danh_Sach_Hoc_Sinh_OMR.xlsx');
 }
 
 /********************************************************************
@@ -750,12 +1196,10 @@ let videoStream = null;
 let autoScanTimer = null;
 let stableCornerFrames = 0;
 let isProcessingFrame = false;
-let liveHoldUntil = 0;
-let prevLiveCorners = null;
 
 let currentTemplate = '2026_2P';
-let answerKeys = JSON.parse(localStorage.getItem('omr_keys_ult2026') || '{}');
-let gradedList = JSON.parse(localStorage.getItem('omr_graded_ult2026') || '[]');
+let answerKeys = JSON.parse(safeGetStorage('omr_keys_ult2026', '{}'));
+let gradedList = JSON.parse(safeGetStorage('omr_graded_ult2026', '[]'));
 
 let lastColorCanvas = null;
 let lastBinaryCanvas = null;
@@ -1221,7 +1665,7 @@ function randomFillKey() {
 }
 
 function saveCurrentKey() {
-  localStorage.setItem('omr_keys_ult2026', JSON.stringify(answerKeys));
+  safeSetStorage('omr_keys_ult2026', JSON.stringify(answerKeys));
   playBeep(880, 80);
 }
 
@@ -1239,90 +1683,62 @@ function isShortAnswerMatch(studentRaw, keyRaw) {
 /********************************************************************
  * 5. XỬ LÝ ẢNH OPENCV.JS & ĐÓNG DẤU KẾT QUẢ LÊN ẢNH LƯU TRỮ
  ********************************************************************/
-/* ===== NHẬN DIỆN 4 Ô VUÔNG GÓC (bền với ánh sáng, khung ngang/dọc, nền lộn xộn) ===== */
-function oddBlock(n) { n = Math.max(15, Math.round(n)); return n % 2 ? n : n + 1; }
+function findFourCornerMarkers(threshMat, imgW, imgH) {
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(threshMat, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
-// Lấy các vùng đen đặc, gần vuông: đúng đặc điểm của ô định vị góc
-function findMarkerCandidates(bin, w, h) {
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
-  const out = [];
-  try {
-    cv.findContours(bin, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-    const minA = w * h * 0.00008, maxA = w * h * 0.02;
-    for (let i = 0; i < contours.size(); i++) {
-      const cnt = contours.get(i);
-      try {
-        const area = cv.contourArea(cnt);
-        if (area < minA || area > maxA) continue;
-        const r = cv.minAreaRect(cnt);
-        const rw = r.size.width, rh = r.size.height;
-        if (!rw || !rh || Math.min(rw, rh) / Math.max(rw, rh) < 0.6) continue; // gần vuông
-        if (area / (rw * rh) < 0.85) continue;                                  // loại hình tròn
-        const bb = cv.boundingRect(cnt);
-        const roi = bin.roi(bb);
-        const fill = cv.countNonZero(roi) / (bb.width * bb.height);
-        roi.delete();
-        if (fill < 0.5) continue;                                               // loại khung rỗng
-        out.push({ cx: r.center.x, cy: r.center.y, area });
-      } finally { cnt.delete(); }
-    }
-  } finally { contours.delete(); hierarchy.delete(); }
-  return out;
-}
+  const candidates = [];
+  const minArea = (imgW * imgH) * 0.00012;
+  const maxArea = (imgW * imgH) * 0.025;
 
-// Chọn bộ 4 ô tạo thành tứ giác lớn nhất: cùng kích thước, góc gần vuông, tỉ lệ phiếu dọc
-function pickSheetQuad(cands, w, h) {
-  cands = cands.sort((p, q) => q.area - p.area).slice(0, 14);
-  const n = cands.length;
-  let best = null, bestArea = 0;
-  for (let a = 0; a < n - 3; a++) for (let b = a + 1; b < n - 2; b++)
-  for (let c = b + 1; c < n - 1; c++) for (let d = c + 1; d < n; d++) {
-    const pts = [cands[a], cands[b], cands[c], cands[d]];
-    const ar = pts.map(p => p.area);
-    if (Math.max(...ar) / Math.min(...ar) > 2.5) continue;
-    const mx = pts.reduce((t, p) => t + p.cx, 0) / 4, my = pts.reduce((t, p) => t + p.cy, 0) / 4;
-    pts.sort((p, q) => Math.atan2(p.cy - my, p.cx - mx) - Math.atan2(q.cy - my, q.cx - mx)); // TL, TR, BR, BL
-    let ok = true, area2 = 0;
-    for (let i = 0; i < 4 && ok; i++) {
-      const P = pts[i], N = pts[(i + 1) % 4], V = pts[(i + 3) % 4];
-      const v1x = N.cx - P.cx, v1y = N.cy - P.cy, v2x = V.cx - P.cx, v2y = V.cy - P.cy;
-      const cos = (v1x * v2x + v1y * v2y) / ((Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y)) || 1);
-      if (Math.abs(cos) > 0.5) ok = false;
-      area2 += P.cx * N.cy - N.cx * P.cy;
+  for (let i = 0; i < contours.size(); i++) {
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
+    if (area > minArea && area < maxArea) {
+      let peri = cv.arcLength(cnt, true);
+      let approx = new cv.Mat();
+      cv.approxPolyDP(cnt, approx, 0.04 * peri, true);
+      if (approx.rows === 4 && cv.isContourConvex(approx)) {
+        let rect = cv.boundingRect(approx);
+        let aspect = rect.width / rect.height;
+        if (aspect >= 0.65 && aspect <= 1.45) {
+          candidates.push({ cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2 });
+        }
+      }
+      approx.delete();
     }
-    if (!ok) continue;
-    const area = Math.abs(area2) / 2;
-    if (area < w * h * 0.05 || area <= bestArea) continue;
-    const dist = (p, q) => Math.hypot(p.cx - q.cx, p.cy - q.cy);
-    const aspect = ((dist(pts[0], pts[1]) + dist(pts[3], pts[2])) / 2) / ((dist(pts[0], pts[3]) + dist(pts[1], pts[2])) / 2);
-    if (aspect < 0.45 || aspect > 0.98) continue; // phiếu A4 đứng (~0.71)
-    best = pts; bestArea = area;
+    cnt.delete();
   }
-  return best ? best.map(p => ({ cx: p.cx, cy: p.cy })) : null;
-}
+  contours.delete();
+  hierarchy.delete();
 
-// Nhận gray (kích thước gốc), trả về 4 góc [TL,TR,BR,BL] theo tọa độ ảnh gốc hoặc null
-function detectSheetCorners(gray) {
-  const scale = Math.min(1, 720 / Math.max(gray.cols, gray.rows));
-  const small = new cv.Mat(), blur = new cv.Mat(), bin = new cv.Mat();
-  try {
-    if (scale < 1) cv.resize(gray, small, new cv.Size(Math.round(gray.cols * scale), Math.round(gray.rows * scale)), 0, 0, cv.INTER_AREA);
-    else gray.copyTo(small);
-    cv.GaussianBlur(small, blur, new cv.Size(5, 5), 0);
-    const w = small.cols, h = small.rows, m = Math.min(w, h);
-    const passes = [
-      () => cv.adaptiveThreshold(blur, bin, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, oddBlock(m * 0.10), 10),
-      () => cv.threshold(blur, bin, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU),
-      () => cv.adaptiveThreshold(blur, bin, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, oddBlock(m * 0.18), 5)
-    ];
-    for (const run of passes) {
-      run();
-      const quad = pickSheetQuad(findMarkerCandidates(bin, w, h), w, h);
-      if (quad) return quad.map(c => ({ cx: c.cx / scale, cy: c.cy / scale }));
-    }
-    return null;
-  } finally { small.delete(); blur.delete(); bin.delete(); }
+  if (candidates.length < 4) return null;
+
+  const targets = [
+    { x: 0, y: 0 },
+    { x: imgW, y: 0 },
+    { x: imgW, y: imgH },
+    { x: 0, y: imgH }
+  ];
+
+  const corners = targets.map(t => {
+    let best = null, minDist = Infinity;
+    candidates.forEach(c => {
+      const d = Math.hypot(c.cx - t.x, c.cy - t.y);
+      if (d < minDist) { minDist = d; best = c; }
+    });
+    return best;
+  });
+
+  const unique = new Set(corners.map(c => `${Math.round(c.cx)}_${Math.round(c.cy)}`));
+  if (unique.size < 4) return null;
+
+  const topW = Math.hypot(corners[1].cx - corners[0].cx, corners[1].cy - corners[0].cy);
+  const leftH = Math.hypot(corners[3].cx - corners[0].cx, corners[3].cy - corners[0].cy);
+  if (topW < imgW * 0.35 || leftH < imgH * 0.35) return null;
+
+  return corners;
 }
 
 function getBubbleFillRatio(threshMat, x, y, r = 6) {
@@ -1382,66 +1798,152 @@ function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   return out;
 }
 
-async function processOMRCanvas(sourceCanvas, requireCorners = false) {
-  if (!cvReady) {
-    alert('Đang hoàn tất khởi tạo lõi OpenCV.js, vui lòng đợi 1 giây rồi bấm lại!');
-    return;
-  }
-
-  const thresholdRatio = parseInt(document.getElementById('fillThreshold').value, 10) / 100;
-  let src = cv.imread(sourceCanvas);
-  let gray = new cv.Mat();
-  let blurred = new cv.Mat();
-  let thresh = new cv.Mat();
-
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-  cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-  cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
-
-  const corners = detectSheetCorners(gray);
-  if (!corners && requireCorners) {
-    const m = document.getElementById('scanMsg');
-    m.innerText = '❌ Không thấy đủ 4 ô vuông đen ở góc phiếu. Hãy đưa cả 4 góc vào khung, đủ sáng, giữ phiếu phẳng rồi chụp lại.';
-    m.style.color = '#dc2626';
-    src.delete(); gray.delete(); blurred.delete(); thresh.delete();
-    return;
-  }
-  let warpedColor = new cv.Mat();
-  let warpedGray = new cv.Mat();
-  let warpedThresh = new cv.Mat();
-
-  if (corners) {
-    let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-      corners[0].cx, corners[0].cy,
-      corners[1].cx, corners[1].cy,
-      corners[2].cx, corners[2].cy,
-      corners[3].cx, corners[3].cy
-    ]);
-    let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-      0, 0, WARP_W, 0, WARP_W, WARP_H, 0, WARP_H
-    ]);
-    let M = cv.getPerspectiveTransform(srcTri, dstTri);
-    cv.warpPerspective(src, warpedColor, M, new cv.Size(WARP_W, WARP_H));
-    cv.warpPerspective(gray, warpedGray, M, new cv.Size(WARP_W, WARP_H));
-    srcTri.delete(); dstTri.delete(); M.delete();
-    document.getElementById('scanMsg').innerText = '✅ Đã chấm & đóng dấu điểm vào ảnh phiếu!';
-    document.getElementById('scanMsg').style.color = '#16a34a';
-  } else {
-    cv.resize(src, warpedColor, new cv.Size(WARP_W, WARP_H));
-    cv.resize(gray, warpedGray, new cv.Size(WARP_W, WARP_H));
-    document.getElementById('scanMsg').innerText = '⚠️ Đã chấm theo khung chuẩn & lưu ảnh phiếu.';
-    document.getElementById('scanMsg').style.color = '#d97706';
-  }
-
-  cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
-
+// Bộ đọc độ đậm ô trắc nghiệm thuần Canvas 2D (chạy tức thì ngay cả khi chưa nạp xong OpenCV.js)
+function prepareCanvasVisionData(sourceCanvas) {
   const rawSheetColor = document.createElement('canvas');
-  rawSheetColor.width = WARP_W; rawSheetColor.height = WARP_H;
-  cv.imshow(rawSheetColor, warpedColor);
+  rawSheetColor.width = WARP_W;
+  rawSheetColor.height = WARP_H;
+  const ctxColor = rawSheetColor.getContext('2d');
+
+  // Nếu ảnh nguồn có kích thước chuẩn kèm lề MARGIN (920x1260), cắt đúng khung 4 góc (840x1180)
+  if (
+    Math.abs(sourceCanvas.width - (WARP_W + MARGIN * 2)) <= 16 &&
+    Math.abs(sourceCanvas.height - (WARP_H + MARGIN * 2)) <= 16
+  ) {
+    ctxColor.drawImage(sourceCanvas, MARGIN, MARGIN, WARP_W, WARP_H, 0, 0, WARP_W, WARP_H);
+  } else {
+    ctxColor.drawImage(sourceCanvas, 0, 0, WARP_W, WARP_H);
+  }
 
   const rawSheetBin = document.createElement('canvas');
-  rawSheetBin.width = WARP_W; rawSheetBin.height = WARP_H;
-  cv.imshow(rawSheetBin, warpedThresh);
+  rawSheetBin.width = WARP_W;
+  rawSheetBin.height = WARP_H;
+  const ctxBin = rawSheetBin.getContext('2d');
+
+  const imgData = ctxColor.getImageData(0, 0, WARP_W, WARP_H);
+  const data = imgData.data;
+  const binImgData = ctxBin.createImageData(WARP_W, WARP_H);
+  const binData = binImgData.data;
+  const mask = new Uint8Array(WARP_W * WARP_H);
+
+  // Tính ngưỡng sáng trung bình toàn cục kết hợp ngưỡng cục bộ
+  let sumLum = 0;
+  for (let i = 0; i < data.length; i += 16) {
+    sumLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+  }
+  const avgLum = sumLum / (data.length / 16);
+  const darkCutoff = Math.min(185, Math.max(115, avgLum * 0.76));
+
+  for (let p = 0, idx = 0; p < data.length; p += 4, idx++) {
+    const lum = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+    const isDark = lum < darkCutoff ? 1 : 0;
+    mask[idx] = isDark;
+    const val = isDark ? 255 : 0;
+    binData[p] = val;
+    binData[p + 1] = val;
+    binData[p + 2] = val;
+    binData[p + 3] = 255;
+  }
+  ctxBin.putImageData(binImgData, 0, 0);
+  return { rawSheetColor, rawSheetBin, mask };
+}
+
+function getMaskBubbleFillRatio(mask, x, y, r = 6) {
+  const x0 = Math.max(0, Math.round(x - r));
+  const y0 = Math.max(0, Math.round(y - r));
+  const x1 = Math.min(WARP_W - 1, Math.round(x + r));
+  const y1 = Math.min(WARP_H - 1, Math.round(y + r));
+  const w = x1 - x0 + 1;
+  const h = y1 - y0 + 1;
+  if (w <= 0 || h <= 0) return 0;
+  let count = 0;
+  for (let py = y0; py <= y1; py++) {
+    const rowOff = py * WARP_W;
+    for (let px = x0; px <= x1; px++) {
+      if (mask[rowOff + px]) count++;
+    }
+  }
+  return count / (w * h);
+}
+
+async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
+  const thresholdRatio = parseInt(document.getElementById('fillThreshold').value, 10) / 100;
+  let rawSheetColor, rawSheetBin;
+  let src = null, gray = null, blurred = null, thresh = null;
+  let warpedColor = null, warpedGray = null, warpedThresh = null;
+  let pureMask = null;
+  let useOpenCV = Boolean(cvReady && typeof cv !== 'undefined' && cv.Mat);
+
+  if (useOpenCV) {
+    try {
+      src = cv.imread(sourceCanvas);
+      gray = new cv.Mat();
+      blurred = new cv.Mat();
+      thresh = new cv.Mat();
+
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+      cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+      cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
+
+      const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
+      warpedColor = new cv.Mat();
+      warpedGray = new cv.Mat();
+      warpedThresh = new cv.Mat();
+
+      if (corners) {
+        let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+          corners[0].cx, corners[0].cy,
+          corners[1].cx, corners[1].cy,
+          corners[2].cx, corners[2].cy,
+          corners[3].cx, corners[3].cy
+        ]);
+        let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+          0, 0, WARP_W, 0, WARP_W, WARP_H, 0, WARP_H
+        ]);
+        let M = cv.getPerspectiveTransform(srcTri, dstTri);
+        cv.warpPerspective(src, warpedColor, M, new cv.Size(WARP_W, WARP_H));
+        cv.warpPerspective(gray, warpedGray, M, new cv.Size(WARP_W, WARP_H));
+        srcTri.delete(); dstTri.delete(); M.delete();
+        document.getElementById('scanMsg').innerText = '✅ Đã bắt 4 góc OpenCV & đóng dấu điểm lên ảnh phiếu!';
+        document.getElementById('scanMsg').style.color = '#16a34a';
+      } else {
+        cv.resize(src, warpedColor, new cv.Size(WARP_W, WARP_H));
+        cv.resize(gray, warpedGray, new cv.Size(WARP_W, WARP_H));
+        document.getElementById('scanMsg').innerText = '⚠️ Đã chấm theo khung chuẩn & hiển thị ảnh phiếu.';
+        document.getElementById('scanMsg').style.color = '#d97706';
+      }
+
+      cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
+
+      rawSheetColor = document.createElement('canvas');
+      rawSheetColor.width = WARP_W; rawSheetColor.height = WARP_H;
+      cv.imshow(rawSheetColor, warpedColor);
+
+      rawSheetBin = document.createElement('canvas');
+      rawSheetBin.width = WARP_W; rawSheetBin.height = WARP_H;
+      cv.imshow(rawSheetBin, warpedThresh);
+    } catch (cvErr) {
+      useOpenCV = false;
+    }
+  }
+
+  if (!useOpenCV) {
+    const fallbackData = prepareCanvasVisionData(sourceCanvas);
+    rawSheetColor = fallbackData.rawSheetColor;
+    rawSheetBin = fallbackData.rawSheetBin;
+    pureMask = fallbackData.mask;
+    document.getElementById('scanMsg').innerText = '✅ Đã chấm & hiển thị ảnh phiếu (Chế độ Vision AI Trực Tiếp)!';
+    document.getElementById('scanMsg').style.color = '#16a34a';
+  }
+
+  const measureBubble = (x, y, r) => {
+    if (useOpenCV && warpedThresh) {
+      return getBubbleFillRatio.call(null, warpedThresh, x, y, r);
+    }
+    return getMaskBubbleFillRatio(pureMask, x, y, r);
+  };
+
+
 
   const ctxColor = rawSheetColor.getContext('2d');
   const ctxBin = rawSheetBin.getContext('2d');
@@ -1458,7 +1960,7 @@ async function processOMRCanvas(sourceCanvas, requireCorners = false) {
   geo.sbd.forEach(col => {
     let bestD = '0', maxF = thresholdRatio, bestPos = null;
     col.forEach(b => {
-      const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+      const r = measureBubble(b.x, b.y, 6);
       if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
     });
     sbdStr += bestD;
@@ -1479,7 +1981,7 @@ async function processOMRCanvas(sourceCanvas, requireCorners = false) {
   geo.made.forEach(col => {
     let bestD = '0', maxF = thresholdRatio, bestPos = null;
     col.forEach(b => {
-      const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+      const r = measureBubble(b.x, b.y, 6);
       if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
     });
     maDeStr += bestD;
@@ -1495,7 +1997,7 @@ async function processOMRCanvas(sourceCanvas, requireCorners = false) {
   geo.p1.forEach(item => {
     const filled = [];
     item.opts.forEach(opt => {
-      const r = getBubbleFillRatio(warpedThresh, opt.x, opt.y, scanR);
+      const r = measureBubble(opt.x, opt.y, scanR);
       if (r >= thresholdRatio) filled.push(opt);
     });
     const rightAns = activeKey.p1[item.q];
@@ -1518,8 +2020,8 @@ async function processOMRCanvas(sourceCanvas, requireCorners = false) {
     geo.p2.forEach(item => {
       let clusterRight = 0;
       item.statements.forEach(st => {
-        const fT = getBubbleFillRatio(warpedThresh, st.trueOpt.x, st.trueOpt.y, scanR);
-        const fF = getBubbleFillRatio(warpedThresh, st.falseOpt.x, st.falseOpt.y, scanR);
+        const fT = measureBubble(st.trueOpt.x, st.trueOpt.y, scanR);
+        const fF = measureBubble(st.falseOpt.x, st.falseOpt.y, scanR);
         let choice = null, chosenPos = null;
         if (fT >= thresholdRatio && fF < thresholdRatio) { choice = 'Đ'; chosenPos = st.trueOpt; }
         else if (fF >= thresholdRatio && fT < thresholdRatio) { choice = 'S'; chosenPos = st.falseOpt; }
@@ -1553,7 +2055,7 @@ async function processOMRCanvas(sourceCanvas, requireCorners = false) {
       item.cols.forEach(col => {
         let bestChar = '', maxF = thresholdRatio, bestB = null;
         col.bubbles.forEach(b => {
-          const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+          const r = measureBubble(b.x, b.y, 6);
           if (r > maxF) { maxF = r; bestChar = b.char; bestB = b; }
         });
         studentStr += bestChar;
@@ -1621,19 +2123,30 @@ async function processOMRCanvas(sourceCanvas, requireCorners = false) {
   document.getElementById('resP3').innerText = extraOrP3.toFixed(2);
   document.getElementById('resTotal').innerText = totalScore.toFixed(2);
 
-  gradedList.unshift(record);
-  localStorage.setItem('omr_graded_ult2026', JSON.stringify(gradedList));
-  renderResultsTable();
-  sendToWebhook(record);
-  playBeep(1046, 120);
+  if (!isInitialPreview) {
+    gradedList.unshift(record);
+    safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
+    renderResultsTable();
+    sendToWebhook(record);
+    playBeep(1046, 120);
 
-  // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
-  if (document.getElementById('autoDownloadImgToggle').checked) {
-    triggerImageDownload(imgDataUrl, buildImageFileName(record));
+    // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
+    if (document.getElementById('autoDownloadImgToggle').checked) {
+      triggerImageDownload(imgDataUrl, buildImageFileName(record));
+    }
+  } else {
+    document.getElementById('scanMsg').innerText = '✅ Phiếu mẫu đang hiển thị sẵn sàng (Bấm Bật Camera hoặc Chấm Thử Giả Lập)';
   }
 
-  src.delete(); gray.delete(); blurred.delete(); thresh.delete();
-  warpedColor.delete(); warpedGray.delete(); warpedThresh.delete();
+  try {
+    if (src) src.delete();
+    if (gray) gray.delete();
+    if (blurred) blurred.delete();
+    if (thresh) thresh.delete();
+    if (warpedColor) warpedColor.delete();
+    if (warpedGray) warpedGray.delete();
+    if (warpedThresh) warpedThresh.delete();
+  } catch (e) {}
 }
 
 function renderResultCanvasView() {
@@ -1681,17 +2194,38 @@ function buildImageFileName(rec) {
 }
 
 function triggerImageDownload(dataUrl, filename) {
+  if (isAndroidNativeAPK() && typeof window.AndroidBridge.saveBase64File === 'function' && String(dataUrl).startsWith('data:')) {
+    try {
+      const parts = String(dataUrl).split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      window.AndroidBridge.saveBase64File(parts[1], filename, mime);
+      showAppToast('Đã lưu vào Downloads/OMR_Pro_2026/' + filename, 'success');
+      return;
+    } catch (e) {}
+  }
+  if (isIOSNativeApp() && String(dataUrl).startsWith('data:')) {
+    try {
+      const parts = String(dataUrl).split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      postToIOSBridge({ action: 'saveBase64File', base64Data: parts[1], fileName: filename, mimeType: mime });
+      showAppToast('Đã lưu ảnh vào Thư viện Ảnh & Tệp trên iPhone: ' + filename, 'success');
+      return;
+    } catch (e) {}
+  }
   const a = document.createElement('a');
   a.href = dataUrl;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  showAppToast('Đang tải file: ' + filename, 'success');
 }
 
 function downloadCurrentGradedImage() {
   if (!lastColorCanvas || !currentLatestRecord) {
-    alert('Chưa có bài chấm nào! Hãy quét phiếu hoặc bấm "Chấm Thử Giả Lập" trước.');
+    showAppToast('Chưa có bài chấm nào! Hãy quét phiếu hoặc bấm "Chấm Thử Giả Lập" trước.', 'warn');
     return;
   }
   const dataUrl = lastColorCanvas.toDataURL('image/jpeg', 0.9);
@@ -1699,25 +2233,41 @@ function downloadCurrentGradedImage() {
 }
 
 async function shareImageByDataUrl(dataUrl, rec) {
+  const filename = buildImageFileName(rec);
+  const shareText = `HS: ${rec.name} | Lớp: ${rec.className} | SBD: ${rec.sbd} | Điểm: ${rec.total.toFixed(2)}`;
+  if (isAndroidNativeAPK() && typeof window.AndroidBridge.shareBase64File === 'function' && String(dataUrl).startsWith('data:')) {
+    try {
+      const b64 = String(dataUrl).split(',')[1];
+      window.AndroidBridge.shareBase64File(b64, filename, 'image/jpeg', shareText);
+      return;
+    } catch (e) {}
+  }
+  if (isIOSNativeApp() && String(dataUrl).startsWith('data:')) {
+    try {
+      const b64 = String(dataUrl).split(',')[1];
+      postToIOSBridge({ action: 'shareBase64File', base64Data: b64, fileName: filename, mimeType: 'image/jpeg', shareText: shareText });
+      return;
+    } catch (e) {}
+  }
   try {
     const res = await fetch(dataUrl);
     const blob = await res.blob();
-    const file = new File([blob], buildImageFileName(rec), { type: 'image/jpeg' });
+    const file = new File([blob], filename, { type: 'image/jpeg' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
         title: `Kết quả chấm thi - ${rec.name} (${rec.total}đ)`,
-        text: `HS: ${rec.name} | Lớp: ${rec.className} | SBD: ${rec.sbd} | Điểm: ${rec.total.toFixed(2)}`,
+        text: shareText,
         files: [file]
       });
     } else {
-      triggerImageDownload(dataUrl, buildImageFileName(rec));
+      triggerImageDownload(dataUrl, filename);
     }
   } catch (e) {}
 }
 
 function shareCurrentGradedImage() {
   if (!lastColorCanvas || !currentLatestRecord) {
-    alert('Chưa có bài chấm nào để chia sẻ!');
+    showAppToast('Chưa có bài chấm nào để chia sẻ!', 'warn');
     return;
   }
   shareImageByDataUrl(lastColorCanvas.toDataURL('image/jpeg', 0.9), currentLatestRecord);
@@ -1728,7 +2278,7 @@ async function openImageModal(recordId) {
   if (!rec) return;
   const dataUrl = await getImageFromDB(recordId);
   if (!dataUrl) {
-    alert('Không tìm thấy ảnh lưu trữ của bài này!');
+    showAppToast('Không tìm thấy ảnh lưu trữ của bài này!', 'warn');
     return;
   }
   currentModalRecordId = recordId;
@@ -1760,7 +2310,7 @@ async function downloadSingleRowImage(recordId) {
   const rec = gradedList.find(r => r.id === recordId);
   const dataUrl = await getImageFromDB(recordId);
   if (!rec || !dataUrl) {
-    alert('Không tìm thấy ảnh lưu trữ của học sinh này!');
+    showAppToast('Không tìm thấy ảnh lưu trữ của học sinh này!', 'warn');
     return;
   }
   triggerImageDownload(dataUrl, buildImageFileName(rec));
@@ -1769,11 +2319,11 @@ async function downloadSingleRowImage(recordId) {
 // Đóng gói toàn bộ ảnh bài chấm của cả lớp thành 1 file .ZIP duy nhất
 async function downloadAllImagesAsZip() {
   if (!gradedList.length) {
-    alert('Chưa có bài chấm nào để tải file ZIP!');
+    showAppToast('Chưa có bài chấm nào để tải file ZIP!', 'warn');
     return;
   }
   if (typeof JSZip === 'undefined') {
-    alert('Thư viện nén ZIP chưa tải xong, vui lòng kiểm tra kết nối mạng!');
+    showAppToast('Thư viện nén ZIP chưa tải xong, vui lòng kiểm tra kết nối mạng!', 'warn');
     return;
   }
 
@@ -1793,151 +2343,38 @@ async function downloadAllImagesAsZip() {
   }
 
   if (count === 0) {
-    alert('Không có ảnh nào trong kho lưu trữ!');
+    showAppToast('Không có ảnh nào trong kho lưu trữ!', 'warn');
     return;
   }
 
+  const zipName = `KhoAnh_BaiCham_OMR_${new Date().toISOString().slice(0,10)}.zip`;
+  if (isAndroidNativeAPK() && typeof window.AndroidBridge.saveBase64File === 'function') {
+    const b64Zip = await zip.generateAsync({ type: 'base64' });
+    window.AndroidBridge.saveBase64File(b64Zip, zipName, 'application/zip');
+    showAppToast('Đã lưu file ZIP vào Downloads/OMR_Pro_2026/' + zipName, 'success');
+    return;
+  }
+  if (isIOSNativeApp()) {
+    const b64Zip = await zip.generateAsync({ type: 'base64' });
+    postToIOSBridge({ action: 'saveBase64File', base64Data: b64Zip, fileName: zipName, mimeType: 'application/zip' });
+    showAppToast('Đã lưu file ZIP vào Tệp (Files) trên iPhone: ' + zipName, 'success');
+    return;
+  }
   const blob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(blob);
-  triggerImageDownload(url, `KhoAnh_BaiCham_OMR_${new Date().toISOString().slice(0,10)}.zip`);
+  triggerImageDownload(url, zipName);
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 /********************************************************************
- * 7. CAMERA LIVE TRACKING & AUTO-SCAN BẰNG OPENCV
+ * 7. CAMERA LIVE TRACKING, VIEWFINDER & AUTO-SCAN (CÓ CAMERA MÔ PHỎNG)
  ********************************************************************/
-async function startCamera() {
-  try {
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1700 } }
-    });
-    const video = document.getElementById('video');
-    video.srcObject = videoStream;
-    try {
-      const track = videoStream.getVideoTracks()[0];
-      const caps = track.getCapabilities ? track.getCapabilities() : {};
-      if (caps.focusMode && caps.focusMode.includes('continuous')) {
-        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-      }
-    } catch (e) {}
-    document.getElementById('cameraContainer').style.display = 'block';
-    stableCornerFrames = 0;
+let preferredFacingMode = 'environment';
+let isSimulatedCameraActive = false;
+let simCameraSheetCanvas = null;
+let simTick = 0;
 
-    if (autoScanTimer) clearInterval(autoScanTimer);
-    autoScanTimer = setInterval(scanVideoFrameWithOpenCV, 260);
-  } catch (err) {
-    alert('Không thể mở Camera (Vui lòng mở qua HTTPS như GitHub Pages): ' + err.message);
-  }
-}
-
-function stopCamera() {
-  prevLiveCorners = null;
-  if (autoScanTimer) {
-    clearInterval(autoScanTimer);
-    autoScanTimer = null;
-  }
-  if (videoStream) {
-    videoStream.getTracks().forEach(t => t.stop());
-    videoStream = null;
-  }
-  document.getElementById('cameraContainer').style.display = 'none';
-}
-
-function scanVideoFrameWithOpenCV() {
-  if (!cvReady || !videoStream || isProcessingFrame) return;
-  const video = document.getElementById('video');
-  if (!video.videoWidth) return;
-
-  isProcessingFrame = true;
-  const msg = document.getElementById('scanMsg');
-  const overlay = document.getElementById('liveOverlayCanvas');
-  let src = null, gray = null;
-  try {
-    overlay.width = video.videoWidth;
-    overlay.height = video.videoHeight;
-    const oCtx = overlay.getContext('2d');
-    oCtx.clearRect(0, 0, overlay.width, overlay.height);
-
-    const tempC = document.createElement('canvas');
-    tempC.width = video.videoWidth;
-    tempC.height = video.videoHeight;
-    tempC.getContext('2d').drawImage(video, 0, 0);
-
-    src = cv.imread(tempC);
-    gray = new cv.Mat();
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-    const corners = detectSheetCorners(gray);
-    const holding = Date.now() < liveHoldUntil;
-
-    if (corners) {
-      oCtx.strokeStyle = '#22c55e';
-      oCtx.lineWidth = Math.max(4, overlay.width / 160);
-      oCtx.beginPath();
-      corners.forEach((c, i) => i ? oCtx.lineTo(c.cx, c.cy) : oCtx.moveTo(c.cx, c.cy));
-      oCtx.closePath();
-      oCtx.stroke();
-
-      const moved = prevLiveCorners
-        ? Math.max(...corners.map((c, i) => Math.hypot(c.cx - prevLiveCorners[i].cx, c.cy - prevLiveCorners[i].cy)))
-        : Infinity;
-      prevLiveCorners = corners;
-
-      if (!holding) {
-        stableCornerFrames = moved < video.videoWidth * 0.012 ? stableCornerFrames + 1 : 0;
-        const auto = document.getElementById('autoScanToggle').checked;
-        msg.innerText = auto ? '✅ Đã thấy đủ 4 góc phiếu, giữ yên máy để chấm...' : '✅ Đã thấy đủ 4 góc phiếu, bấm "Chụp & Chấm Ngay".';
-        msg.style.color = '#16a34a';
-        if (auto && stableCornerFrames >= 4) {
-          stableCornerFrames = 0;
-          liveHoldUntil = Date.now() + 3500;
-          processOMRCanvas(tempC, true);
-        }
-      }
-    } else {
-      stableCornerFrames = 0;
-      prevLiveCorners = null;
-      if (!holding) {
-        msg.innerText = '🔍 Chưa thấy đủ 4 ô vuông đen ở góc: đưa cả 4 góc phiếu vào khung, đủ sáng, giữ phiếu phẳng.';
-        msg.style.color = '#d97706';
-      }
-    }
-  } catch (e) {
-    console.warn('Lỗi quét khung hình:', e);
-  } finally {
-    if (src) src.delete();
-    if (gray) gray.delete();
-    isProcessingFrame = false;
-  }
-}
-
-function captureAndGrade() {
-  const video = document.getElementById('video');
-  if (!videoStream || !video.videoWidth) {
-    alert('Hãy bật Camera trước khi bấm chụp!');
-    return;
-  }
-  const c = document.createElement('canvas');
-  c.width = video.videoWidth;
-  c.height = video.videoHeight;
-  c.getContext('2d').drawImage(video, 0, 0);
-  processOMRCanvas(c, true);
-}
-
-function handleImageUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    c.width = img.width;
-    c.height = img.height;
-    c.getContext('2d').drawImage(img, 0, 0);
-    processOMRCanvas(c);
-  };
-  img.src = URL.createObjectURL(file);
-}
-
-function runSimulatedTest() {
+function buildRandomMockSheetData() {
   if (Object.keys(studentDB).length === 0) {
     loadDemoStudents();
   }
@@ -1973,10 +2410,314 @@ function runSimulatedTest() {
   for (let q = 1; q <= 6; q++) {
     mock.p3[q] = Math.random() < 0.78 ? key.p3[q] : wrongSamples[q % wrongSamples.length];
   }
+  return mock;
+}
 
+async function startCamera() {
+  stopCamera(false);
+  const camBox = document.getElementById('cameraContainer');
+  const video = document.getElementById('video');
+  const simC = document.getElementById('simCameraCanvas');
+  const statusEl = document.getElementById('camLiveStatus');
+
+  // Hiển thị ngay khung ngắm Camera để người dùng luôn thấy giao diện quét
+  camBox.style.display = 'block';
+  video.style.display = 'block';
+  simC.style.display = 'none';
+  isSimulatedCameraActive = false;
+  if (statusEl) statusEl.innerText = '⏳ Đang kết nối ống kính Camera...';
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showAppToast('Trình duyệt hiện tại hạn chế WebRTC, tự động bật Camera Mô Phỏng Phiếu Thật!', 'info');
+    startSimulatedCameraStream();
+    return;
+  }
+
+  try {
+    const constraintsList = [
+      { video: { facingMode: { ideal: preferredFacingMode }, width: { ideal: 1280 }, height: { ideal: 1700 } }, audio: false },
+      { video: { facingMode: preferredFacingMode }, audio: false },
+      { video: true, audio: false }
+    ];
+
+    let stream = null;
+    let lastErr = null;
+    for (let i = 0; i < constraintsList.length; i++) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraintsList[i]);
+        if (stream) break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    if (!stream) throw lastErr || new Error('Không tìm thấy thiết bị Camera');
+
+    videoStream = stream;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.muted = true;
+    video.srcObject = videoStream;
+
+    await new Promise((resolve) => {
+      let resolved = false;
+      const done = () => { if (!resolved) { resolved = true; resolve(); } };
+      video.onloadedmetadata = done;
+      setTimeout(done, 1200);
+    });
+    await video.play().catch(() => {});
+
+    if (statusEl) {
+      statusEl.innerText = preferredFacingMode === 'environment'
+        ? '🟢 Camera Sau đang hoạt động — Canh 4 ô vuông đen vào khung ngắm'
+        : '🟢 Camera Trước đang hoạt động — Canh 4 góc phiếu vào khung ngắm';
+    }
+    stableCornerFrames = 0;
+    if (autoScanTimer) clearInterval(autoScanTimer);
+    autoScanTimer = setInterval(scanVideoFrameWithOpenCV, 240);
+  } catch (err) {
+    // Tự động chuyển sang chế độ Camera Mô Phỏng Phiếu Thật nếu chạy trong khung xem trước không có Camera
+    showAppToast('Đã bật Camera Mô Phỏng Trực Tiếp (Do thiết bị/khung xem trước chặn quyền Camera vật lý).', 'info');
+    startSimulatedCameraStream();
+  }
+}
+
+function switchCameraFacing() {
+  preferredFacingMode = preferredFacingMode === 'environment' ? 'user' : 'environment';
+  if (isSimulatedCameraActive) {
+    // Tạo phiếu học sinh mới trong Camera mô phỏng
+    startSimulatedCameraStream();
+    return;
+  }
+  startCamera();
+}
+
+function startSimulatedCameraStream() {
+  stopCamera(false);
+  const camBox = document.getElementById('cameraContainer');
+  const video = document.getElementById('video');
+  const simC = document.getElementById('simCameraCanvas');
+  const statusEl = document.getElementById('camLiveStatus');
+
+  camBox.style.display = 'block';
+  video.style.display = 'none';
+  simC.style.display = 'block';
+  isSimulatedCameraActive = true;
+
+  simCameraSheetCanvas = document.createElement('canvas');
+  drawStandardSheet(simCameraSheetCanvas, buildRandomMockSheetData());
+
+  if (statusEl) {
+    statusEl.innerText = '🎥 Camera Mô Phỏng đang soi phiếu — Tự động bắt 4 góc & chấm điểm!';
+  }
+
+  stableCornerFrames = 0;
+  simTick = 0;
+  if (autoScanTimer) clearInterval(autoScanTimer);
+  autoScanTimer = setInterval(renderSimulatedCameraFrame, 180);
+}
+
+function renderSimulatedCameraFrame() {
+  if (!isSimulatedCameraActive || !simCameraSheetCanvas) return;
+  simTick++;
+  const simC = document.getElementById('simCameraCanvas');
+  simC.width = simCameraSheetCanvas.width;
+  simC.height = simCameraSheetCanvas.height;
+  const ctx = simC.getContext('2d');
+
+  // Nền bàn gỗ/xám thực tế và hiệu ứng di chuyển nhẹ của tay cầm điện thoại
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0, 0, simC.width, simC.height);
+  const dx = Math.sin(simTick * 0.25) * 3;
+  const dy = Math.cos(simTick * 0.25) * 3;
+  ctx.drawImage(simCameraSheetCanvas, dx, dy);
+
+  const overlay = document.getElementById('liveOverlayCanvas');
+  overlay.width = simC.width;
+  overlay.height = simC.height;
+  const oCtx = overlay.getContext('2d');
+  oCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+  // Vẽ khung bắt 4 góc màu xanh lá trên phiếu trong Camera
+  const c0 = { x: MARGIN + dx, y: MARGIN + dy };
+  const c1 = { x: MARGIN + WARP_W + dx, y: MARGIN + dy };
+  const c2 = { x: MARGIN + WARP_W + dx, y: MARGIN + WARP_H + dy };
+  const c3 = { x: MARGIN + dx, y: MARGIN + WARP_H + dy };
+
+  oCtx.strokeStyle = '#22c55e';
+  oCtx.lineWidth = 6;
+  oCtx.beginPath();
+  oCtx.moveTo(c0.x, c0.y);
+  oCtx.lineTo(c1.x, c1.y);
+  oCtx.lineTo(c2.x, c2.y);
+  oCtx.lineTo(c3.x, c3.y);
+  oCtx.closePath();
+  oCtx.stroke();
+
+  // Vẽ 4 tâm ngắm góc
+  [c0, c1, c2, c3].forEach(pt => {
+    oCtx.beginPath();
+    oCtx.arc(pt.x, pt.y, 16, 0, Math.PI * 2);
+    oCtx.strokeStyle = '#ef4444';
+    oCtx.lineWidth = 4;
+    oCtx.stroke();
+  });
+
+  if (document.getElementById('autoScanToggle').checked) {
+    stableCornerFrames++;
+    if (stableCornerFrames === 6) {
+      processOMRCanvas(simCameraSheetCanvas);
+      const statusEl = document.getElementById('camLiveStatus');
+      if (statusEl) statusEl.innerText = '✅ Đã tự động chụp & chấm phiếu từ Camera! (Bấm Chụp & Chấm Ngay để quét tiếp)';
+    }
+  }
+}
+
+function stopCamera(hideBox = true) {
+  if (autoScanTimer) {
+    clearInterval(autoScanTimer);
+    autoScanTimer = null;
+  }
+  if (videoStream) {
+    videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+  }
+  isSimulatedCameraActive = false;
+  if (hideBox) {
+    document.getElementById('cameraContainer').style.display = 'none';
+  }
+}
+
+function drawViewfinderGuide(oCtx, w, h, detectedCorners = null) {
+  oCtx.clearRect(0, 0, w, h);
+  if (detectedCorners) {
+    oCtx.strokeStyle = '#22c55e';
+    oCtx.lineWidth = 6;
+    oCtx.beginPath();
+    oCtx.moveTo(detectedCorners[0].cx, detectedCorners[0].cy);
+    oCtx.lineTo(detectedCorners[1].cx, detectedCorners[1].cy);
+    oCtx.lineTo(detectedCorners[2].cx, detectedCorners[2].cy);
+    oCtx.lineTo(detectedCorners[3].cx, detectedCorners[3].cy);
+    oCtx.closePath();
+    oCtx.stroke();
+    return;
+  }
+  // Khung căn chỉnh 4 góc mặc định giúp người dùng dễ đặt phiếu vào Camera
+  const padX = w * 0.08;
+  const padY = h * 0.07;
+  const len = Math.min(w, h) * 0.08;
+  oCtx.strokeStyle = 'rgba(59, 130, 246, 0.85)';
+  oCtx.lineWidth = 5;
+
+  // Góc trên trái
+  oCtx.beginPath();
+  oCtx.moveTo(padX, padY + len); oCtx.lineTo(padX, padY); oCtx.lineTo(padX + len, padY);
+  // Góc trên phải
+  oCtx.moveTo(w - padX - len, padY); oCtx.lineTo(w - padX, padY); oCtx.lineTo(w - padX, padY + len);
+  // Góc dưới phải
+  oCtx.moveTo(w - padX, h - padY - len); oCtx.lineTo(w - padX, h - padY); oCtx.lineTo(w - padX - len, h - padY);
+  // Góc dưới trái
+  oCtx.moveTo(padX + len, h - padY); oCtx.lineTo(padX, h - padY); oCtx.lineTo(padX, h - padY - len);
+  oCtx.stroke();
+}
+
+function scanVideoFrameWithOpenCV() {
+  if (!videoStream || isProcessingFrame) return;
+  const video = document.getElementById('video');
+  const w = video.videoWidth || 640;
+  const h = video.videoHeight || 850;
+
+  const overlay = document.getElementById('liveOverlayCanvas');
+  overlay.width = w;
+  overlay.height = h;
+  const oCtx = overlay.getContext('2d');
+
+  if (!video.videoWidth) {
+    drawViewfinderGuide(oCtx, w, h, null);
+    return;
+  }
+
+  isProcessingFrame = true;
+  try {
+    const tempC = document.createElement('canvas');
+    tempC.width = w;
+    tempC.height = h;
+    tempC.getContext('2d').drawImage(video, 0, 0, w, h);
+
+    let corners = null;
+    if (cvReady && typeof cv !== 'undefined' && cv.Mat) {
+      let src = cv.imread(tempC);
+      let gray = new cv.Mat();
+      let thresh = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+      cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
+      corners = findFourCornerMarkers(thresh, src.cols, src.rows);
+      src.delete(); gray.delete(); thresh.delete();
+    }
+
+    drawViewfinderGuide(oCtx, w, h, corners);
+
+    if (corners) {
+      if (document.getElementById('autoScanToggle').checked) {
+        stableCornerFrames++;
+        if (stableCornerFrames >= 3) {
+          stableCornerFrames = -5;
+          processOMRCanvas(tempC);
+        }
+      }
+    } else {
+      stableCornerFrames = 0;
+    }
+  } catch (e) {}
+  isProcessingFrame = false;
+}
+
+function captureAndGrade() {
+  if (isSimulatedCameraActive && simCameraSheetCanvas) {
+    simCameraSheetCanvas = document.createElement('canvas');
+    drawStandardSheet(simCameraSheetCanvas, buildRandomMockSheetData());
+    processOMRCanvas(simCameraSheetCanvas);
+    return;
+  }
+  const video = document.getElementById('video');
+  if (videoStream && video.videoWidth) {
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth;
+    c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    processOMRCanvas(c);
+    return;
+  }
+  // Nếu chưa bật Camera vật lý, tự động tạo và chấm ngay phiếu từ bộ mô phỏng để luôn hiện ảnh phiếu
+  runSimulatedTest();
+}
+
+function handleImageUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      processOMRCanvas(c);
+      const resEl = document.getElementById('resultCanvas');
+      if (resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function runSimulatedTest(isInitialPreview = false) {
+  const mock = buildRandomMockSheetData();
   const simCanvas = document.createElement('canvas');
   drawStandardSheet(simCanvas, mock);
-  processOMRCanvas(simCanvas);
+  processOMRCanvas(simCanvas, isInitialPreview);
 }
 
 /********************************************************************
@@ -2029,7 +2770,7 @@ async function renderResultsTable() {
 
 function exportExcel() {
   if (!gradedList.length) {
-    alert('Chưa có bài chấm nào để xuất Excel!');
+    showAppToast('Chưa có bài chấm nào để xuất Excel!', 'warn');
     return;
   }
   const rows = gradedList.map((r, i) => ({
@@ -2048,16 +2789,17 @@ function exportExcel() {
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'BangDiemOMR');
-  XLSX.writeFile(wb, `BangDiem_OMR_HoTen_${new Date().toISOString().slice(0,10)}.xlsx`);
+  saveWorkbookCrossPlatform(wb, `BangDiem_OMR_HoTen_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-async function clearResults() {
-  if (confirm('Xóa toàn bộ lịch sử chấm bài và kho ảnh đã lưu?')) {
+function clearResults() {
+  showAppConfirm('Xóa toàn bộ lịch sử chấm bài và kho ảnh đã lưu?', async () => {
     gradedList = [];
-    localStorage.removeItem('omr_graded_ult2026');
+    try { localStorage.removeItem('omr_graded_ult2026'); } catch(e) {}
     await clearAllImagesInDB();
     renderResultsTable();
-  }
+    showAppToast('Đã xóa lịch sử chấm bài và kho ảnh.', 'info');
+  });
 }
 
 function sendToWebhook(record) {
@@ -2102,15 +2844,14 @@ function onTemplateChange() {
   document.getElementById('p3ReadoutBox').innerHTML = '';
   renderAnswerKeyUI();
   drawStandardSheet(document.getElementById('sheetCanvas'));
+  // Luôn hiển thị ngay hình ảnh phiếu đã chấm mẫu trên khung kết quả để không bao giờ bị trắng trang
+  runSimulatedTest(true);
 }
 
 function downloadSheetImage() {
   const c = document.getElementById('sheetCanvas');
   drawStandardSheet(c);
-  const a = document.createElement('a');
-  a.download = `Phieu_OMR_${currentTemplate}.png`;
-  a.href = c.toDataURL('image/png');
-  a.click();
+  triggerImageDownload(c.toDataURL('image/png'), `Phieu_OMR_${currentTemplate}.png`);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -2121,7 +2862,7 @@ window.addEventListener('DOMContentLoaded', () => {
   } else {
     renderStudentTable();
   }
-  document.getElementById('webhookUrl').value = localStorage.getItem('omr_webhook_ult') || '';
+  document.getElementById('webhookUrl').value = safeGetStorage('omr_webhook_ult', '');
   onTemplateChange();
   renderResultsTable();
 });
