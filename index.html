@@ -421,9 +421,6 @@
       </details>
 
       <div class="row">
-        <button class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
-        <button class="btn btn-outline" onclick="switchCameraFacing()">🔄 Đổi Camera Trước/Sau</button>
-        <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
         <button class="btn btn-success" onclick="captureAndGrade()">⚡ Chụp & Chấm Ngay</button>
         <label class="btn btn-primary" style="background:#0284c7;">
           📸 Chụp Bằng Camera ĐT
@@ -434,6 +431,12 @@
           <input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
         </label>
         <button class="btn btn-warning" onclick="runSimulatedTest()">🧪 Chấm Thử Giả Lập (Lưu Ảnh Tự Động)</button>
+      </div>
+
+      <div class="row">
+        <button class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
+        <button class="btn btn-outline" onclick="switchCameraFacing()">🔄 Đổi Camera Trước/Sau</button>
+        <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
       </div>
 
       <div id="cameraContainer" class="cam-wrap" style="display:none; margin-top:8px;">
