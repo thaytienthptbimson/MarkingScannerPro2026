@@ -52,18 +52,40 @@
     @keyframes licShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
     .lic-shake { animation: licShake 0.3s; }
 
-    /* Navigation 4 Tabs */
+    /* Navigation 4 chức năng — nổi bật, mỗi chức năng một màu */
     .tabs {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      background: #fff; border-bottom: 2px solid #e2e8f0;
-      position: sticky; top: 46px; z-index: 99;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      padding: 8px 10px; background: #fff; border-bottom: 2px solid #e2e8f0;
+      position: sticky; top: var(--header-h, 46px); z-index: 99;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.10);
     }
     .tab-btn {
-      padding: 10px 4px; border: none; background: none;
-      font-size: 0.8rem; font-weight: 600; color: #64748b;
-      cursor: pointer; border-bottom: 3px solid transparent; transition: 0.15s;
+      --tc: #2563eb; --tc-bg: #dbeafe;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      padding: 8px 4px; border: 2px solid var(--tc); border-radius: 12px;
+      background: var(--tc-bg); color: var(--tc);
+      font-size: 0.76rem; font-weight: 800; line-height: 1.2; text-align: center;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
     }
-    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #eff6ff; }
+    .tab-btn .tab-num {
+      width: 26px; height: 26px; border-radius: 50%; flex: none;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--tc); color: #fff; font-size: 0.9rem; font-weight: 800;
+    }
+    .tab-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18); }
+    .tab-btn.active {
+      background: var(--tc); color: #fff;
+      box-shadow: 0 5px 14px rgba(15, 23, 42, 0.30); transform: translateY(-1px);
+    }
+    .tab-btn.active .tab-num { background: #fff; color: var(--tc); }
+    .tab-btn.tab-1 { --tc: #2563eb; --tc-bg: #dbeafe; }
+    .tab-btn.tab-2 { --tc: #16a34a; --tc-bg: #dcfce7; }
+    .tab-btn.tab-3 { --tc: #ea580c; --tc-bg: #ffedd5; }
+    .tab-btn.tab-4 { --tc: #7c3aed; --tc-bg: #ede9fe; }
+    @media (min-width: 640px) {
+      .tab-btn { flex-direction: row; gap: 9px; padding: 10px 8px; font-size: 0.95rem; }
+      .tab-btn .tab-num { width: 28px; height: 28px; }
+    }
 
     .container { max-width: 1080px; margin: 12px auto; padding: 0 10px; }
     .tab-content { display: none; }
@@ -359,10 +381,10 @@
 </header>
 
 <nav class="tabs">
-  <button class="tab-btn active" onclick="switchTab('tab-scan', this)">1. Quét Chấm</button>
-  <button class="tab-btn" onclick="switchTab('tab-key', this)">2. Đáp Án</button>
-  <button class="tab-btn" onclick="switchTab('tab-sheet', this)">3. In Phiếu</button>
-  <button class="tab-btn" onclick="switchTab('tab-results', this)">4. Bảng Điểm & Ảnh</button>
+  <button class="tab-btn tab-1 active" onclick="switchTab('tab-scan', this)"><span class="tab-num">1</span><span class="tab-label">📷 Quét Chấm</span></button>
+  <button class="tab-btn tab-2" onclick="switchTab('tab-key', this)"><span class="tab-num">2</span><span class="tab-label">🔑 Đáp Án</span></button>
+  <button class="tab-btn tab-3" onclick="switchTab('tab-sheet', this)"><span class="tab-num">3</span><span class="tab-label">🖨️ In Phiếu</span></button>
+  <button class="tab-btn tab-4" onclick="switchTab('tab-results', this)"><span class="tab-num">4</span><span class="tab-label">📊 Bảng Điểm & Ảnh</span></button>
 </nav>
 
 <div class="container">
@@ -3002,6 +3024,11 @@ function submitLicensePassword() {
   }
 }
 
+function syncHeaderHeight() {
+  const h = document.querySelector('header');
+  if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+}
+
 function initLicense() {
   updateLicenseUI();
   setInterval(updateLicenseUI, 60000);
@@ -3015,6 +3042,9 @@ if ('serviceWorker' in navigator) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  syncHeaderHeight();
+  window.addEventListener('resize', syncHeaderHeight);
+  try { new ResizeObserver(syncHeaderHeight).observe(document.querySelector('header')); } catch (e) {}
   initLicense();
   initImageDB();
   loadOpenCVWithFallback(0);
