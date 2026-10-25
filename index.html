@@ -28,21 +28,11 @@
       --text: #0f172a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    body {
-      background: var(--bg); color: var(--text);
-      padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px));
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-    input, select, table { user-select: text; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 65px; }
 
     header {
       background: linear-gradient(135deg, #1e3a8a, #2563eb);
       color: #fff; padding: 12px 16px;
-      padding-top: calc(12px + env(safe-area-inset-top, 0px));
-      padding-left: calc(16px + env(safe-area-inset-left, 0px));
-      padding-right: calc(16px + env(safe-area-inset-right, 0px));
       display: flex; justify-content: space-between; align-items: center;
       position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
     }
@@ -142,9 +132,11 @@
     }
     #liveOverlayCanvas {
       position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2;
+      /* QUAN TRỌNG: ghi đè quy tắc chung `canvas {background:#fff}` — nếu không lớp phủ sẽ che trắng toàn bộ video */
       background: transparent !important; box-shadow: none !important;
-      max-width: none; object-fit: cover;
+      max-width: none; object-fit: cover; /* cùng cách cắt với <video> để khung ngắm khớp hình */
     }
+    /* Khung quét: thanh trạng thái ở TRÊN, camera ở GIỮA, các nút ở DƯỚI — không còn đè lên hình camera */
     .cam-wrap { width: 100%; max-width: 520px; margin: 0 auto; }
     .cam-status-bar {
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 8px;
@@ -233,8 +225,7 @@
     footer {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #0f172a; color: #cbd5e1; text-align: center;
-      padding: 7px; padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
-      font-size: 0.76rem; z-index: 100;
+      padding: 7px; font-size: 0.76rem; z-index: 100;
     }
 
     @media print {
@@ -247,6 +238,14 @@
       #sheetCanvas { box-shadow: none; width: 100%; max-height: 100vh; object-fit: contain; }
     }
 
+    /* Android Native Bridge & Toast / Confirm Dialog Styles */
+    body {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px));
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, select, table { user-select: text; }
     .header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .android-btn {
       font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
@@ -255,13 +254,6 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     .android-btn:hover { background: #d97706; }
-    .ios-btn {
-      font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
-      background: #0ea5e9; color: #fff; border: none; font-weight: 700;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .ios-btn:hover { background: #0284c7; }
     #appToastContainer {
       position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
       z-index: 3000; display: flex; flex-direction: column; gap: 8px;
@@ -283,30 +275,68 @@
       line-height: 1.5;
     }
     .guide-step strong { color: #1e40af; }
+    /* Quản lý nhiều mã đề */
+    .code-manager {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 12px;
+    }
+    .code-manager-head {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 8px; margin-bottom: 8px;
+    }
+    .code-manager-head strong { color: #1e293b; font-size: 0.88rem; }
+    .code-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .code-chip {
+      padding: 6px 15px; border-radius: 20px; border: 1px solid #94a3b8;
+      background: #fff; color: #334155; font-weight: 700; font-size: 0.86rem;
+      cursor: pointer; transition: 0.15s;
+    }
+    .code-chip:hover { border-color: var(--primary); }
+    .code-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .modal-textarea {
+      width: 100%; min-height: 84px; padding: 8px 10px; border: 1px solid #cbd5e1;
+      border-radius: 8px; font-size: 0.9rem; resize: vertical; outline: none; margin-top: 6px;
+    }
+    .add-code-opt {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 6px; cursor: pointer;
+    }
+    .acp-line { font-size: 0.8rem; padding: 6px 8px; border-radius: 6px; margin-top: 6px; line-height: 1.4; }
+    .acp-ok   { background: #f0fdf4; color: #166534; }
+    .acp-warn { background: #fffbeb; color: #92400e; }
+    .acp-err  { background: #fef2f2; color: #991b1b; }
+
     .code-pill {
       background: #e2e8f0; padding: 2px 6px; border-radius: 4px;
       font-family: monospace; font-size: 0.8rem; color: #0f172a;
     }
+
+
+    /* iOS / iPhone Specific Enhancements (Notch, Dynamic Island & Safari Auto-Zoom Fix) */
+    header {
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
+      padding-left: calc(16px + env(safe-area-inset-left, 0px));
+      padding-right: calc(16px + env(safe-area-inset-right, 0px));
+    }
+    footer {
+      padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+    }
+    .ios-btn {
+      font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
+      background: #0ea5e9; color: #fff; border: none; font-weight: 700;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .ios-btn:hover { background: #0284c7; }
     @supports (-webkit-touch-callout: none) {
       select, input[type="text"], input[type="number"] {
         font-size: 16px !important;
       }
     }
 
-    /* Camera Shutter Flash Effect */
-    #cameraFlashOverlay {
-      position: fixed; inset: 0; background: #ffffff;
-      z-index: 9999; pointer-events: none; opacity: 0;
-      transition: opacity 0.22s ease-out;
-    }
-    #cameraFlashOverlay.flash-active {
-      opacity: 0.88;
-      transition: none;
-    }
   </style>
 </head>
 <body>
-<div id="cameraFlashOverlay"></div>
 
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
@@ -368,37 +398,6 @@
             <input type="checkbox" id="autoDownloadImgToggle" style="width:16px; height:16px;">
             Tự động tải file ảnh (.JPG) về máy sau mỗi lần chấm
           </label>
-          <label style="color:#dc2626; cursor:pointer; display:flex; align-items:center; gap:5px;">
-            <input type="checkbox" id="shutterSoundToggle" checked style="width:16px; height:16px;">
-            🔊 Bật tiếng màn trập Máy ảnh & Chớp sáng
-          </label>
-          <label style="color:#7c3aed; cursor:pointer; display:flex; align-items:center; gap:5px;">
-            <input type="checkbox" id="voiceReadScoreToggle" style="width:16px; height:16px;">
-            🗣️ Đọc to điểm số bằng giọng nói
-          </label>
-          <label style="color:#0369a1; cursor:pointer; display:flex; align-items:center; gap:5px;">
-            <input type="checkbox" id="preventDupSbdToggle" checked style="width:16px; height:16px;">
-            🛡️ Chống chụp trùng SBD liên tiếp
-          </label>
-          <label style="color:#0f766e; cursor:pointer; display:flex; align-items:center; gap:5px;">
-            <input type="checkbox" id="overwriteSameSbdToggle" checked style="width:16px; height:16px;">
-            ♻️ Tự động ghi đè nếu chấm lại cùng SBD
-          </label>
-          <div style="display:flex; align-items:center; gap:4px;">
-            <label style="color:#b45309;">⏱️ Nghỉ giữa 2 lần chụp:</label>
-            <select id="scanCooldownSec" style="padding:4px 8px; font-weight:700; color:#b45309;">
-              <option value="1.5">1.5 giây</option>
-              <option value="2.5" selected>2.5 giây (Chuẩn)</option>
-              <option value="3.5">3.5 giây</option>
-              <option value="5.0">5.0 giây</option>
-            </select>
-          </div>
-          <button type="button" class="btn btn-outline btn-sm" onclick="playCameraShutterAndChime({total: 9.5}, true)">
-            🔔 Nghe thử tiếng chụp
-          </button>
-          <button type="button" class="btn btn-warning btn-sm" onclick="playWarningBuzzer(['Tô trùng 2 đáp án câu 5', 'Chưa tô Mã đề'], true)">
-            ⚠️ Nghe thử tiếng báo lỗi
-          </button>
         </div>
         <div>
           <label>Độ nhạy chì: <span id="threshVal">35</span>%</label>
@@ -533,10 +532,22 @@
         <span>Thiết Lập Đáp Án & Thang Điểm Theo Mã Đề</span>
         <div class="row" style="margin:0;">
           <label>Mã đề:</label>
-          <input type="text" id="keyExamCode" value="101" maxlength="3" style="width:75px; font-weight:bold; text-align:center;" onchange="renderAnswerKeyUI()">
+          <input type="text" id="keyExamCode" value="101" maxlength="3" inputmode="numeric" title="Gõ mã đề (3 chữ số) rồi Enter. Mã chưa có sẽ được tạo mới." style="width:75px; font-weight:bold; text-align:center;" onchange="onExamCodeInputChange()">
           <button class="btn btn-outline" onclick="randomFillKey()">🎲 Tạo Đáp Án Mẫu</button>
           <button class="btn btn-primary" onclick="saveCurrentKey()">💾 Lưu Đáp Án</button>
         </div>
+      </div>
+
+      <!-- DANH SÁCH NHIỀU MÃ ĐỀ -->
+      <div class="code-manager">
+        <div class="code-manager-head">
+          <strong>📋 Danh sách mã đề đã có (<span id="countExamCodes">0</span>) — bấm vào mã để xem / sửa đáp án</strong>
+          <div class="row" style="margin:0;">
+            <button class="btn btn-success btn-sm" onclick="openAddCodesModal()">➕ Thêm nhiều mã đề</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCurrentCode()">🗑️ Xóa mã đề đang chọn</button>
+          </div>
+        </div>
+        <div id="examCodeChips" class="code-chips"></div>
       </div>
 
       <div class="row" style="background:#eff6ff; padding:8px 12px; border-radius:8px;">
@@ -650,10 +661,11 @@
   </div>
 </div>
 
-<!-- TOAST THÔNG BÁO -->
+
+<!-- TOAST THÔNG BÁO CHUẨN ANDROID (THAY THẾ ALERT) -->
 <div id="appToastContainer"></div>
 
-<!-- MODAL XÁC NHẬN -->
+<!-- MODAL XÁC NHẬN (THAY THẾ CONFIRM) -->
 <div id="confirmModal" class="modal-backdrop" onclick="if(event.target===this) closeAppConfirm(false)">
   <div class="modal-card" style="max-width: 420px;">
     <div class="modal-header">
@@ -666,6 +678,43 @@
     <div class="modal-footer" style="justify-content:flex-end;">
       <button class="btn btn-outline" onclick="closeAppConfirm(false)">Hủy bỏ</button>
       <button class="btn btn-danger" onclick="closeAppConfirm(true)">Đồng ý</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL THÊM NHIỀU MÃ ĐỀ CÙNG LÚC -->
+<div id="addCodesModal" class="modal-backdrop" onclick="if(event.target===this) closeAddCodesModal()">
+  <div class="modal-card" style="max-width: 520px;">
+    <div class="modal-header">
+      <strong>➕ Thêm Nhiều Mã Đề</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeAddCodesModal()">✕ Đóng</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
+      <label for="addCodesInput">Nhập các mã đề (mỗi mã gồm 3 chữ số):</label>
+      <textarea id="addCodesInput" class="modal-textarea" placeholder="VD: 101, 102, 103, 104&#10;hoặc nhập dải: 201-208" oninput="updateAddCodesPreview()"></textarea>
+      <p style="font-size:0.78rem; color:#64748b; margin:4px 0 8px;">
+        Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">201-208</span> = 8 mã đề). Tối đa 100 mã mỗi lần.
+      </p>
+      <div id="addCodesPreview"></div>
+
+      <label style="display:block; margin:12px 0 6px;">Khởi tạo đáp án cho các mã đề mới:</label>
+      <label class="add-code-opt">
+        <input type="radio" name="addCodesInit" value="copy" checked>
+        <span>Sao chép đáp án từ mã đề</span>
+        <select id="addCodesCopyFrom" style="padding:4px 8px; font-weight:700;"></select>
+      </label>
+      <label class="add-code-opt">
+        <input type="radio" name="addCodesInit" value="default">
+        <span>Đáp án mặc định (A-B-C-D lặp lại)</span>
+      </label>
+      <label class="add-code-opt" style="margin-bottom:0;">
+        <input type="radio" name="addCodesInit" value="random">
+        <span>Ngẫu nhiên (chỉ dùng để chấm thử)</span>
+      </label>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeAddCodesModal()">Hủy bỏ</button>
+      <button class="btn btn-success" onclick="confirmAddCodes()">➕ Thêm Mã Đề</button>
     </div>
   </div>
 </div>
@@ -689,16 +738,27 @@
       </div>
 
       <div class="guide-step">
-        <strong>Cách 1: Biên dịch file cài đặt <span class="code-pill">.APK</span> tự động qua GitHub Actions</strong>
+        <strong>Cách 1: Biên dịch file cài đặt <span class="code-pill">.APK</span> tự động qua GitHub Actions (Không cần cài Android Studio)</strong>
         <p style="margin-top:4px; color:#334155;">
-          Đẩy thư mục dự án lên GitHub → Mở tab <strong>Actions</strong> để tải file <span class="code-pill">OMR-Pro-2026-debug.apk</span>.
+          1. Giải nén file gói dự án <span class="code-pill">OMR_Pro_2026_Android_Package.zip</span> đi kèm.<br>
+          2. Tải toàn bộ thư mục lên một kho lưu trữ (Repository) trên GitHub.<br>
+          3. Mở tab <strong>Actions</strong> trên GitHub → Quy trình <em>Build OMR Pro 2026 Android APK</em> sẽ tự động chạy và xuất ra file <span class="code-pill">OMR-Pro-2026-debug.apk</span> sau ~2 phút để tải thẳng về điện thoại Android!
+        </p>
+      </div>
+
+      <div class="guide-step">
+        <strong>Cách 2: Xuất file <span class="code-pill">.APK</span> trực tiếp bằng Android Studio hoặc Script 1-Click</strong>
+        <p style="margin-top:4px; color:#334155;">
+          1. Mở thư mục dự án trong <strong>Android Studio</strong> (hoặc chạy <span class="code-pill">build_apk.bat</span> trên Windows / <span class="code-pill">./build_apk.sh</span> trên macOS/Linux).<br>
+          2. Chọn menu <strong>Build → Build Bundle(s) / APK(s) → Build APK(s)</strong>.<br>
+          3. Dự án đã tích hợp sẵn <strong>AndroidBridge Native</strong>: tự động cấp quyền Camera sau để quét phiếu OMR, hỗ trợ chọn file Excel danh sách học sinh, lưu ảnh bài chấm <span class="code-pill">.JPG</span>, gói <span class="code-pill">.ZIP</span> và bảng điểm <span class="code-pill">.XLSX</span> vào thư mục <span class="code-pill">Downloads/OMR_Pro_2026</span> cũng như chia sẻ trực tiếp qua Zalo.
         </p>
       </div>
 
       <div class="guide-step" style="margin-bottom:0;">
-        <strong>Cách 2: Cài đặt trực tiếp dạng WebAPK (PWA) ngay trên trình duyệt Chrome Android</strong>
+        <strong>Cách 3: Cài đặt trực tiếp dạng WebAPK (PWA) ngay trên trình duyệt Chrome Android</strong>
         <p style="margin-top:4px; color:#334155;">
-          Mở ứng dụng bằng <strong>Google Chrome</strong> → Bấm menu <strong>⋮ (3 chấm góc phải)</strong> → Chọn <strong>"Thêm vào màn hình chính"</strong>.
+          Mở ứng dụng này bằng <strong>Google Chrome</strong> trên điện thoại Android → Bấm biểu tượng menu <strong>⋮ (3 chấm góc phải)</strong> → Chọn <strong>"Thêm vào màn hình chính" (Add to Home screen / Cài đặt ứng dụng)</strong>. Ứng dụng sẽ chạy toàn màn hình với biểu tượng riêng như một App gốc.
         </p>
       </div>
     </div>
@@ -707,6 +767,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- MODAL HƯỚNG DẪN CÀI ĐẶT & ĐÓNG GÓI TRÊN iOS / IPHONE -->
 <div id="iosGuideModal" class="modal-backdrop" onclick="if(event.target===this) closeIOSGuideModal()">
@@ -728,18 +789,30 @@
       </div>
 
       <div class="guide-step">
-        <strong>Cách 1: Cài trực tiếp lên Màn hình chính iPhone trong 10 giây</strong>
+        <strong>Cách 1: Cài trực tiếp lên Màn hình chính iPhone trong 10 giây (Không cần máy tính / Không cần Jailbreak)</strong>
         <p style="margin-top:4px; color:#334155;">
-          1. Mở ứng dụng này bằng trình duyệt <strong>Safari</strong> trên iPhone.<br>
-          2. Bấm vào nút <strong>Chia sẻ (⬆️)</strong> ở thanh công cụ dưới đáy Safari.<br>
-          3. Chọn <strong>"Thêm vào MH chính" (Add to Home Screen ➕)</strong> → Bấm <strong>Thêm (Add)</strong>.
+          1. Mở ứng dụng này bằng trình duyệt <strong>Safari</strong> trên điện thoại iPhone.<br>
+          2. Bấm vào nút <strong>Chia sẻ (Share - biểu tượng ô vuông có mũi tên hướng lên ⬆️)</strong> ở thanh công cụ dưới đáy màn hình Safari.<br>
+          3. Kéo xuống và chọn <strong>"Thêm vào MH chính" (Add to Home Screen ➕)</strong> → Bấm <strong>Thêm (Add)</strong> ở góc phải trên cùng.<br>
+          4. Ứng dụng <strong>OMR Pro 2026</strong> sẽ xuất hiện ngoài màn hình chính iPhone với biểu tượng riêng, chạy toàn màn hình (hỗ trợ Dynamic Island / Tai thỏ), mở Camera sau quét phiếu siêu mượt và lưu ảnh chấm vào <strong>Thư viện Ảnh / Tệp (Files)</strong>!
+        </p>
+      </div>
+
+      <div class="guide-step">
+        <strong>Cách 2: Tự động biên dịch file <span class="code-pill">.IPA</span> trên đám mây bằng GitHub Actions (Không cần máy Mac)</strong>
+        <p style="margin-top:4px; color:#334155;">
+          1. Giải nén gói <span class="code-pill">OMR_Pro_2026_iOS_iPhone_Package.zip</span> và tải lên một kho lưu trữ GitHub.<br>
+          2. Vào tab <strong>Actions</strong> → Chạy workflow <em>Build OMR Pro 2026 iOS IPA</em> (chạy trên máy chủ <span class="code-pill">macos-latest</span> của GitHub).<br>
+          3. Tải file <span class="code-pill">OMR-Pro-2026-iOS.ipa</span> vừa xuất ra và cài vào iPhone thông qua <strong>Sideloadly</strong>, <strong>AltStore</strong> (miễn phí bằng tài khoản Apple ID cá nhân) hoặc <strong>TrollStore / ESign</strong>.
         </p>
       </div>
 
       <div class="guide-step" style="margin-bottom:0;">
-        <strong>Cách 2: Biên dịch file <span class="code-pill">.IPA</span> bằng GitHub Actions hoặc Xcode</strong>
+        <strong>Cách 3: Biên dịch và cài trực tiếp từ Xcode trên máy Mac (<span class="code-pill">OMRPro2026.xcodeproj</span>)</strong>
         <p style="margin-top:4px; color:#334155;">
-          Đẩy gói dự án iOS lên GitHub → Mở tab <strong>Actions</strong> chạy workflow <em>Build OMR Pro 2026 iOS IPA</em> để lấy file <span class="code-pill">.ipa</span> cài qua Sideloadly / AltStore hoặc mở trực tiếp bằng Xcode trên MacBook.
+          1. Mở file <span class="code-pill">OMRPro2026.xcodeproj</span> trong gói giải nén bằng phần mềm <strong>Xcode</strong>.<br>
+          2. Cắm cáp iPhone vào máy Mac, chọn tài khoản Apple ID tại mục <em>Signing & Capabilities → Team</em> và bấm nút <strong>Run (▶)</strong>.<br>
+          3. Dự án đã tích hợp sẵn cầu nối <strong>Swift WKWebView Native (<span class="code-pill">iOSBridge</span>)</strong>: tự động duyệt quyền Camera sau trên iOS 15–18+, lưu ảnh trực tiếp vào <strong>Photos (Альбом ảnh iPhone)</strong>, xuất file Excel/ZIP vào ứng dụng <strong>Tệp (Files → On My iPhone)</strong>, hỗ trợ in phiếu qua <strong>AirPrint</strong> và gửi ảnh bài chấm qua <strong>Zalo / AirDrop</strong>.
         </p>
       </div>
     </div>
@@ -754,8 +827,9 @@
 </footer>
 
 <script>
+
 /********************************************************************
- * HỆ THỐNG CẦU NỐI ANDROID / iOS NATIVE BRIDGE & PWA DIALOGS
+ * HỆ THỐNG CẦU NỐI ANDROID NATIVE BRIDGE (APK WEBVIEW) & PWA DIALOGS
  ********************************************************************/
 let deferredPWAPrompt = null;
 let confirmDialogCallback = null;
@@ -847,7 +921,7 @@ function showAppToast(message, type = 'info') {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity 0.25s';
     setTimeout(() => toast.remove(), 260);
-  }, 3400);
+  }, 3200);
 }
 
 function showAppConfirm(message, onConfirm) {
@@ -989,10 +1063,11 @@ function loadOpenCVWithFallback(idx = 0) {
   document.body.appendChild(script);
 }
 
+// Cơ sở dữ liệu IndexedDB chuyên lưu trữ ảnh bài chấm dung lượng lớn
 const DB_NAME = 'OMR_ImageArchive_2026';
 const STORE_NAME = 'graded_images';
 let dbPromise = null;
-const memoryImageCache = {};
+const memoryImageCache = {}; // Bộ nhớ đệm tốc độ cao trong phiên làm việc
 
 function initImageDB() {
   if (dbPromise) return dbPromise;
@@ -1207,15 +1282,12 @@ function downloadSampleStudentExcel() {
 const WARP_W = 840;
 const WARP_H = 1180;
 const MARGIN = 40;
-const STAMP_H = 75;
+const STAMP_H = 75; // Chiều cao dải đóng dấu kết quả trên đầu ảnh lưu
 
 let videoStream = null;
 let autoScanTimer = null;
 let stableCornerFrames = 0;
 let isProcessingFrame = false;
-
-let lastAutoScanTimestamp = 0;
-let lastScannedSBD = '';
 
 let currentTemplate = '2026_2P';
 let answerKeys = JSON.parse(safeGetStorage('omr_keys_ult2026', '{}'));
@@ -1568,6 +1640,7 @@ function renderAnswerKeyUI() {
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   const currentKey = answerKeys[code];
   const geo = getSheetGeometry(currentTemplate);
+  renderExamCodeChips();
 
   document.getElementById('titleP1Key').innerText =
     `PHẦN I: Trắc nghiệm 4 lựa chọn (${geo.p1.length} câu: A, B, C, D)`;
@@ -1661,8 +1734,7 @@ function updateP3Key(q, val) {
   answerKeys[code].p3[q] = val.trim();
 }
 
-function randomFillKey() {
-  const code = document.getElementById('keyExamCode').value.trim() || '101';
+function createRandomKey() {
   const opts = ['A', 'B', 'C', 'D'];
   const ds = ['Đ', 'S'];
   const samplePool = ['12,5', '-3,5', '0,25', '104', '-12', '4,8', '205', '0,5', '9,6', '-0,8'];
@@ -1679,15 +1751,207 @@ function randomFillKey() {
   for (let q = 1; q <= 6; q++) {
     key.p3[q] = samplePool[Math.floor(Math.random() * samplePool.length)];
   }
-  answerKeys[code] = key;
+  return key;
+}
+
+function randomFillKey() {
+  const code = document.getElementById('keyExamCode').value.trim() || '101';
+  answerKeys[code] = createRandomKey();
   saveCurrentKey();
   renderAnswerKeyUI();
 }
 
-function saveCurrentKey() {
+function persistKeys() {
   safeSetStorage('omr_keys_ult2026', JSON.stringify(answerKeys));
+}
+
+function saveCurrentKey() {
+  persistKeys();
   playBeep(880, 80);
-  showAppToast('Đã lưu đáp án mã đề ' + (document.getElementById('keyExamCode').value || '101'), 'success');
+}
+
+/********************************************************************
+ * 4b. QUẢN LÝ NHIỀU MÃ ĐỀ (THÊM HÀNG LOẠT / CHUYỂN / XÓA)
+ ********************************************************************/
+// Mã đề trên phiếu luôn là 3 chữ số (VD: "7" -> "007") nên chuẩn hóa để tra đáp án khớp với mã quét được
+function normalizeExamCode(raw) {
+  const digits = String(raw || '').replace(/\D/g, '').slice(0, 3);
+  return digits ? digits.padStart(3, '0') : '';
+}
+
+// Chuyển các mã đề cũ đã lưu không đủ 3 chữ số (nếu có) về dạng chuẩn
+(function migrateAnswerKeyCodes() {
+  let changed = false;
+  Object.keys(answerKeys).forEach(k => {
+    const nk = normalizeExamCode(k);
+    if (nk && nk !== k) {
+      if (!answerKeys[nk]) answerKeys[nk] = answerKeys[k];
+      delete answerKeys[k];
+      changed = true;
+    }
+  });
+  if (changed) safeSetStorage('omr_keys_ult2026', JSON.stringify(answerKeys));
+})();
+
+function getSortedExamCodes() {
+  return Object.keys(answerKeys).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function cloneKey(key) {
+  return JSON.parse(JSON.stringify(key));
+}
+
+function renderExamCodeChips() {
+  const wrap = document.getElementById('examCodeChips');
+  if (!wrap) return;
+  const current = document.getElementById('keyExamCode').value.trim();
+  const codes = getSortedExamCodes();
+  document.getElementById('countExamCodes').innerText = codes.length;
+  wrap.innerHTML = '';
+  codes.forEach(code => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'code-chip' + (code === current ? ' active' : '');
+    btn.innerText = code;
+    btn.onclick = () => selectExamCode(code);
+    wrap.appendChild(btn);
+  });
+}
+
+function selectExamCode(code) {
+  document.getElementById('keyExamCode').value = code;
+  renderAnswerKeyUI();
+}
+
+// Gõ trực tiếp vào ô "Mã đề": chuẩn hóa 3 chữ số, mã chưa có thì tạo mới
+function onExamCodeInputChange() {
+  const input = document.getElementById('keyExamCode');
+  const code = normalizeExamCode(input.value);
+  if (!code) {
+    input.value = getSortedExamCodes()[0] || '101';
+    showAppToast('Mã đề chỉ gồm chữ số (VD: 101).', 'warn');
+  } else {
+    input.value = code;
+    if (!answerKeys[code]) {
+      answerKeys[code] = createDefaultKey();
+      persistKeys();
+      showAppToast(`Đã tạo mã đề ${code}.`, 'success');
+    }
+  }
+  renderAnswerKeyUI();
+}
+
+// Tách chuỗi nhập thành danh sách mã đề. Hỗ trợ: "101, 102 103", xuống dòng, và dải "201-208"
+function parseExamCodeList(text) {
+  const result = { codes: [], invalid: [] };
+  const seen = new Set();
+  const cleaned = String(text || '').replace(/\s*[-–—]\s*/g, '-');
+  cleaned.split(/[\s,;]+/).filter(Boolean).forEach(tok => {
+    let nums;
+    const range = tok.match(/^(\d{1,3})-(\d{1,3})$/);
+    if (range) {
+      const a = parseInt(range[1], 10), b = parseInt(range[2], 10);
+      const lo = Math.min(a, b), hi = Math.max(a, b);
+      if (hi - lo + 1 > 100) {
+        result.invalid.push(`${tok} (dải quá dài, tối đa 100 mã)`);
+        return;
+      }
+      nums = [];
+      for (let n = lo; n <= hi; n++) nums.push(n);
+    } else if (/^\d{1,3}$/.test(tok)) {
+      nums = [parseInt(tok, 10)];
+    } else {
+      result.invalid.push(tok);
+      return;
+    }
+    nums.forEach(n => {
+      const code = String(n).padStart(3, '0');
+      if (!seen.has(code)) {
+        seen.add(code);
+        result.codes.push(code);
+      }
+    });
+  });
+  return result;
+}
+
+function updateAddCodesPreview() {
+  const box = document.getElementById('addCodesPreview');
+  const text = document.getElementById('addCodesInput').value;
+  box.innerHTML = '';
+  if (!text.trim()) return;
+
+  const addLine = (cls, msg) => {
+    const d = document.createElement('div');
+    d.className = 'acp-line ' + cls;
+    d.textContent = msg;
+    box.appendChild(d);
+  };
+  const { codes, invalid } = parseExamCodeList(text);
+  const fresh = codes.filter(c => !answerKeys[c]);
+  const existed = codes.filter(c => answerKeys[c]);
+  if (fresh.length) addLine('acp-ok', `✅ Sẽ thêm ${fresh.length} mã đề: ${fresh.join(', ')}`);
+  if (existed.length) addLine('acp-warn', `⚠️ Đã tồn tại, sẽ bỏ qua: ${existed.join(', ')}`);
+  if (invalid.length) addLine('acp-err', `❌ Không hợp lệ: ${invalid.join(', ')}`);
+}
+
+function openAddCodesModal() {
+  const sel = document.getElementById('addCodesCopyFrom');
+  const current = document.getElementById('keyExamCode').value.trim();
+  sel.innerHTML = '';
+  getSortedExamCodes().forEach(c => sel.appendChild(new Option(c, c, false, c === current)));
+  document.getElementById('addCodesInput').value = '';
+  document.getElementById('addCodesPreview').innerHTML = '';
+  document.querySelector('input[name="addCodesInit"][value="copy"]').checked = true;
+  document.getElementById('addCodesModal').classList.add('open');
+  setTimeout(() => document.getElementById('addCodesInput').focus(), 50);
+}
+
+function closeAddCodesModal() {
+  document.getElementById('addCodesModal').classList.remove('open');
+}
+
+function confirmAddCodes() {
+  const { codes, invalid } = parseExamCodeList(document.getElementById('addCodesInput').value);
+  if (invalid.length) {
+    showAppToast('Có mã đề không hợp lệ, vui lòng kiểm tra lại.', 'error');
+    return;
+  }
+  const fresh = codes.filter(c => !answerKeys[c]);
+  if (!fresh.length) {
+    showAppToast(codes.length ? 'Các mã đề này đều đã tồn tại.' : 'Hãy nhập ít nhất 1 mã đề.', 'warn');
+    return;
+  }
+
+  const mode = document.querySelector('input[name="addCodesInit"]:checked').value;
+  const copyFrom = document.getElementById('addCodesCopyFrom').value;
+  fresh.forEach(code => {
+    if (mode === 'copy' && answerKeys[copyFrom]) answerKeys[code] = cloneKey(answerKeys[copyFrom]);
+    else if (mode === 'random') answerKeys[code] = createRandomKey();
+    else answerKeys[code] = createDefaultKey();
+  });
+  persistKeys();
+  closeAddCodesModal();
+  selectExamCode(fresh[0]);
+  playBeep(880, 80);
+  showAppToast(`Đã thêm ${fresh.length} mã đề: ${fresh.join(', ')}`, 'success');
+}
+
+function deleteCurrentCode() {
+  const code = document.getElementById('keyExamCode').value.trim();
+  const codes = getSortedExamCodes();
+  if (codes.length <= 1) {
+    showAppToast('Cần giữ lại ít nhất 1 mã đề.', 'warn');
+    return;
+  }
+  showAppConfirm(`Xóa đáp án của mã đề ${code}? Thao tác này không thể hoàn tác.`, () => {
+    const idx = codes.indexOf(code);
+    delete answerKeys[code];
+    persistKeys();
+    const rest = getSortedExamCodes();
+    selectExamCode(rest[Math.max(0, Math.min(idx, rest.length - 1))]);
+    showAppToast(`Đã xóa mã đề ${code}.`, 'info');
+  });
 }
 
 function isShortAnswerMatch(studentRaw, keyRaw) {
@@ -1775,23 +2039,28 @@ function getBubbleFillRatio(threshMat, x, y, r = 6) {
   return nonZero / (w * h);
 }
 
+// Tạo bức ảnh hoàn chỉnh có dải Banner thông tin học sinh + Điểm số đóng dấu ở trên cùng
 function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   const out = document.createElement('canvas');
   out.width = WARP_W;
   out.height = WARP_H + STAMP_H;
   const ctx = out.getContext('2d');
 
+  // Vẽ nền dải thông tin kết quả trên đầu phiếu
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, WARP_W, STAMP_H);
 
+  // Vạch màu xanh lá / đỏ bên trái
   ctx.fillStyle = '#22c55e';
   ctx.fillRect(0, 0, 10, STAMP_H);
 
+  // Dòng 1: Họ tên học sinh - Lớp - SBD - Mã đề
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 20px Segoe UI, Arial';
   ctx.textAlign = 'left';
   ctx.fillText(`HS: ${info.name}  |  Lớp: ${info.className}  |  SBD: ${info.sbd}  |  Mã đề: ${info.made}`, 22, 30);
 
+  // Dòng 2: Điểm chi tiết từng phần & Giờ chấm
   ctx.fillStyle = '#93c5fd';
   ctx.font = 'bold 15px Segoe UI, Arial';
   ctx.fillText(
@@ -1799,6 +2068,7 @@ function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
     22, 58
   );
 
+  // Hộp Tổng Điểm nổi bật ở góc phải
   ctx.fillStyle = '#dc2626';
   ctx.fillRect(WARP_W - 175, 10, 160, STAMP_H - 20);
   ctx.fillStyle = '#ffffff';
@@ -1808,16 +2078,19 @@ function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   ctx.font = 'bold 26px Segoe UI, Arial';
   ctx.fillText(`${info.total.toFixed(2)}`, WARP_W - 95, 56);
 
+  // Ghép ảnh phiếu đã khoanh tròn đáp án xuống bên dưới Banner
   ctx.drawImage(warpedSheetCanvas, 0, STAMP_H);
   return out;
 }
 
+// Bộ đọc độ đậm ô trắc nghiệm thuần Canvas 2D (chạy tức thì ngay cả khi chưa nạp xong OpenCV.js)
 function prepareCanvasVisionData(sourceCanvas) {
   const rawSheetColor = document.createElement('canvas');
   rawSheetColor.width = WARP_W;
   rawSheetColor.height = WARP_H;
   const ctxColor = rawSheetColor.getContext('2d');
 
+  // Nếu ảnh nguồn có kích thước chuẩn kèm lề MARGIN (920x1260), cắt đúng khung 4 góc (840x1180)
   if (
     Math.abs(sourceCanvas.width - (WARP_W + MARGIN * 2)) <= 16 &&
     Math.abs(sourceCanvas.height - (WARP_H + MARGIN * 2)) <= 16
@@ -1838,6 +2111,7 @@ function prepareCanvasVisionData(sourceCanvas) {
   const binData = binImgData.data;
   const mask = new Uint8Array(WARP_W * WARP_H);
 
+  // Tính ngưỡng sáng trung bình toàn cục kết hợp ngưỡng cục bộ
   let sumLum = 0;
   for (let i = 0; i < data.length; i += 16) {
     sumLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
@@ -1877,7 +2151,7 @@ function getMaskBubbleFillRatio(mask, x, y, r = 6) {
   return count / (w * h);
 }
 
-async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAutoScan = false) {
+async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   const thresholdRatio = parseInt(document.getElementById('fillThreshold').value, 10) / 100;
   let rawSheetColor, rawSheetBin;
   let src = null, gray = null, blurred = null, thresh = null;
@@ -1954,6 +2228,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
     return getMaskBubbleFillRatio(pureMask, x, y, r);
   };
 
+
+
   const ctxColor = rawSheetColor.getContext('2d');
   const ctxBin = rawSheetBin.getContext('2d');
   const geo = getSheetGeometry(currentTemplate);
@@ -1964,11 +2240,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
     drawCircleOverlay(ctxBin, x, y, r, color, lw);
   };
 
-  const sheetWarnings = [];
-
-  // 1. Đọc Số Báo Danh & Kiểm tra thiếu cột SBD
+  // 1. Đọc Số Báo Danh
   let sbdStr = '';
-  let missingSbdCols = 0;
   geo.sbd.forEach(col => {
     let bestD = '0', maxF = thresholdRatio, bestPos = null;
     col.forEach(b => {
@@ -1976,34 +2249,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
       if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
     });
     sbdStr += bestD;
-    if (bestPos) {
-      drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
-    } else {
-      missingSbdCols++;
-    }
+    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
   });
-
-  if (missingSbdCols > 0) {
-    sheetWarnings.push(`Chưa tô đủ SBD (thiếu ${missingSbdCols} cột)`);
-  }
-
-  // Chống chụp trùng SBD liên tiếp khi đang bật Auto-Scan
-  const preventDup = document.getElementById('preventDupSbdToggle')?.checked;
-  if (!isInitialPreview && isFromAutoScan && preventDup && sbdStr === lastScannedSBD && missingSbdCols === 0) {
-    const statusEl = document.getElementById('camLiveStatus');
-    if (statusEl) {
-      statusEl.innerText = `⚠️ Phiếu SBD ${sbdStr} vừa được chấm! Hãy đưa tờ phiếu tiếp theo vào...`;
-    }
-    try {
-      if (src) src.delete(); if (gray) gray.delete(); if (blurred) blurred.delete();
-      if (thresh) thresh.delete(); if (warpedColor) warpedColor.delete();
-      if (warpedGray) warpedGray.delete(); if (warpedThresh) warpedThresh.delete();
-    } catch (e) {}
-    return;
-  }
-  if (!isInitialPreview) {
-    lastScannedSBD = sbdStr;
-  }
 
   const matchedStudent = lookupStudentBySBD(sbdStr);
   const stName = matchedStudent ? matchedStudent.name : 'Chưa có tên trong DS';
@@ -2014,9 +2261,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
   document.getElementById('resStudentClass').innerText = 'Lớp: ' + stClass;
   document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr;
 
-  // 2. Đọc Mã đề & Kiểm tra thiếu cột Mã đề
+  // 2. Đọc Mã đề
   let maDeStr = '';
-  let missingMaDeCols = 0;
   geo.made.forEach(col => {
     let bestD = '0', maxF = thresholdRatio, bestPos = null;
     col.forEach(b => {
@@ -2024,25 +2270,17 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
       if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
     });
     maDeStr += bestD;
-    if (bestPos) {
-      drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
-    } else {
-      missingMaDeCols++;
-    }
+    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
   });
 
   const fallbackCode = document.getElementById('keyExamCode').value.trim() || '101';
-  if (missingMaDeCols > 0) {
-    sheetWarnings.push(`Chưa tô đủ Mã đề`);
-  } else if (!answerKeys[maDeStr]) {
-    sheetWarnings.push(`Mã đề ${maDeStr} chưa nhập Đáp án (chấm theo mã ${fallbackCode})`);
+  const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
+  if (!answerKeys[maDeStr] && !isInitialPreview) {
+    showAppToast(`⚠️ Mã đề ${maDeStr} chưa có đáp án! Đang chấm tạm theo đáp án mã đề ${fallbackCode}.`, 'warn');
   }
 
-  const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
-
-  // 3. Chấm Phần I & Phát hiện câu tô đúp (>= 2 phương án)
+  // 3. Chấm Phần I
   let correctP1 = 0;
-  const multiFilledP1 = [];
   const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
   geo.p1.forEach(item => {
     const filled = [];
@@ -2050,9 +2288,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
       const r = measureBubble(opt.x, opt.y, scanR);
       if (r >= thresholdRatio) filled.push(opt);
     });
-    if (filled.length > 1) {
-      multiFilledP1.push(item.q);
-    }
     const rightAns = activeKey.p1[item.q];
     const rightObj = item.opts.find(o => o.label === rightAns);
 
@@ -2064,9 +2299,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
       if (rightObj) drawBoth(rightObj.x, rightObj.y, 11, '#eab308', 2.4);
     }
   });
-  if (multiFilledP1.length > 0) {
-    sheetWarnings.push(`Tô trùng đáp án ở câu: ${multiFilledP1.join(', ')}`);
-  }
   const scoreP1 = correctP1 * ptP1;
 
   // 4. Chấm Phần II
@@ -2161,6 +2393,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
     total: totalScore
   };
 
+  // Tạo ảnh đóng dấu kết quả (Stamped Canvas) và lưu vào IndexedDB
   lastColorCanvas = createStampedAnnotatedCanvas(rawSheetColor, record);
   lastBinaryCanvas = createStampedAnnotatedCanvas(rawSheetBin, record);
   currentLatestRecord = record;
@@ -2170,6 +2403,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
 
   renderResultCanvasView();
 
+  // Cập nhật thông số lên Banner
   document.getElementById('resMeta').innerText = maDeStr;
   document.getElementById('resP1').innerText = `${scoreP1.toFixed(2)} (${correctP1}/${geo.p1.length})`;
   document.getElementById('resP2').innerText = scoreP2.toFixed(2);
@@ -2178,28 +2412,13 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false, isFromAu
   document.getElementById('resTotal').innerText = totalScore.toFixed(2);
 
   if (!isInitialPreview) {
-    const overwriteSameSbd = document.getElementById('overwriteSameSbdToggle')?.checked;
-    const existingIdx = gradedList.findIndex(r => r.sbd === sbdStr && missingSbdCols === 0);
-
-    if (overwriteSameSbd && existingIdx !== -1) {
-      gradedList[existingIdx] = record;
-    } else {
-      gradedList.unshift(record);
-    }
-
+    gradedList.unshift(record);
     safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
     renderResultsTable();
     sendToWebhook(record);
+    playBeep(1046, 120);
 
-    playCameraShutterAndChime(record);
-
-    if (sheetWarnings.length > 0) {
-      setTimeout(() => playWarningBuzzer(sheetWarnings), 380);
-      showAppToast(`⚠️ Chấm xong (${record.total.toFixed(2)}đ) nhưng lưu ý: ${sheetWarnings.join(' | ')}`, 'warn');
-    } else {
-      showAppToast(`📸 Đã chụp & chấm xong: ${record.name} (${record.sbd}) — ${record.total.toFixed(2)} điểm!`, 'success');
-    }
-
+    // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
     if (document.getElementById('autoDownloadImgToggle').checked) {
       triggerImageDownload(imgDataUrl, buildImageFileName(record));
     }
@@ -2245,6 +2464,7 @@ function drawCircleOverlay(ctx, x, y, r, color, lw) {
 /********************************************************************
  * 6. CHỨC NĂNG LƯU ẢNH, XEM LẠI ẢNH BÀI CHẤM & XUẤT FILE .ZIP
  ********************************************************************/
+// Đặt tên file ảnh chuẩn không dấu: Lop_SBD_HoVaTen_Diem.jpg
 function removeVietnameseTones(str) {
   return String(str || '')
     .normalize('NFD')
@@ -2384,6 +2604,7 @@ async function downloadSingleRowImage(recordId) {
   triggerImageDownload(dataUrl, buildImageFileName(rec));
 }
 
+// Đóng gói toàn bộ ảnh bài chấm của cả lớp thành 1 file .ZIP duy nhất
 async function downloadAllImagesAsZip() {
   if (!gradedList.length) {
     showAppToast('Chưa có bài chấm nào để tải file ZIP!', 'warn');
@@ -2434,7 +2655,7 @@ async function downloadAllImagesAsZip() {
 }
 
 /********************************************************************
- * 7. CAMERA LIVE TRACKING, VIEWFINDER & AUTO-SCAN (CÓ COOLDOWN)
+ * 7. CAMERA LIVE TRACKING, VIEWFINDER & AUTO-SCAN (CÓ CAMERA MÔ PHỎNG)
  ********************************************************************/
 let preferredFacingMode = 'environment';
 let isSimulatedCameraActive = false;
@@ -2487,6 +2708,7 @@ async function startCamera() {
   const simC = document.getElementById('simCameraCanvas');
   const statusEl = document.getElementById('camLiveStatus');
 
+  // Hiển thị ngay khung ngắm Camera để người dùng luôn thấy giao diện quét
   camBox.style.display = 'block';
   video.style.display = 'block';
   simC.style.display = 'none';
@@ -2542,6 +2764,7 @@ async function startCamera() {
     if (autoScanTimer) clearInterval(autoScanTimer);
     autoScanTimer = setInterval(scanVideoFrameWithOpenCV, 240);
   } catch (err) {
+    // Tự động chuyển sang chế độ Camera Mô Phỏng Phiếu Thật nếu chạy trong khung xem trước không có Camera
     showAppToast('Đã bật Camera Mô Phỏng Trực Tiếp (Do thiết bị/khung xem trước chặn quyền Camera vật lý).', 'info');
     startSimulatedCameraStream();
   }
@@ -2550,6 +2773,7 @@ async function startCamera() {
 function switchCameraFacing() {
   preferredFacingMode = preferredFacingMode === 'environment' ? 'user' : 'environment';
   if (isSimulatedCameraActive) {
+    // Tạo phiếu học sinh mới trong Camera mô phỏng
     startSimulatedCameraStream();
     return;
   }
@@ -2589,6 +2813,7 @@ function renderSimulatedCameraFrame() {
   simC.height = simCameraSheetCanvas.height;
   const ctx = simC.getContext('2d');
 
+  // Nền bàn gỗ/xám thực tế và hiệu ứng di chuyển nhẹ của tay cầm điện thoại
   ctx.fillStyle = '#1e293b';
   ctx.fillRect(0, 0, simC.width, simC.height);
   const dx = Math.sin(simTick * 0.25) * 3;
@@ -2601,6 +2826,7 @@ function renderSimulatedCameraFrame() {
   const oCtx = overlay.getContext('2d');
   oCtx.clearRect(0, 0, overlay.width, overlay.height);
 
+  // Vẽ khung bắt 4 góc màu xanh lá trên phiếu trong Camera
   const c0 = { x: MARGIN + dx, y: MARGIN + dy };
   const c1 = { x: MARGIN + WARP_W + dx, y: MARGIN + dy };
   const c2 = { x: MARGIN + WARP_W + dx, y: MARGIN + WARP_H + dy };
@@ -2616,6 +2842,7 @@ function renderSimulatedCameraFrame() {
   oCtx.closePath();
   oCtx.stroke();
 
+  // Vẽ 4 tâm ngắm góc
   [c0, c1, c2, c3].forEach(pt => {
     oCtx.beginPath();
     oCtx.arc(pt.x, pt.y, 16, 0, Math.PI * 2);
@@ -2627,7 +2854,7 @@ function renderSimulatedCameraFrame() {
   if (document.getElementById('autoScanToggle').checked) {
     stableCornerFrames++;
     if (stableCornerFrames === 6) {
-      processOMRCanvas(simCameraSheetCanvas, false, true);
+      processOMRCanvas(simCameraSheetCanvas);
       const statusEl = document.getElementById('camLiveStatus');
       if (statusEl) statusEl.innerText = '✅ Đã tự động chụp & chấm phiếu từ Camera! (Bấm Chụp & Chấm Ngay để quét tiếp)';
     }
@@ -2663,16 +2890,21 @@ function drawViewfinderGuide(oCtx, w, h, detectedCorners = null) {
     oCtx.stroke();
     return;
   }
+  // Khung căn chỉnh 4 góc mặc định giúp người dùng dễ đặt phiếu vào Camera
   const padX = w * 0.08;
   const padY = h * 0.07;
   const len = Math.min(w, h) * 0.08;
   oCtx.strokeStyle = 'rgba(59, 130, 246, 0.85)';
   oCtx.lineWidth = 5;
 
+  // Góc trên trái
   oCtx.beginPath();
   oCtx.moveTo(padX, padY + len); oCtx.lineTo(padX, padY); oCtx.lineTo(padX + len, padY);
+  // Góc trên phải
   oCtx.moveTo(w - padX - len, padY); oCtx.lineTo(w - padX, padY); oCtx.lineTo(w - padX, padY + len);
+  // Góc dưới phải
   oCtx.moveTo(w - padX, h - padY - len); oCtx.lineTo(w - padX, h - padY); oCtx.lineTo(w - padX - len, h - padY);
+  // Góc dưới trái
   oCtx.moveTo(padX + len, h - padY); oCtx.lineTo(padX, h - padY); oCtx.lineTo(padX, h - padY - len);
   oCtx.stroke();
 }
@@ -2715,26 +2947,10 @@ function scanVideoFrameWithOpenCV() {
 
     if (corners) {
       if (document.getElementById('autoScanToggle').checked) {
-        const cooldownMs = (parseFloat(document.getElementById('scanCooldownSec')?.value) || 2.5) * 1000;
-        const elapsed = Date.now() - lastAutoScanTimestamp;
-        const statusEl = document.getElementById('camLiveStatus');
-
-        if (elapsed < cooldownMs) {
-          const remainSec = ((cooldownMs - elapsed) / 1000).toFixed(1);
-          if (statusEl) {
-            statusEl.innerText = `⏳ Đã chấm xong! Hãy đổi sang tờ phiếu mới (${remainSec}s)...`;
-          }
-          stableCornerFrames = 0;
-        } else {
-          stableCornerFrames++;
-          if (statusEl) {
-            statusEl.innerText = `🎯 Đang khóa 4 góc (${stableCornerFrames}/3)... Giữ yên máy`;
-          }
-          if (stableCornerFrames >= 3) {
-            stableCornerFrames = 0;
-            lastAutoScanTimestamp = Date.now();
-            processOMRCanvas(tempC, false, true);
-          }
+        stableCornerFrames++;
+        if (stableCornerFrames >= 3) {
+          stableCornerFrames = -5;
+          processOMRCanvas(tempC);
         }
       }
     } else {
@@ -2750,7 +2966,7 @@ function captureAndGrade() {
   if (isSimulatedCameraActive && simCameraSheetCanvas) {
     simCameraSheetCanvas = document.createElement('canvas');
     drawStandardSheet(simCameraSheetCanvas, buildRandomMockSheetData());
-    processOMRCanvas(simCameraSheetCanvas, false, false);
+    processOMRCanvas(simCameraSheetCanvas);
     return;
   }
   const video = document.getElementById('video');
@@ -2759,9 +2975,10 @@ function captureAndGrade() {
     c.width = video.videoWidth;
     c.height = video.videoHeight;
     c.getContext('2d').drawImage(video, 0, 0);
-    processOMRCanvas(c, false, false);
+    processOMRCanvas(c);
     return;
   }
+  // Nếu chưa bật Camera vật lý, tự động tạo và chấm ngay phiếu từ bộ mô phỏng để luôn hiện ảnh phiếu
   runSimulatedTest();
 }
 
@@ -2776,7 +2993,7 @@ function handleImageUpload(e) {
       c.width = img.width;
       c.height = img.height;
       c.getContext('2d').drawImage(img, 0, 0);
-      processOMRCanvas(c, false, false);
+      processOMRCanvas(c);
       const resEl = document.getElementById('resultCanvas');
       if (resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
@@ -2790,11 +3007,11 @@ function runSimulatedTest(isInitialPreview = false) {
   const mock = buildRandomMockSheetData();
   const simCanvas = document.createElement('canvas');
   drawStandardSheet(simCanvas, mock);
-  processOMRCanvas(simCanvas, isInitialPreview, false);
+  processOMRCanvas(simCanvas, isInitialPreview);
 }
 
 /********************************************************************
- * 8. BẢNG ĐIỂM KÈM ẢNH THU NHỎ, XUẤT EXCEL & ÂM THANH MÁY ẢNH DSLR
+ * 8. BẢNG ĐIỂM KÈM ẢNH THU NHỎ, XUẤT EXCEL & TIỆN ÍCH
  ********************************************************************/
 async function renderResultsTable() {
   document.getElementById('countGraded').innerText = gradedList.length;
@@ -2832,6 +3049,7 @@ async function renderResultsTable() {
     </tr>
   `).join('');
 
+  // Nạp bất đồng bộ ảnh thu nhỏ từ IndexedDB vào từng dòng
   filtered.forEach(async (r) => {
     if (!r.id) return;
     const dataUrl = await getImageFromDB(r.id);
@@ -2867,7 +3085,6 @@ function exportExcel() {
 function clearResults() {
   showAppConfirm('Xóa toàn bộ lịch sử chấm bài và kho ảnh đã lưu?', async () => {
     gradedList = [];
-    lastScannedSBD = '';
     try { localStorage.removeItem('omr_graded_ult2026'); } catch(e) {}
     await clearAllImagesInDB();
     renderResultsTable();
@@ -2886,215 +3103,14 @@ function sendToWebhook(record) {
   }).catch(() => {});
 }
 
-// Bộ tổng hợp âm thanh Máy ảnh DSLR + Còi báo lỗi + Đọc điểm chuẩn iOS Safari
-let sharedAudioCtx = null;
-
-function getSharedAudioContext() {
-  if (!sharedAudioCtx) {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (AudioCtx) sharedAudioCtx = new AudioCtx();
-  }
-  if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
-    sharedAudioCtx.resume().catch(() => {});
-  }
-  return sharedAudioCtx;
-}
-
-['touchstart', 'click'].forEach(evtName => {
-  window.addEventListener(evtName, () => {
-    getSharedAudioContext();
-  }, { once: true, passive: true });
-});
-
-function triggerCameraFlashEffect() {
-  const flashEl = document.getElementById('cameraFlashOverlay');
-  if (!flashEl) return;
-  flashEl.style.background = '#ffffff';
-  flashEl.classList.add('flash-active');
-  setTimeout(() => {
-    flashEl.classList.remove('flash-active');
-  }, 60);
-}
-
-function playCameraShutterAndChime(record = null, forcePlay = false) {
-  triggerCameraFlashEffect();
-
-  if (navigator.vibrate) {
-    try { navigator.vibrate([45, 35, 70]); } catch (e) {}
-  }
-  if (isIOSNativeApp()) {
-    postToIOSBridge({ action: 'showToast', message: '📸 Đã chụp & chấm xong!' });
-  }
-
-  const soundToggle = document.getElementById('shutterSoundToggle');
-  if (!forcePlay && soundToggle && !soundToggle.checked) return;
-
-  try {
-    const ctx = getSharedAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    // 1. Tiếng lá thép màn trập máy ảnh mở ("Tách")
-    const clickDur1 = 0.045;
-    const buf1 = ctx.createBuffer(1, Math.floor(ctx.sampleRate * clickDur1), ctx.sampleRate);
-    const data1 = buf1.getChannelData(0);
-    for (let i = 0; i < data1.length; i++) {
-      data1[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.009));
-    }
-    const noise1 = ctx.createBufferSource();
-    noise1.buffer = buf1;
-
-    const filter1 = ctx.createBiquadFilter();
-    filter1.type = 'bandpass';
-    filter1.frequency.setValueAtTime(1900, now);
-    filter1.Q.setValueAtTime(1.1, now);
-
-    const gain1 = ctx.createGain();
-    gain1.gain.setValueAtTime(1.2, now);
-    gain1.gain.exponentialRampToValueAtTime(0.01, now + clickDur1);
-
-    noise1.connect(filter1);
-    filter1.connect(gain1);
-    gain1.connect(ctx.destination);
-    noise1.start(now);
-
-    // Đập gương lật cơ học trầm
-    const thudOsc = ctx.createOscillator();
-    const thudGain = ctx.createGain();
-    thudOsc.type = 'triangle';
-    thudOsc.frequency.setValueAtTime(260, now);
-    thudOsc.frequency.exponentialRampToValueAtTime(48, now + 0.04);
-    thudGain.gain.setValueAtTime(0.65, now);
-    thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
-    thudOsc.connect(thudGain);
-    thudGain.connect(ctx.destination);
-    thudOsc.start(now);
-    thudOsc.stop(now + 0.042);
-
-    // 2. Tiếng màn trập đóng ("Xoạch" sau 65ms)
-    const offset2 = 0.065;
-    const clickDur2 = 0.055;
-    const buf2 = ctx.createBuffer(1, Math.floor(ctx.sampleRate * clickDur2), ctx.sampleRate);
-    const data2 = buf2.getChannelData(0);
-    for (let i = 0; i < data2.length; i++) {
-      data2[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.012));
-    }
-    const noise2 = ctx.createBufferSource();
-    noise2.buffer = buf2;
-
-    const filter2 = ctx.createBiquadFilter();
-    filter2.type = 'bandpass';
-    filter2.frequency.setValueAtTime(1400, now + offset2);
-    filter2.Q.setValueAtTime(1.3, now + offset2);
-
-    const gain2 = ctx.createGain();
-    gain2.gain.setValueAtTime(0.95, now + offset2);
-    gain2.gain.exponentialRampToValueAtTime(0.01, now + offset2 + clickDur2);
-
-    noise2.connect(filter2);
-    filter2.connect(gain2);
-    gain2.connect(ctx.destination);
-    noise2.start(now + offset2);
-
-    // 3. Tiếng chuông đôi xác nhận ("Ting-Ting")
-    const chimeStart = now + 0.14;
-    const oscA = ctx.createOscillator();
-    const gainA = ctx.createGain();
-    oscA.type = 'sine';
-    oscA.frequency.setValueAtTime(1046.5, chimeStart);
-    oscA.frequency.setValueAtTime(1318.5, chimeStart + 0.075);
-    gainA.gain.setValueAtTime(0.32, chimeStart);
-    gainA.gain.exponentialRampToValueAtTime(0.008, chimeStart + 0.26);
-    oscA.connect(gainA);
-    gainA.connect(ctx.destination);
-    oscA.start(chimeStart);
-    oscA.stop(chimeStart + 0.27);
-  } catch (e) {}
-
-  // 4. Đọc to điểm số bằng giọng nói tiếng Việt
-  const voiceToggle = document.getElementById('voiceReadScoreToggle');
-  if (record && voiceToggle && voiceToggle.checked && 'speechSynthesis' in window) {
-    try {
-      window.speechSynthesis.cancel();
-      const scoreText = String(record.total.toFixed(2)).replace('.00', '').replace('.', ' phẩy ');
-      const utter = new SpeechSynthesisUtterance(`${scoreText} điểm`);
-      utter.lang = 'vi-VN';
-      utter.rate = 1.15;
-      setTimeout(() => window.speechSynthesis.speak(utter), 280);
-    } catch (e) {}
-  }
-}
-
-function playWarningBuzzer(warnings = [], forcePlay = false) {
-  const flashEl = document.getElementById('cameraFlashOverlay');
-  if (flashEl) {
-    flashEl.style.background = '#f59e0b';
-    flashEl.classList.add('flash-active');
-    setTimeout(() => {
-      flashEl.classList.remove('flash-active');
-      setTimeout(() => { flashEl.style.background = '#ffffff'; }, 220);
-    }, 110);
-  }
-
-  if (navigator.vibrate) {
-    try { navigator.vibrate([120, 80, 180]); } catch (e) {}
-  }
-
-  const soundToggle = document.getElementById('shutterSoundToggle');
-  if (!forcePlay && soundToggle && !soundToggle.checked) return;
-
-  try {
-    const ctx = getSharedAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(230, now);
-    gain1.gain.setValueAtTime(0.45, now);
-    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.11);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.12);
-
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sawtooth';
-    osc2.frequency.setValueAtTime(165, now + 0.15);
-    gain2.gain.setValueAtTime(0.5, now + 0.15);
-    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.30);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.15);
-    osc2.stop(now + 0.31);
-  } catch (e) {}
-
-  const voiceToggle = document.getElementById('voiceReadScoreToggle');
-  if (warnings.length && (forcePlay || (voiceToggle && voiceToggle.checked)) && 'speechSynthesis' in window) {
-    try {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance('Chú ý: ' + warnings[0]);
-      utter.lang = 'vi-VN';
-      utter.rate = 1.2;
-      setTimeout(() => window.speechSynthesis.speak(utter), 340);
-    } catch (e) {}
-  }
-}
-
 function playBeep(freq = 900, duration = 100) {
   try {
-    const ctx = getSharedAudioContext();
-    if (!ctx) return;
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
     osc.frequency.value = freq;
-    gain.gain.value = 0.25;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    osc.connect(ctx.destination);
     osc.start();
-    setTimeout(() => { osc.stop(); }, duration);
+    setTimeout(() => { osc.stop(); ctx.close(); }, duration);
   } catch (e) {}
 }
 
@@ -3118,6 +3134,7 @@ function onTemplateChange() {
   document.getElementById('p3ReadoutBox').innerHTML = '';
   renderAnswerKeyUI();
   drawStandardSheet(document.getElementById('sheetCanvas'));
+  // Luôn hiển thị ngay hình ảnh phiếu đã chấm mẫu trên khung kết quả để không bao giờ bị trắng trang
   runSimulatedTest(true);
 }
 
@@ -3126,6 +3143,7 @@ function downloadSheetImage() {
   drawStandardSheet(c);
   triggerImageDownload(c.toDataURL('image/png'), `Phieu_OMR_${currentTemplate}.png`);
 }
+
 
 function downloadIOSMobileConfig() {
   const appUrl = window.location.href.startsWith('http') ? window.location.href : 'https://username.github.io/omr-pro-2026/';
