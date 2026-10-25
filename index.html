@@ -750,6 +750,8 @@ let videoStream = null;
 let autoScanTimer = null;
 let stableCornerFrames = 0;
 let isProcessingFrame = false;
+let liveHoldUntil = 0;
+let prevLiveCorners = null;
 
 let currentTemplate = '2026_2P';
 let answerKeys = JSON.parse(localStorage.getItem('omr_keys_ult2026') || '{}');
@@ -1237,62 +1239,90 @@ function isShortAnswerMatch(studentRaw, keyRaw) {
 /********************************************************************
  * 5. XỬ LÝ ẢNH OPENCV.JS & ĐÓNG DẤU KẾT QUẢ LÊN ẢNH LƯU TRỮ
  ********************************************************************/
-function findFourCornerMarkers(threshMat, imgW, imgH) {
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
-  cv.findContours(threshMat, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+/* ===== NHẬN DIỆN 4 Ô VUÔNG GÓC (bền với ánh sáng, khung ngang/dọc, nền lộn xộn) ===== */
+function oddBlock(n) { n = Math.max(15, Math.round(n)); return n % 2 ? n : n + 1; }
 
-  const candidates = [];
-  const minArea = (imgW * imgH) * 0.00012;
-  const maxArea = (imgW * imgH) * 0.025;
-
-  for (let i = 0; i < contours.size(); i++) {
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    if (area > minArea && area < maxArea) {
-      let peri = cv.arcLength(cnt, true);
-      let approx = new cv.Mat();
-      cv.approxPolyDP(cnt, approx, 0.04 * peri, true);
-      if (approx.rows === 4 && cv.isContourConvex(approx)) {
-        let rect = cv.boundingRect(approx);
-        let aspect = rect.width / rect.height;
-        if (aspect >= 0.65 && aspect <= 1.45) {
-          candidates.push({ cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2 });
-        }
-      }
-      approx.delete();
+// Lấy các vùng đen đặc, gần vuông: đúng đặc điểm của ô định vị góc
+function findMarkerCandidates(bin, w, h) {
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+  const out = [];
+  try {
+    cv.findContours(bin, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    const minA = w * h * 0.00008, maxA = w * h * 0.02;
+    for (let i = 0; i < contours.size(); i++) {
+      const cnt = contours.get(i);
+      try {
+        const area = cv.contourArea(cnt);
+        if (area < minA || area > maxA) continue;
+        const r = cv.minAreaRect(cnt);
+        const rw = r.size.width, rh = r.size.height;
+        if (!rw || !rh || Math.min(rw, rh) / Math.max(rw, rh) < 0.6) continue; // gần vuông
+        if (area / (rw * rh) < 0.85) continue;                                  // loại hình tròn
+        const bb = cv.boundingRect(cnt);
+        const roi = bin.roi(bb);
+        const fill = cv.countNonZero(roi) / (bb.width * bb.height);
+        roi.delete();
+        if (fill < 0.5) continue;                                               // loại khung rỗng
+        out.push({ cx: r.center.x, cy: r.center.y, area });
+      } finally { cnt.delete(); }
     }
-    cnt.delete();
+  } finally { contours.delete(); hierarchy.delete(); }
+  return out;
+}
+
+// Chọn bộ 4 ô tạo thành tứ giác lớn nhất: cùng kích thước, góc gần vuông, tỉ lệ phiếu dọc
+function pickSheetQuad(cands, w, h) {
+  cands = cands.sort((p, q) => q.area - p.area).slice(0, 14);
+  const n = cands.length;
+  let best = null, bestArea = 0;
+  for (let a = 0; a < n - 3; a++) for (let b = a + 1; b < n - 2; b++)
+  for (let c = b + 1; c < n - 1; c++) for (let d = c + 1; d < n; d++) {
+    const pts = [cands[a], cands[b], cands[c], cands[d]];
+    const ar = pts.map(p => p.area);
+    if (Math.max(...ar) / Math.min(...ar) > 2.5) continue;
+    const mx = pts.reduce((t, p) => t + p.cx, 0) / 4, my = pts.reduce((t, p) => t + p.cy, 0) / 4;
+    pts.sort((p, q) => Math.atan2(p.cy - my, p.cx - mx) - Math.atan2(q.cy - my, q.cx - mx)); // TL, TR, BR, BL
+    let ok = true, area2 = 0;
+    for (let i = 0; i < 4 && ok; i++) {
+      const P = pts[i], N = pts[(i + 1) % 4], V = pts[(i + 3) % 4];
+      const v1x = N.cx - P.cx, v1y = N.cy - P.cy, v2x = V.cx - P.cx, v2y = V.cy - P.cy;
+      const cos = (v1x * v2x + v1y * v2y) / ((Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y)) || 1);
+      if (Math.abs(cos) > 0.5) ok = false;
+      area2 += P.cx * N.cy - N.cx * P.cy;
+    }
+    if (!ok) continue;
+    const area = Math.abs(area2) / 2;
+    if (area < w * h * 0.05 || area <= bestArea) continue;
+    const dist = (p, q) => Math.hypot(p.cx - q.cx, p.cy - q.cy);
+    const aspect = ((dist(pts[0], pts[1]) + dist(pts[3], pts[2])) / 2) / ((dist(pts[0], pts[3]) + dist(pts[1], pts[2])) / 2);
+    if (aspect < 0.45 || aspect > 0.98) continue; // phiếu A4 đứng (~0.71)
+    best = pts; bestArea = area;
   }
-  contours.delete();
-  hierarchy.delete();
+  return best ? best.map(p => ({ cx: p.cx, cy: p.cy })) : null;
+}
 
-  if (candidates.length < 4) return null;
-
-  const targets = [
-    { x: 0, y: 0 },
-    { x: imgW, y: 0 },
-    { x: imgW, y: imgH },
-    { x: 0, y: imgH }
-  ];
-
-  const corners = targets.map(t => {
-    let best = null, minDist = Infinity;
-    candidates.forEach(c => {
-      const d = Math.hypot(c.cx - t.x, c.cy - t.y);
-      if (d < minDist) { minDist = d; best = c; }
-    });
-    return best;
-  });
-
-  const unique = new Set(corners.map(c => `${Math.round(c.cx)}_${Math.round(c.cy)}`));
-  if (unique.size < 4) return null;
-
-  const topW = Math.hypot(corners[1].cx - corners[0].cx, corners[1].cy - corners[0].cy);
-  const leftH = Math.hypot(corners[3].cx - corners[0].cx, corners[3].cy - corners[0].cy);
-  if (topW < imgW * 0.35 || leftH < imgH * 0.35) return null;
-
-  return corners;
+// Nhận gray (kích thước gốc), trả về 4 góc [TL,TR,BR,BL] theo tọa độ ảnh gốc hoặc null
+function detectSheetCorners(gray) {
+  const scale = Math.min(1, 720 / Math.max(gray.cols, gray.rows));
+  const small = new cv.Mat(), blur = new cv.Mat(), bin = new cv.Mat();
+  try {
+    if (scale < 1) cv.resize(gray, small, new cv.Size(Math.round(gray.cols * scale), Math.round(gray.rows * scale)), 0, 0, cv.INTER_AREA);
+    else gray.copyTo(small);
+    cv.GaussianBlur(small, blur, new cv.Size(5, 5), 0);
+    const w = small.cols, h = small.rows, m = Math.min(w, h);
+    const passes = [
+      () => cv.adaptiveThreshold(blur, bin, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, oddBlock(m * 0.10), 10),
+      () => cv.threshold(blur, bin, 0, 255, cv.THRESH_BINARY_INV | cv.THRESH_OTSU),
+      () => cv.adaptiveThreshold(blur, bin, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, oddBlock(m * 0.18), 5)
+    ];
+    for (const run of passes) {
+      run();
+      const quad = pickSheetQuad(findMarkerCandidates(bin, w, h), w, h);
+      if (quad) return quad.map(c => ({ cx: c.cx / scale, cy: c.cy / scale }));
+    }
+    return null;
+  } finally { small.delete(); blur.delete(); bin.delete(); }
 }
 
 function getBubbleFillRatio(threshMat, x, y, r = 6) {
@@ -1352,7 +1382,7 @@ function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   return out;
 }
 
-async function processOMRCanvas(sourceCanvas) {
+async function processOMRCanvas(sourceCanvas, requireCorners = false) {
   if (!cvReady) {
     alert('Đang hoàn tất khởi tạo lõi OpenCV.js, vui lòng đợi 1 giây rồi bấm lại!');
     return;
@@ -1368,7 +1398,14 @@ async function processOMRCanvas(sourceCanvas) {
   cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
   cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
 
-  const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
+  const corners = detectSheetCorners(gray);
+  if (!corners && requireCorners) {
+    const m = document.getElementById('scanMsg');
+    m.innerText = '❌ Không thấy đủ 4 ô vuông đen ở góc phiếu. Hãy đưa cả 4 góc vào khung, đủ sáng, giữ phiếu phẳng rồi chụp lại.';
+    m.style.color = '#dc2626';
+    src.delete(); gray.delete(); blurred.delete(); thresh.delete();
+    return;
+  }
   let warpedColor = new cv.Mat();
   let warpedGray = new cv.Mat();
   let warpedThresh = new cv.Mat();
@@ -1776,6 +1813,13 @@ async function startCamera() {
     });
     const video = document.getElementById('video');
     video.srcObject = videoStream;
+    try {
+      const track = videoStream.getVideoTracks()[0];
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if (caps.focusMode && caps.focusMode.includes('continuous')) {
+        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+      }
+    } catch (e) {}
     document.getElementById('cameraContainer').style.display = 'block';
     stableCornerFrames = 0;
 
@@ -1787,6 +1831,7 @@ async function startCamera() {
 }
 
 function stopCamera() {
+  prevLiveCorners = null;
   if (autoScanTimer) {
     clearInterval(autoScanTimer);
     autoScanTimer = null;
@@ -1804,8 +1849,10 @@ function scanVideoFrameWithOpenCV() {
   if (!video.videoWidth) return;
 
   isProcessingFrame = true;
+  const msg = document.getElementById('scanMsg');
+  const overlay = document.getElementById('liveOverlayCanvas');
+  let src = null, gray = null;
   try {
-    const overlay = document.getElementById('liveOverlayCanvas');
     overlay.width = video.videoWidth;
     overlay.height = video.videoHeight;
     const oCtx = overlay.getContext('2d');
@@ -1816,38 +1863,51 @@ function scanVideoFrameWithOpenCV() {
     tempC.height = video.videoHeight;
     tempC.getContext('2d').drawImage(video, 0, 0);
 
-    let src = cv.imread(tempC);
-    let gray = new cv.Mat();
-    let thresh = new cv.Mat();
+    src = cv.imread(tempC);
+    gray = new cv.Mat();
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-    cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
-
-    const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
-    src.delete(); gray.delete(); thresh.delete();
+    const corners = detectSheetCorners(gray);
+    const holding = Date.now() < liveHoldUntil;
 
     if (corners) {
       oCtx.strokeStyle = '#22c55e';
-      oCtx.lineWidth = 6;
+      oCtx.lineWidth = Math.max(4, overlay.width / 160);
       oCtx.beginPath();
-      oCtx.moveTo(corners[0].cx, corners[0].cy);
-      oCtx.lineTo(corners[1].cx, corners[1].cy);
-      oCtx.lineTo(corners[2].cx, corners[2].cy);
-      oCtx.lineTo(corners[3].cx, corners[3].cy);
+      corners.forEach((c, i) => i ? oCtx.lineTo(c.cx, c.cy) : oCtx.moveTo(c.cx, c.cy));
       oCtx.closePath();
       oCtx.stroke();
 
-      if (document.getElementById('autoScanToggle').checked) {
-        stableCornerFrames++;
-        if (stableCornerFrames >= 3) {
-          stableCornerFrames = -5;
-          processOMRCanvas(tempC);
+      const moved = prevLiveCorners
+        ? Math.max(...corners.map((c, i) => Math.hypot(c.cx - prevLiveCorners[i].cx, c.cy - prevLiveCorners[i].cy)))
+        : Infinity;
+      prevLiveCorners = corners;
+
+      if (!holding) {
+        stableCornerFrames = moved < video.videoWidth * 0.012 ? stableCornerFrames + 1 : 0;
+        const auto = document.getElementById('autoScanToggle').checked;
+        msg.innerText = auto ? '✅ Đã thấy đủ 4 góc phiếu, giữ yên máy để chấm...' : '✅ Đã thấy đủ 4 góc phiếu, bấm "Chụp & Chấm Ngay".';
+        msg.style.color = '#16a34a';
+        if (auto && stableCornerFrames >= 4) {
+          stableCornerFrames = 0;
+          liveHoldUntil = Date.now() + 3500;
+          processOMRCanvas(tempC, true);
         }
       }
     } else {
       stableCornerFrames = 0;
+      prevLiveCorners = null;
+      if (!holding) {
+        msg.innerText = '🔍 Chưa thấy đủ 4 ô vuông đen ở góc: đưa cả 4 góc phiếu vào khung, đủ sáng, giữ phiếu phẳng.';
+        msg.style.color = '#d97706';
+      }
     }
-  } catch (e) {}
-  isProcessingFrame = false;
+  } catch (e) {
+    console.warn('Lỗi quét khung hình:', e);
+  } finally {
+    if (src) src.delete();
+    if (gray) gray.delete();
+    isProcessingFrame = false;
+  }
 }
 
 function captureAndGrade() {
@@ -1860,7 +1920,7 @@ function captureAndGrade() {
   c.width = video.videoWidth;
   c.height = video.videoHeight;
   c.getContext('2d').drawImage(video, 0, 0);
-  processOMRCanvas(c);
+  processOMRCanvas(c, true);
 }
 
 function handleImageUpload(e) {
