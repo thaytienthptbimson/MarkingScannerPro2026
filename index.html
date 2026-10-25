@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OMR Pro 2026 - Chấm Thi Đủ 3 Phần (ABCD - Đúng/Sai - Trả Lời Ngắn)</title>
+  <title>OMR Pro 2026 - Chấm Thi OpenCV AI & Lưu Trữ Ảnh Minh Chứng</title>
+  <!-- Thư viện xử lý Excel SheetJS -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <!-- Thư viện nén hàng loạt ảnh bài chấm thành file ZIP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     :root {
       --primary: #1e40af;
@@ -16,8 +19,8 @@
       --card: #ffffff;
       --text: #0f172a;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding-bottom: 60px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 65px; }
 
     header {
       background: linear-gradient(135deg, #1e3a8a, #2563eb);
@@ -25,27 +28,28 @@
       display: flex; justify-content: space-between; align-items: center;
       position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
     }
-    header h1 { font-size: 1.05rem; font-weight: 700; }
+    header h1 { font-size: 0.98rem; font-weight: 700; }
     .cv-badge {
-      font-size: 0.75rem; padding: 4px 10px; border-radius: 20px;
-      background: rgba(255,255,255,0.2); font-weight: 600;
+      font-size: 0.74rem; padding: 4px 10px; border-radius: 20px;
+      background: rgba(255,255,255,0.2); font-weight: 600; display: flex; align-items: center; gap: 5px;
     }
     .cv-badge.ready { background: #22c55e; color: #fff; }
-    .cv-badge.error { background: #dc2626; color: #fff; }
+    .cv-badge.error { background: #ef4444; color: #fff; }
 
+    /* Navigation 5 Tabs */
     .tabs {
-      display: grid; grid-template-columns: repeat(4, 1fr);
+      display: grid; grid-template-columns: repeat(5, 1fr);
       background: #fff; border-bottom: 2px solid #e2e8f0;
-      position: sticky; top: 48px; z-index: 99;
+      position: sticky; top: 46px; z-index: 99;
     }
     .tab-btn {
-      padding: 11px 4px; border: none; background: none;
-      font-size: 0.84rem; font-weight: 600; color: #64748b;
-      cursor: pointer; border-bottom: 3px solid transparent;
+      padding: 10px 4px; border: none; background: none;
+      font-size: 0.8rem; font-weight: 600; color: #64748b;
+      cursor: pointer; border-bottom: 3px solid transparent; transition: 0.15s;
     }
     .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #eff6ff; }
 
-    .container { max-width: 1020px; margin: 12px auto; padding: 0 10px; }
+    .container { max-width: 1080px; margin: 12px auto; padding: 0 10px; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .card {
@@ -53,19 +57,19 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 14px;
     }
     .card-title {
-      font-size: 0.98rem; font-weight: 700; margin-bottom: 10px;
+      font-size: 0.95rem; font-weight: 700; margin-bottom: 10px;
       color: var(--primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
     }
 
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
-    label { font-size: 0.84rem; font-weight: 600; color: #334155; }
+    label { font-size: 0.83rem; font-weight: 600; color: #334155; }
     select, input[type="text"], input[type="number"] {
       padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px;
-      font-size: 0.88rem; outline: none; background: #fff;
+      font-size: 0.86rem; outline: none; background: #fff;
     }
     .btn {
-      padding: 8px 13px; border: none; border-radius: 8px;
-      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      padding: 8px 12px; border: none; border-radius: 8px;
+      font-size: 0.83rem; font-weight: 600; cursor: pointer;
       display: inline-flex; align-items: center; gap: 5px; transition: 0.15s;
     }
     .btn-primary { background: var(--primary); color: #fff; }
@@ -73,6 +77,7 @@
     .btn-warning { background: var(--warning); color: #fff; }
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-outline { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
+    .btn-sm { padding: 5px 9px; font-size: 0.76rem; border-radius: 6px; }
 
     /* Answer Key Grids */
     .key-grid-p1 {
@@ -82,7 +87,7 @@
       display: flex; align-items: center; justify-content: space-between;
       background: #f8fafc; padding: 5px 8px; border-radius: 8px; border: 1px solid #e2e8f0;
     }
-    .q-num { font-weight: 700; font-size: 0.84rem; }
+    .q-num { font-weight: 700; font-size: 0.83rem; }
     .opt-group { display: flex; gap: 4px; }
     .opt-btn {
       width: 27px; height: 27px; border-radius: 50%; border: 1px solid #94a3b8;
@@ -104,18 +109,15 @@
       font-weight: 700; font-size: 1rem; text-align: center; letter-spacing: 2px; color: var(--primary);
     }
 
-    /* Camera & Preview */
+    /* Camera & Live OpenCV Overlay */
     .scanner-box {
       position: relative; width: 100%; max-width: 500px; margin: 0 auto;
       background: #000; border-radius: 12px; overflow: hidden;
     }
     video { width: 100%; display: block; }
-    .guide-overlay {
-      position: absolute; inset: 0; pointer-events: none;
-      border: 2px dashed rgba(59, 130, 246, 0.85); margin: 14px; border-radius: 8px;
+    #liveOverlayCanvas {
+      position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
     }
-
-    .live-overlay { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; box-shadow: none; pointer-events: none; }
 
     .canvas-preview-wrap {
       width: 100%; overflow-x: auto; text-align: center; background: #e2e8f0;
@@ -123,15 +125,25 @@
     }
     canvas { max-width: 100%; height: auto; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
 
-    /* Score Banner 5 columns */
+    /* Student Identity Banner */
+    .student-banner {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+      background: linear-gradient(90deg, #eff6ff, #dbeafe);
+      border: 2px solid #93c5fd; border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 10px;
+    }
+    .st-name { font-size: 1.08rem; font-weight: 800; color: #1e3a8a; }
+    .st-class { font-size: 0.86rem; font-weight: 700; color: #1d4ed8; background: #fff; padding: 3px 10px; border-radius: 20px; border: 1px solid #93c5fd; }
+
+    /* Score Banner */
     .score-banner {
       display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-      background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 10px;
+      background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 10px;
       padding: 10px; margin-bottom: 10px; text-align: center;
     }
-    .score-box .lbl { font-size: 0.7rem; color: #475569; font-weight: 700; }
-    .score-box .val { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
-    .score-box.total .val { color: var(--danger); font-size: 1.35rem; }
+    .score-box .lbl { font-size: 0.68rem; color: #475569; font-weight: 700; }
+    .score-box .val { font-size: 1.05rem; font-weight: 800; color: var(--primary); }
+    .score-box.total .val { color: var(--danger); font-size: 1.3rem; }
 
     .p3-readout {
       display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
@@ -139,20 +151,45 @@
     }
     .p3-chip {
       background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;
-      padding: 5px; text-align: center; font-size: 0.78rem;
+      padding: 5px; text-align: center; font-size: 0.76rem;
     }
     .p3-chip.ok { background: #dcfce7; border-color: #22c55e; color: #166534; }
     .p3-chip.err { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
 
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
-    th, td { padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: center; }
-    th { background: #f8fafc; font-weight: 700; color: #334155; }
+    .table-wrap { overflow-x: auto; max-height: 460px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td { padding: 8px 6px; border-bottom: 1px solid #e2e8f0; text-align: center; vertical-align: middle; }
+    th { background: #f8fafc; font-weight: 700; color: #334155; position: sticky; top: 0; z-index: 5; }
+    .thumb-img {
+      width: 38px; height: 52px; object-fit: cover; border-radius: 4px;
+      border: 1px solid #94a3b8; cursor: pointer; transition: transform 0.15s;
+    }
+    .thumb-img:hover { transform: scale(1.15); border-color: var(--primary); }
 
-    .modal { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.88); z-index: 200; align-items: center; justify-content: center; padding: 12px; }
-    .modal.open { display: flex; }
-    .modal-box { background: #fff; border-radius: 12px; padding: 10px; width: 100%; max-width: 520px; max-height: 94vh; overflow-y: auto; }
-    .modal-box img { width: 100%; display: block; border-radius: 8px; margin-bottom: 10px; }
+    /* Modal Xem Lại Ảnh Bài Chấm Chi Tiết */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.82);
+      z-index: 1000; justify-content: center; align-items: center; padding: 14px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: #fff; border-radius: 12px; max-width: 820px; width: 100%; max-height: 92vh;
+      display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .modal-header {
+      padding: 12px 16px; background: #1e3a8a; color: #fff;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-body {
+      padding: 12px; overflow-y: auto; text-align: center; background: #cbd5e1; flex: 1;
+    }
+    .modal-body img {
+      max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .modal-footer {
+      padding: 10px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    }
 
     footer {
       position: fixed; bottom: 0; left: 0; right: 0;
@@ -174,158 +211,140 @@
 <body>
 
 <header>
-  <h1>OMR PRO 2026 - CHẤM THI ĐỦ 3 PHẦN</h1>
-  <span id="cvStatus" class="cv-badge">Đang tải lõi OpenCV...</span>
+  <h1>OMR PRO 2026 - CHẤM THI OPENCV & LƯU ẢNH MINH CHỨNG</h1>
+  <span id="cvStatus" class="cv-badge">⏳ Đang nạp OpenCV.js...</span>
 </header>
 
 <nav class="tabs">
   <button class="tab-btn active" onclick="switchTab('tab-scan', this)">1. Quét Chấm</button>
-  <button class="tab-btn" onclick="switchTab('tab-key', this)">2. Đáp Án (3 Phần)</button>
-  <button class="tab-btn" onclick="switchTab('tab-sheet', this)">3. In Phiếu</button>
-  <button class="tab-btn" onclick="switchTab('tab-results', this)">4. Bảng Điểm</button>
+  <button class="tab-btn" onclick="switchTab('tab-students', this)">2. DS Học Sinh</button>
+  <button class="tab-btn" onclick="switchTab('tab-key', this)">3. Đáp Án</button>
+  <button class="tab-btn" onclick="switchTab('tab-sheet', this)">4. In Phiếu</button>
+  <button class="tab-btn" onclick="switchTab('tab-results', this)">5. Bảng Điểm & Ảnh</button>
 </nav>
 
 <div class="container">
 
-  <!-- TAB 1: QUÉT & CHẤM -->
+  <!-- TAB 1: QUÉT & CHẤM BẰNG OPENCV -->
   <div id="tab-scan" class="tab-content active">
     <div class="card">
       <div class="card-title">
-        <span>Chọn Mẫu Phiếu & Điều Khiển Quét</span>
-        <select id="templateSelect" onchange="onTemplateChange()">
-          <option value="2026_FULL">Mẫu Chuẩn 2026 Đủ 3 Phần (P1: 18 câu + P2: 4 câu Đ/S + P3: 6 câu TLN)</option>
-          <option value="2026_2P">Mẫu 2 Phần: Lịch sử / Địa lí / GDKT&amp;PL (P1: 24 câu ABCD + P2: 4 câu Đ/S)</option>
-          <option value="40Q">Mẫu Ngoại Ngữ 40 Câu (100% Trắc nghiệm ABCD)</option>
+        <span>Cấu Hình Mẫu Phiếu & Bộ Lọc Thị Giác Máy Tính OpenCV</span>
+        <select id="templateSelect" onchange="onTemplateChange()" style="font-weight: 700; color: #1e40af;">
+          <option value="2026_2P">1. Mẫu Lịch Sử / KTPL / Công Nghệ - 2 Phần (P1: 24 câu ABCD + P2: 4 câu Đ/S)</option>
+          <option value="2026_3P">2. Mẫu Toán / Lý / Hóa / Sinh / Địa - 3 Phần (P1: 18 câu + P2: 4 câu Đ/S + P3: 6 câu TLN)</option>
+          <option value="40Q">3. Mẫu Ngoại Ngữ - 1 Phần (40 câu ABCD)</option>
         </select>
       </div>
 
       <div class="row">
-        <button class="btn btn-primary" onclick="startCamera()">Bật Camera Sau</button>
-        <button class="btn btn-danger" onclick="stopCamera()">Tắt Camera</button>
-        <button class="btn btn-success" onclick="captureAndGrade()">Chụp & Chấm Ngay</button>
+        <button class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
+        <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
+        <button class="btn btn-success" onclick="captureAndGrade()">⚡ Chụp & Chấm Ngay</button>
         <label class="btn btn-outline">
-          Tải Ảnh Phiếu
+          🖼️ Tải Ảnh Phiếu
           <input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
         </label>
-        <button class="btn btn-warning" onclick="runSimulatedTest()">Chấm Thử Phiếu Giả Lập</button>
+        <button class="btn btn-warning" onclick="runSimulatedTest()">🧪 Chấm Thử Giả Lập (Lưu Ảnh Tự Động)</button>
       </div>
 
-      <div class="row"><label><input type="checkbox" id="autoCapture" checked> Tự động chụp &amp; chấm khi OpenCV nhận đủ 4 ô vuông góc (giữ yên phiếu khoảng 1 giây)</label></div>
-
-      <div class="row" style="justify-content: space-between; background:#f8fafc; padding:8px 12px; border-radius:8px;">
+      <div class="row" style="justify-content: space-between; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <label style="color:#1e40af; cursor:pointer; display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" id="autoScanToggle" checked style="width:16px; height:16px;">
+            Tự động chụp khi bắt đủ 4 góc (Auto-Scan)
+          </label>
+          <label style="color:#15803d; cursor:pointer; display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" id="autoDownloadImgToggle" style="width:16px; height:16px;">
+            Tự động tải file ảnh (.JPG) về máy sau mỗi lần chấm
+          </label>
+        </div>
         <div>
-          <label>Ngưỡng nhận diện độ đậm bút chì: <span id="threshVal">35</span>%</label>
+          <label>Độ nhạy chì: <span id="threshVal">35</span>%</label>
           <input type="range" id="fillThreshold" min="20" max="60" value="35" oninput="document.getElementById('threshVal').innerText=this.value">
         </div>
-        <div style="font-size:0.8rem; color:#475569;">
-          Màu khoanh kết quả: <strong style="color:#16a34a">Xanh lá = Đúng</strong> | <strong style="color:#dc2626">Đỏ = Tô sai</strong> | <strong style="color:#eab308">Vàng = Đáp án đúng</strong>
+        <div>
+          <label>Điểm Tự luận cộng thêm:</label>
+          <input type="number" id="manualEssay" value="0" step="0.25" min="0" max="10" style="width:65px; font-weight:bold;">
         </div>
       </div>
 
       <div id="cameraContainer" class="scanner-box" style="display:none; margin-top:8px;">
         <video id="video" playsinline autoplay muted></video>
-        <canvas id="liveOverlay" class="live-overlay"></canvas>
-        <div class="guide-overlay"></div>
+        <canvas id="liveOverlayCanvas"></canvas>
       </div>
     </div>
 
     <div class="card">
       <div class="card-title">
-        <span>Kết Quả Chấm Bài Chi Tiết</span>
-        <span id="scanMsg" style="font-size:0.82rem; color:#16a34a;">Sẵn sàng quét phiếu</span>
+        <span>Kết Quả Nhận Diện & Ảnh Bài Chấm Đã Đóng Dấu Điểm</span>
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+          <span id="scanMsg" style="font-size:0.8rem; color:#16a34a;">Sẵn sàng quét phiếu</span>
+          <button class="btn btn-success btn-sm" onclick="downloadCurrentGradedImage()">
+            💾 Lưu Ảnh Bài Này (.JPG)
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="shareCurrentGradedImage()">
+            📤 Chia sẻ Zalo / ĐT
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="toggleVisionMode()">
+            👁️ Xem Nhị Phân OpenCV
+          </button>
+        </div>
+      </div>
+
+      <!-- Băng rôn hiển thị Họ tên & Lớp tự động tra cứu từ SBD -->
+      <div class="student-banner">
+        <div>
+          <span style="font-size:0.76rem; color:#475569; font-weight:700; display:block;">THÔNG TIN HỌC SINH (KHỚP TỰ ĐỘNG TỪ SBD):</span>
+          <span class="st-name" id="resStudentName">Chưa quét phiếu</span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="st-class" id="resStudentClass">Lớp: ---</span>
+          <span class="st-class" id="resStudentSBD" style="background:#1e3a8a; color:#fff;">SBD: ------</span>
+        </div>
       </div>
 
       <div class="score-banner">
-        <div class="score-box"><div class="lbl">SBD / MÃ ĐỀ</div><div class="val" id="resMeta">------ / ---</div></div>
+        <div class="score-box"><div class="lbl">MÃ ĐỀ</div><div class="val" id="resMeta">---</div></div>
         <div class="score-box"><div class="lbl">PHẦN I (ABCD)</div><div class="val" id="resP1">0.00</div></div>
         <div class="score-box"><div class="lbl">PHẦN II (Đ/S)</div><div class="val" id="resP2">0.00</div></div>
-        <div class="score-box"><div class="lbl">PHẦN III (TLN)</div><div class="val" id="resP3">0.00</div></div>
+        <div class="score-box"><div class="lbl" id="lblP3OrEssay">TỰ LUẬN / P.III</div><div class="val" id="resP3">0.00</div></div>
         <div class="score-box total"><div class="lbl">TỔNG ĐIỂM</div><div class="val" id="resTotal">0.00</div></div>
       </div>
 
-      <!-- Hiển thị chi tiết chuỗi số đọc được ở Phần III -->
       <div id="p3ReadoutBox" class="p3-readout"></div>
 
-      <div class="row">
-        <button class="btn btn-success" onclick="saveResultImage()">Lưu ảnh kết quả vào điện thoại</button>
-        <label><input type="checkbox" id="autoSaveImg"> Tự tải ảnh sau mỗi lần chấm</label>
-      </div>
-
       <div class="canvas-preview-wrap">
-        <canvas id="resultCanvas" width="840" height="1180"></canvas>
+        <canvas id="resultCanvas" width="840" height="1255"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- TAB 2: ĐÁP ÁN 3 PHẦN -->
-  <div id="tab-key" class="tab-content">
+  <!-- TAB 2: QUẢN LÝ DANH SÁCH HỌC SINH (EXCEL IMPORT) -->
+  <div id="tab-students" class="tab-content">
     <div class="card">
       <div class="card-title">
-        <span>Cấu Hình Đáp Án & Thang Điểm Theo Mã Đề</span>
+        <span>Danh Sách Học Sinh Để Tự Động Khớp Số Báo Danh (<span id="countStudents">0</span> học sinh)</span>
         <div class="row" style="margin:0;">
-          <label>Mã đề:</label>
-          <input type="text" id="keyExamCode" value="101" maxlength="3" style="width:75px; font-weight:bold; text-align:center;" onchange="renderAnswerKeyUI()">
-          <button class="btn btn-outline" onclick="randomFillKey()">Sinh Đáp Án Ngẫu Nhiên</button>
-          <button class="btn btn-primary" onclick="saveCurrentKey()">Lưu Đáp Án</button>
+          <label class="btn btn-primary">
+            📂 Nhập File Excel (.xlsx / .xls)
+            <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importStudentExcel(event)">
+          </label>
+          <button class="btn btn-outline" onclick="downloadSampleStudentExcel()">📥 Tải File Excel Mẫu</button>
+          <button class="btn btn-warning" onclick="loadDemoStudents()">⚡ Nạp Danh Sách Học Sinh Mẫu</button>
+          <button class="btn btn-danger" onclick="clearStudents()">🗑️ Xóa DS</button>
         </div>
       </div>
 
-      <div class="row" style="background:#eff6ff; padding:8px 12px; border-radius:8px;">
-        <label>Điểm mỗi câu Phần I:</label>
-        <input type="number" id="ptP1" value="0.25" step="0.05" style="width:70px;">
-        <label style="margin-left:10px;">Điểm mỗi câu Phần III (TLN):</label>
-        <input type="number" id="ptP3" value="0.25" step="0.05" style="width:70px;">
-        <span style="font-size:0.8rem; color:#1e40af;">(Phần II cố định lũy tiến: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ)</span>
-      </div>
-
-      <h4 style="margin: 10px 0 6px; color:#1e293b;">PHẦN I: Trắc nghiệm 4 lựa chọn (A, B, C, D)</h4>
-      <div id="keyGridP1" class="key-grid-p1"></div>
-
-      <div id="keySectionP2P3">
-        <h4 style="margin: 14px 0 6px; color:#1e293b;">PHẦN II: Trắc nghiệm Đúng / Sai (4 câu x 4 ý a, b, c, d)</h4>
-        <div id="keyGridP2"></div>
-
-        <div id="keyP3Wrap">
-        <h4 style="margin: 14px 0 6px; color:#1e293b;">PHẦN III: Trả lời ngắn (Nhập tối đa 4 ký tự: dấu -, dấu phẩy , và chữ số 0-9)</h4>
-        <div id="keyGridP3" class="key-grid-p3"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB 3: IN PHIẾU CHUẨN -->
-  <div id="tab-sheet" class="tab-content">
-    <div class="card">
-      <div class="card-title">
-        <span>Phiếu Trả Lời Trắc Nghiệm Chuẩn OMR 2026 (Đủ 3 Phần)</span>
-        <div class="row" style="margin:0;">
-          <button class="btn btn-primary" onclick="window.print()">In Phiếu Ngay (A4)</button>
-          <button class="btn btn-success" onclick="downloadSheetImage()">Tải File Ảnh (.PNG)</button>
-        </div>
-      </div>
-      <p style="font-size:0.83rem; color:#475569; margin-bottom:8px;">
-        Phiếu được thiết kế đồng bộ tọa độ toán học 100% với bộ lọc OpenCV. Học sinh ghi kết quả Phần III vào 4 ô vuông nhỏ trên đầu mỗi câu và tô chì tương ứng xuống các cột bên dưới.
+      <p style="font-size:0.83rem; color:#475569; margin-bottom:10px;">
+        <strong>Hướng dẫn:</strong> File Excel chỉ cần có các cột <code>SBD</code>, <code>Họ và tên</code> và <code>Lớp</code>. Khi quét phiếu, hệ thống sẽ tự động lấy Họ tên và Lớp in thẳng lên đầu bức ảnh bài chấm của học sinh đó!
       </p>
-      <div id="printArea" class="canvas-preview-wrap">
-        <canvas id="sheetCanvas" width="920" height="1260"></canvas>
-      </div>
-    </div>
-  </div>
 
-  <!-- TAB 4: BẢNG ĐIỂM & XUẤT EXCEL -->
-  <div id="tab-results" class="tab-content">
-    <div class="card">
-      <div class="card-title">
-        <span>Danh Sách Kết Quả Đã Chấm (<span id="countGraded">0</span> bài)</span>
-        <div class="row" style="margin:0;">
-          <button class="btn btn-success" onclick="exportExcel()">Xuất File Excel (.xlsx)</button>
-          <button class="btn btn-danger" onclick="clearResults()">Xóa Danh Sách</button>
-        </div>
-      </div>
-
-      <div class="row" style="background:#f8fafc; padding:8px 10px; border-radius:8px;">
-        <label>Google Sheets Webhook URL:</label>
-        <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;" onchange="localStorage.setItem('omr_webhook_full', this.value)">
+      <div class="row" style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+        <input type="text" id="addStSbd" placeholder="SBD (VD: 020901)" maxlength="6" style="width:140px;">
+        <input type="text" id="addStName" placeholder="Họ và tên học sinh" style="flex:1;">
+        <input type="text" id="addStClass" placeholder="Lớp (VD: 12A1)" style="width:120px;">
+        <button class="btn btn-success" onclick="addSingleStudent()">+ Thêm Học Sinh</button>
       </div>
 
       <div class="table-wrap">
@@ -333,16 +352,112 @@
           <thead>
             <tr>
               <th>STT</th>
-              <th>Giờ chấm</th>
+              <th>Số Báo Danh (Chuẩn 6 số)</th>
+              <th>Họ và Tên Học Sinh</th>
+              <th>Lớp</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: ĐÁP ÁN -->
+  <div id="tab-key" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <span>Thiết Lập Đáp Án & Thang Điểm Theo Mã Đề</span>
+        <div class="row" style="margin:0;">
+          <label>Mã đề:</label>
+          <input type="text" id="keyExamCode" value="101" maxlength="3" style="width:75px; font-weight:bold; text-align:center;" onchange="renderAnswerKeyUI()">
+          <button class="btn btn-outline" onclick="randomFillKey()">🎲 Tạo Đáp Án Mẫu</button>
+          <button class="btn btn-primary" onclick="saveCurrentKey()">💾 Lưu Đáp Án</button>
+        </div>
+      </div>
+
+      <div class="row" style="background:#eff6ff; padding:8px 12px; border-radius:8px;">
+        <label>Điểm mỗi câu Phần I:</label>
+        <input type="number" id="ptP1" value="0.25" step="0.05" style="width:75px;">
+        <span id="wrapPtP3" style="display:none; align-items:center; gap:6px;">
+          <label style="margin-left:8px;">Điểm mỗi câu Phần III (TLN):</label>
+          <input type="number" id="ptP3" value="0.25" step="0.05" style="width:75px;">
+        </span>
+        <span style="font-size:0.8rem; color:#1e40af;">
+          (Phần II Đúng/Sai tính điểm lũy tiến: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ)
+        </span>
+      </div>
+
+      <h4 id="titleP1Key" style="margin: 10px 0 6px; color:#1e293b;">PHẦN I: Trắc nghiệm 4 lựa chọn (24 câu: A, B, C, D)</h4>
+      <div id="keyGridP1" class="key-grid-p1"></div>
+
+      <div id="keySectionP2" style="margin-top:14px;">
+        <h4 style="margin-bottom:6px; color:#1e293b;">PHẦN II: Trắc nghiệm Đúng / Sai (4 câu x 4 ý a, b, c, d)</h4>
+        <div id="keyGridP2"></div>
+      </div>
+
+      <div id="keySectionP3" style="margin-top:14px; display:none;">
+        <h4 style="margin-bottom:6px; color:#1e293b;">PHẦN III: Trả lời ngắn (6 câu - Tối đa 4 ký tự: dấu -, dấu phẩy , và số 0-9)</h4>
+        <div id="keyGridP3" class="key-grid-p3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: IN PHIẾU CHUẨN -->
+  <div id="tab-sheet" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <span id="sheetTitleDisplay">Phiếu Trả Lời Trắc Nghiệm 2 Phần (Lịch Sử / KTPL / Công Nghệ)</span>
+        <div class="row" style="margin:0;">
+          <button class="btn btn-primary" onclick="window.print()">🖨️ In Phiếu (A4 / A5)</button>
+          <button class="btn btn-success" onclick="downloadSheetImage()">⬇️ Tải Ảnh Phiếu (.PNG)</button>
+        </div>
+      </div>
+      <div id="printArea" class="canvas-preview-wrap">
+        <canvas id="sheetCanvas" width="920" height="1260"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: BẢNG ĐIỂM & KHO ẢNH BÀI CHẤM -->
+  <div id="tab-results" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <span>Danh Sách Kết Quả & Kho Ảnh Minh Chứng (<span id="countGraded">0</span> bài)</span>
+        <div class="row" style="margin:0;">
+          <button class="btn btn-primary" onclick="downloadAllImagesAsZip()">📦 Tải Tất Cả Ảnh Bài Chấm (.ZIP)</button>
+          <button class="btn btn-success" onclick="exportExcel()">📊 Xuất File Excel (.xlsx)</button>
+          <button class="btn btn-danger" onclick="clearResults()">🗑️ Xóa Lịch Sử & Ảnh</button>
+        </div>
+      </div>
+
+      <div class="row" style="background:#f8fafc; padding:8px 10px; border-radius:8px; justify-content:space-between;">
+        <div style="display:flex; gap:8px; align-items:center; flex:1;">
+          <label>Tìm nhanh học sinh (Tên / SBD / Lớp):</label>
+          <input type="text" id="searchResultInput" placeholder="Nhập tên, SBD hoặc lớp để lọc..." style="flex:1;" oninput="renderResultsTable()">
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex:1;">
+          <label>Webhook Google Sheets:</label>
+          <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;" onchange="localStorage.setItem('omr_webhook_ult', this.value)">
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Ảnh Phiếu</th>
               <th>SBD</th>
+              <th>Họ và Tên Học Sinh</th>
+              <th>Lớp</th>
               <th>Mã đề</th>
-              <th>Mẫu</th>
               <th>Điểm P1</th>
-              <th>Điểm P2 (Đ/S)</th>
-              <th>Điểm P3 (TLN)</th>
-              <th>Bài làm P3 (C1..C6)</th>
+              <th>Điểm P2</th>
+              <th>P3 / TL</th>
               <th>Tổng điểm</th>
-              <th>Ảnh</th>
+              <th>Xem & Tải Ảnh Bài Làm</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -353,47 +468,309 @@
 
 </div>
 
-<div id="imgModal" class="modal" onclick="if (event.target === this) closeImgModal()">
-  <div class="modal-box">
-    <img id="modalImg" alt="Ảnh kết quả chấm bài">
-    <div class="row" style="justify-content:center; margin:0;">
-      <button class="btn btn-success" onclick="saveModalImage()">Lưu ảnh vào điện thoại</button>
-      <button class="btn btn-outline" onclick="closeImgModal()">Đóng</button>
+<!-- MODAL XEM CHI TIẾT ẢNH BÀI CHẤM CỦA HỌC SINH -->
+<div id="imgModal" class="modal-backdrop" onclick="if(event.target===this) closeImageModal()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <strong id="modalTitle">Phiếu bài làm học sinh</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeImageModal()">✕ Đóng</button>
+    </div>
+    <div class="modal-body">
+      <img id="modalImgEl" src="" alt="Ảnh bài chấm học sinh">
+    </div>
+    <div class="modal-footer">
+      <span id="modalSubInfo" style="font-size:0.83rem; font-weight:600; color:#334155;"></span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-outline" onclick="shareModalImage()">📤 Chia sẻ Zalo / ĐT</button>
+        <button class="btn btn-success" onclick="downloadModalImage()">⬇️ Tải Ảnh Này (.JPG)</button>
+      </div>
     </div>
   </div>
 </div>
 
 <footer>
-  Hệ thống Chấm thi Trắc nghiệm OMR Pro 2026 (Full 3 Phần) | Bản quyền thuộc về số ĐT: 0943.930.787
+  Hệ thống Chấm thi Trắc nghiệm OMR Pro 2026 | Bản quyền thuộc về số ĐT: 0943.930.787
 </footer>
 
 <script>
 /********************************************************************
- * 1. HỆ TỌA ĐỘ CHUẨN HÓA (WARPED SPACE: 840 x 1180)
- * Tâm 4 ô vuông đen ở góc tương ứng với (0,0), (840,0), (840,1180), (0,1180)
+ * 0. TRÌNH NẠP OPENCV.JS ĐA NGUỒN & CƠ SỞ DỮ LIỆU ẢNH INDEXEDDB
+ ********************************************************************/
+let cvReady = false;
+const OPENCV_URLS = [
+  'https://docs.opencv.org/4.8.0/opencv.js',
+  'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.8.0-release.1/dist/opencv.min.js'
+];
+
+function loadOpenCVWithFallback(idx = 0) {
+  const badge = document.getElementById('cvStatus');
+  if (idx >= OPENCV_URLS.length) {
+    badge.innerText = '❌ Lỗi mạng khi tải OpenCV!';
+    badge.classList.add('error');
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = OPENCV_URLS[idx];
+  script.async = true;
+  script.onload = () => {
+    const waitInit = setInterval(() => {
+      if (typeof cv !== 'undefined' && cv.Mat) {
+        clearInterval(waitInit);
+        cvReady = true;
+        badge.innerText = '✅ OpenCV 4.8 AI: Sẵn Sàng';
+        badge.classList.add('ready');
+      }
+    }, 100);
+  };
+  script.onerror = () => loadOpenCVWithFallback(idx + 1);
+  document.body.appendChild(script);
+}
+
+// Cơ sở dữ liệu IndexedDB chuyên lưu trữ ảnh bài chấm dung lượng lớn
+const DB_NAME = 'OMR_ImageArchive_2026';
+const STORE_NAME = 'graded_images';
+let dbPromise = null;
+const memoryImageCache = {}; // Bộ nhớ đệm tốc độ cao trong phiên làm việc
+
+function initImageDB() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+  return dbPromise;
+}
+
+async function saveImageToDB(id, dataUrl) {
+  memoryImageCache[id] = dataUrl;
+  try {
+    const db = await initImageDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put({ id, dataUrl });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch (e) { return false; }
+}
+
+async function getImageFromDB(id) {
+  if (memoryImageCache[id]) return memoryImageCache[id];
+  try {
+    const db = await initImageDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(id);
+      req.onsuccess = () => {
+        const res = req.result ? req.result.dataUrl : null;
+        if (res) memoryImageCache[id] = res;
+        resolve(res);
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) { return null; }
+}
+
+async function clearAllImagesInDB() {
+  for (const k in memoryImageCache) delete memoryImageCache[k];
+  try {
+    const db = await initImageDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).clear();
+  } catch (e) {}
+}
+
+/********************************************************************
+ * 1. QUẢN LÝ DANH SÁCH HỌC SINH & TRA CỨU SBD THÔNG MINH
+ ********************************************************************/
+let studentDB = JSON.parse(localStorage.getItem('omr_students_2026') || '{}');
+
+function normalizeSBDKey(sbd) {
+  const clean = String(sbd || '').trim().replace(/[^0-9]/g, '');
+  if (!clean) return '';
+  return clean.replace(/^0+/, '') || '0';
+}
+
+function formatSBD6(sbd) {
+  const clean = String(sbd || '').trim().replace(/[^0-9]/g, '');
+  return clean ? clean.padStart(6, '0').slice(-6) : '------';
+}
+
+function lookupStudentBySBD(scannedSbd) {
+  const exact = studentDB[scannedSbd];
+  if (exact) return exact;
+  const norm = normalizeSBDKey(scannedSbd);
+  for (const k in studentDB) {
+    if (normalizeSBDKey(k) === norm && norm !== '') {
+      return studentDB[k];
+    }
+  }
+  return null;
+}
+
+function loadDemoStudents() {
+  const sampleList = [
+    { sbd: '020901', name: 'Nguyễn Minh Anh', className: '12A1' },
+    { sbd: '020902', name: 'Trần Quốc Bảo', className: '12A1' },
+    { sbd: '020903', name: 'Lê Hoàng Chi', className: '12A1' },
+    { sbd: '020904', name: 'Phạm Tiến Dũng', className: '12A2' },
+    { sbd: '020905', name: 'Hoàng Gia Hân', className: '12A2' },
+    { sbd: '020906', name: 'Vũ Trung Hiếu', className: '11B1' },
+    { sbd: '020907', name: 'Đặng Hải Đăng', className: '11B1' },
+    { sbd: '020908', name: 'Bùi Tường Vy', className: '10C1' }
+  ];
+  sampleList.forEach(st => {
+    studentDB[st.sbd] = { sbd: st.sbd, name: st.name, className: st.className };
+  });
+  saveStudentDB();
+  renderStudentTable();
+}
+
+function saveStudentDB() {
+  localStorage.setItem('omr_students_2026', JSON.stringify(studentDB));
+}
+
+function renderStudentTable() {
+  const keys = Object.keys(studentDB).sort();
+  document.getElementById('countStudents').innerText = keys.length;
+  const tbody = document.getElementById('studentTableBody');
+  if (!keys.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:#64748b; padding:16px;">Chưa có danh sách học sinh. Hãy bấm "Nạp Danh Sách Học Sinh Mẫu" hoặc tải file Excel lên!</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = keys.map((k, idx) => {
+    const st = studentDB[k];
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td><strong style="color:#1e40af">${st.sbd}</strong></td>
+        <td style="text-align:left; font-weight:600;">${st.name}</td>
+        <td>${st.className}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteStudent('${k}')">Xóa</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function addSingleStudent() {
+  const rawSbd = document.getElementById('addStSbd').value.trim();
+  const name = document.getElementById('addStName').value.trim();
+  const cls = document.getElementById('addStClass').value.trim() || '---';
+  if (!rawSbd || !name) {
+    alert('Vui lòng nhập Số báo danh và Họ tên học sinh!');
+    return;
+  }
+  const sbd6 = formatSBD6(rawSbd);
+  studentDB[sbd6] = { sbd: sbd6, name, className: cls };
+  saveStudentDB();
+  renderStudentTable();
+  document.getElementById('addStSbd').value = '';
+  document.getElementById('addStName').value = '';
+}
+
+function deleteStudent(sbdKey) {
+  delete studentDB[sbdKey];
+  saveStudentDB();
+  renderStudentTable();
+}
+
+function clearStudents() {
+  if (confirm('Xóa toàn bộ danh sách học sinh đã lưu?')) {
+    studentDB = {};
+    saveStudentDB();
+    renderStudentTable();
+  }
+}
+
+function importStudentExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+    let added = 0;
+    rows.forEach(r => {
+      const keys = Object.keys(r);
+      const sbdCol = keys.find(k => /sbd|báo danh|mã hs|ma hs|id/i.test(k)) || keys[0];
+      const nameCol = keys.find(k => /họ và tên|họ tên|ho ten|tên|name/i.test(k)) || keys[1];
+      const clsCol = keys.find(k => /lớp|lop|class/i.test(k)) || keys[2];
+
+      const rawSbd = String(r[sbdCol] || '').trim();
+      const name = String(r[nameCol] || '').trim();
+      const cls = String(r[clsCol] || '').trim() || '---';
+
+      if (rawSbd && /\d/.test(rawSbd) && name) {
+        const sbd6 = formatSBD6(rawSbd);
+        studentDB[sbd6] = { sbd: sbd6, name, className: cls };
+        added++;
+      }
+    });
+
+    saveStudentDB();
+    renderStudentTable();
+    alert(`Đã nhập thành công ${added} học sinh từ file Excel!`);
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function downloadSampleStudentExcel() {
+  const sample = [
+    { 'SBD': '020901', 'Họ và tên': 'Nguyễn Minh Anh', 'Lớp': '12A1' },
+    { 'SBD': '020902', 'Họ và tên': 'Trần Quốc Bảo', 'Lớp': '12A1' },
+    { 'SBD': '020903', 'Họ và tên': 'Lê Hoàng Chi', 'Lớp': '12A1' },
+    { 'SBD': '020904', 'Họ và tên': 'Phạm Tiến Dũng', 'Lớp': '12A2' }
+  ];
+  const ws = XLSX.utils.json_to_sheet(sample);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'DanhSachHocSinh');
+  XLSX.writeFile(wb, 'Mau_Danh_Sach_Hoc_Sinh_OMR.xlsx');
+}
+
+/********************************************************************
+ * 2. HỆ TỌA ĐỘ CHUẨN HÓA CHO CẢ 3 MẪU PHIẾU (840 x 1180)
  ********************************************************************/
 const WARP_W = 840;
 const WARP_H = 1180;
 const MARGIN = 40;
-const R_BUBBLE = 8.5; // Bán kính ô tròn vừa vặn cho cả 3 phần trên 1 mặt A4
+const STAMP_H = 75; // Chiều cao dải đóng dấu kết quả trên đầu ảnh lưu
 
-let cvReady = false;
 let videoStream = null;
-let currentTemplate = '2026_FULL';
-const TEMPLATE_LABELS = { '2026_FULL': '3 phần 2026', '2026_2P': '2 phần (Sử/Địa/KTPL)', '40Q': '40 câu ABCD' };
-let answerKeys = JSON.parse(localStorage.getItem('omr_keys_full2026') || '{}');
-let gradedList = JSON.parse(localStorage.getItem('omr_graded_full2026') || '[]');
+let autoScanTimer = null;
+let stableCornerFrames = 0;
+let isProcessingFrame = false;
+
+let currentTemplate = '2026_2P';
+let answerKeys = JSON.parse(localStorage.getItem('omr_keys_ult2026') || '{}');
+let gradedList = JSON.parse(localStorage.getItem('omr_graded_ult2026') || '[]');
+
+let lastColorCanvas = null;
+let lastBinaryCanvas = null;
+let currentLatestRecord = null;
+let showBinaryView = false;
+let currentModalRecordId = null;
 
 function getSheetGeometry(template) {
   const geo = {
-    sbd: [],  // 6 cột x 10 số (0..9)
-    made: [], // 3 cột x 10 số (0..9)
-    p1: [],   // Phần I: 18 câu (mẫu 2026) hoặc 40 câu (mẫu 40Q)
-    p2: [],   // Phần II: 4 câu chùm Đúng/Sai
-    p3: []    // Phần III: 6 câu Trả lời ngắn (mỗi câu 4 cột x 12 hàng: '-', ',', '0'..'9')
+    bubbleRadius: template === '2026_3P' ? 8.5 : 10,
+    sbd: [],
+    made: [],
+    p1: [],
+    p2: [],
+    p3: []
   };
 
-  // 1. SBD (6 cột: x từ 475, bước 25; y từ 58, bước 19.5)
   for (let col = 0; col < 6; col++) {
     const colArr = [];
     for (let d = 0; d <= 9; d++) {
@@ -402,7 +779,6 @@ function getSheetGeometry(template) {
     geo.sbd.push(colArr);
   }
 
-  // 2. Mã đề (3 cột: x từ 680, bước 26; y từ 58, bước 19.5)
   for (let col = 0; col < 3; col++) {
     const colArr = [];
     for (let d = 0; d <= 9; d++) {
@@ -412,6 +788,7 @@ function getSheetGeometry(template) {
   }
 
   const labels = ['A', 'B', 'C', 'D'];
+  const subs = ['a', 'b', 'c', 'd'];
 
   if (template === '40Q') {
     for (let i = 0; i < 40; i++) {
@@ -421,34 +798,39 @@ function getSheetGeometry(template) {
       const y = 330 + row * 72;
       geo.p1.push({
         q: i + 1,
-        opts: labels.map((lbl, idx) => ({ label: lbl, x: baseX + idx * 32, y }))
+        opts: labels.map((lbl, idx) => ({ label: lbl, x: baseX + idx * 33, y }))
       });
     }
     return geo;
   }
 
-  // --- MẪU 2 PHẦN (Lịch sử, Địa lí, GDKT&PL): P1 24 câu + P2 4 câu Đúng/Sai ---
   if (template === '2026_2P') {
     for (let i = 0; i < 24; i++) {
-      const col = Math.floor(i / 8), row = i % 8;
-      const baseX = 95 + col * 255, y = 305 + row * 40;
-      geo.p1.push({ q: i + 1, opts: labels.map((lbl, idx) => ({ label: lbl, x: baseX + idx * 33, y })) });
+      const col = Math.floor(i / 6);
+      const row = i % 6;
+      const baseX = 82 + col * 190;
+      const y = 330 + row * 47;
+      geo.p1.push({
+        q: i + 1,
+        opts: labels.map((lbl, idx) => ({ label: lbl, x: baseX + idx * 33, y }))
+      });
     }
+
     for (let qIdx = 0; qIdx < 4; qIdx++) {
       const baseX = 88 + qIdx * 192;
-      geo.p2.push({
-        q: qIdx + 1,
-        statements: ['a', 'b', 'c', 'd'].map((sub, sIdx) => {
-          const y = 745 + sIdx * 52;
-          return { sub, trueOpt: { x: baseX + 24, y }, falseOpt: { x: baseX + 72, y } };
-        })
+      const statements = subs.map((sub, sIdx) => {
+        const y = 710 + sIdx * 50;
+        return {
+          sub,
+          trueOpt:  { x: baseX + 26, y },
+          falseOpt: { x: baseX + 78, y }
+        };
       });
+      geo.p2.push({ q: qIdx + 1, statements });
     }
     return geo;
   }
 
-  // --- MẪU 2026 ĐỦ 3 PHẦN ---
-  // Phần I: 18 câu chia 3 cột x 6 hàng (y từ 300 đến 485)
   for (let i = 0; i < 18; i++) {
     const col = Math.floor(i / 6);
     const row = i % 6;
@@ -460,8 +842,6 @@ function getSheetGeometry(template) {
     });
   }
 
-  // Phần II: 4 câu chùm Đúng/Sai (y từ 575 đến 685)
-  const subs = ['a', 'b', 'c', 'd'];
   for (let qIdx = 0; qIdx < 4; qIdx++) {
     const baseX = 88 + qIdx * 192;
     const statements = subs.map((sub, sIdx) => {
@@ -475,19 +855,14 @@ function getSheetGeometry(template) {
     geo.p2.push({ q: qIdx + 1, statements });
   }
 
-  // Phần III: 6 câu Trả lời ngắn (Câu 1..6), mỗi câu 4 cột ký tự
-  // Hàng 0: '-' (chỉ cột 0)
-  // Hàng 1: ',' (chỉ cột 1 và cột 2)
-  // Hàng 2..11: chữ số '0'..'9' (cả 4 cột)
   const rowChars = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
   for (let qIdx = 0; qIdx < 6; qIdx++) {
-    const boxLeft = 36 + qIdx * 130; // Mỗi khối câu rộng 118px, cách nhau 12px
+    const boxLeft = 36 + qIdx * 130;
     const cols = [];
     for (let c = 0; c < 4; c++) {
       const cx = boxLeft + 26 + c * 23;
       const bubbles = [];
       rowChars.forEach((ch, rIdx) => {
-        // Quy tắc phiếu chuẩn: dấu '-' chỉ ở cột đầu; dấu ',' chỉ ở cột 2, 3
         if (ch === '-' && c !== 0) return;
         if (ch === ',' && (c === 0 || c === 3)) return;
         const cy = 815 + rIdx * 26.5;
@@ -502,7 +877,7 @@ function getSheetGeometry(template) {
 }
 
 /********************************************************************
- * 2. VẼ PHIẾU TRẢ LỜI CHUẨN & PHIẾU GIẢ LẬP KIỂM THỬ
+ * 3. VẼ PHIẾU TRẢ LỜI CHUẨN & PHIẾU GIẢ LẬP
  ********************************************************************/
 function drawStandardSheet(targetCanvas, mockData = null) {
   const ctx = targetCanvas.getContext('2d');
@@ -515,30 +890,32 @@ function drawStandardSheet(targetCanvas, mockData = null) {
   ctx.save();
   ctx.translate(MARGIN, MARGIN);
 
-  // Vẽ 4 ô vuông định vị góc (36x36) tại đúng (0,0), (WARP_W,0), (WARP_W,WARP_H), (0,WARP_H)
   const corners = [[0, 0], [WARP_W, 0], [WARP_W, WARP_H], [0, WARP_H]];
   ctx.fillStyle = '#000000';
   corners.forEach(([cx, cy]) => ctx.fillRect(cx - 18, cy - 18, 36, 36));
 
-  // Khung thông tin chung
+  const geo = getSheetGeometry(currentTemplate);
+  const R = geo.bubbleRadius;
+
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 1.4;
-  ctx.strokeRect(28, 16, 405, 228);
+  ctx.strokeRect(28, 16, 405, 235);
 
   ctx.fillStyle = '#000000';
-  ctx.font = 'bold 16px Arial';
-  ctx.fillText('PHIẾU TRẢ LỜI TRẮC NGHIỆM CHUẨN 2026', 42, 42);
+  ctx.font = 'bold 15.5px Arial';
+  const headerTitle = currentTemplate === '2026_2P'
+    ? 'PHIẾU TRẢ LỜI TRẮC NGHIỆM (MẪU 2 PHẦN)'
+    : (currentTemplate === '2026_3P' ? 'PHIẾU TRẢ LỜI TRẮC NGHIỆM (MẪU 3 PHẦN)' : 'PHIẾU TRẢ LỜI TRẮC NGHIỆM (40 CÂU)');
+  ctx.fillText(headerTitle, 42, 42);
+
   ctx.font = '13px Arial';
-  ctx.fillText('Trường: .............................................................................', 42, 72);
-  ctx.fillText('Họ và tên: .........................................................................', 42, 102);
-  ctx.fillText('Lớp: ............................... Ngày thi: ......../......../2026', 42, 132);
-  ctx.fillText('Môn: ....................................................................................', 42, 162);
+  ctx.fillText('Trường: .............................................................................', 42, 74);
+  ctx.fillText('Họ và tên: ' + (mockData && mockData.studentName ? mockData.studentName : '.........................................................................'), 42, 106);
+  ctx.fillText('Lớp: ' + (mockData && mockData.className ? mockData.className : '...............................') + '    Ngày kiểm tra: ....../....../2026', 42, 138);
+  ctx.fillText('Môn: ....................................................................................', 42, 170);
   ctx.font = 'italic 11.5px Arial';
-  ctx.fillText('Chú ý: Tô kín ô tròn bằng bút chì đen. Giữ sạch 4 ô vuông đen ở góc.', 42, 225);
+  ctx.fillText('Lưu ý: Tô kín bằng bút chì đen. Không làm bẩn 4 ô vuông góc.', 42, 232);
 
-  const geo = getSheetGeometry(currentTemplate);
-
-  // Khung SBD & Mã đề
   ctx.strokeRect(448, 16, 185, 235);
   ctx.strokeRect(648, 16, 130, 235);
   ctx.font = 'bold 12.5px Arial';
@@ -547,56 +924,88 @@ function drawStandardSheet(targetCanvas, mockData = null) {
   ctx.fillText('MÃ ĐỀ', 713, 35);
 
   geo.sbd.forEach((col, cIdx) => {
-    col.forEach(b => {
-      drawBubble(ctx, b.x, b.y, R_BUBBLE, b.digit, mockData && mockData.sbd[cIdx] === b.digit);
-    });
+    col.forEach(b => drawBubble(ctx, b.x, b.y, 8.5, b.digit, mockData && mockData.sbd[cIdx] === b.digit));
   });
-
   geo.made.forEach((col, cIdx) => {
-    col.forEach(b => {
-      drawBubble(ctx, b.x, b.y, R_BUBBLE, b.digit, mockData && mockData.made[cIdx] === b.digit);
-    });
+    col.forEach(b => drawBubble(ctx, b.x, b.y, 8.5, b.digit, mockData && mockData.made[cIdx] === b.digit));
   });
 
-  // VẼ PHẦN I
   ctx.textAlign = 'left';
-  ctx.font = 'bold 13.5px Arial';
+  ctx.font = 'bold 14px Arial';
   ctx.fillStyle = '#000';
-  ctx.fillText('PHẦN I: TRẮC NGHIỆM NHIỀU LỰA CHỌN (Mỗi câu chỉ tô một phương án A, B, C hoặc D)', 28, 272);
-  ctx.strokeRect(28, 280, 784, currentTemplate === '40Q' ? 840 : currentTemplate === '2026_2P' ? 330 : 230);
+  ctx.fillText(`PHẦN I: TRẮC NGHIỆM NHIỀU LỰA CHỌN (${geo.p1.length} câu - Tô 1 phương án A, B, C hoặc D)`, 28, 275);
+
+  const p1BoxHeight = currentTemplate === '40Q' ? 840 : (currentTemplate === '2026_2P' ? 320 : 230);
+  ctx.strokeRect(28, 285, 784, p1BoxHeight);
 
   geo.p1.forEach(item => {
     ctx.fillStyle = '#000';
-    ctx.font = 'bold 12px Arial';
+    ctx.font = 'bold 12.5px Arial';
     ctx.textAlign = 'right';
-    ctx.fillText(item.q + '.', item.opts[0].x - 14, item.opts[0].y + 4);
+    ctx.fillText(item.q + '.', item.opts[0].x - 15, item.opts[0].y + 4);
     item.opts.forEach(opt => {
       const filled = mockData && mockData.p1[item.q] === opt.label;
-      drawBubble(ctx, opt.x, opt.y, R_BUBBLE, opt.label, filled);
+      drawBubble(ctx, opt.x, opt.y, R, opt.label, filled);
     });
   });
 
-  const L = currentTemplate === '2026_2P'
-    ? { h: 650, y: 658, bh: 282, q: 690, s: 712 }
-    : { h: 532, y: 540, bh: 168, q: 558, s: 570 };
-  if (geo.p2.length) {
-    // VẼ PHẦN II: ĐÚNG / SAI
+  if (currentTemplate === '2026_2P') {
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillStyle = '#000';
+    ctx.fillText('PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (4 câu - Trong mỗi ý a, b, c, d chọn Đúng hoặc Sai)', 28, 635);
+    ctx.strokeRect(28, 645, 784, 255);
+
+    geo.p2.forEach(item => {
+      const hx = item.statements[0].trueOpt.x - 10;
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText('Câu ' + item.q, hx, 668);
+      ctx.font = 'bold 11.5px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Đúng', item.statements[0].trueOpt.x, 684);
+      ctx.fillText('Sai', item.statements[0].falseOpt.x, 684);
+
+      item.statements.forEach(st => {
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 12.5px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(st.sub + ')', st.trueOpt.x - 16, st.trueOpt.y + 4);
+        const mv = mockData && mockData.p2[item.q] ? mockData.p2[item.q][st.sub] : null;
+        drawBubble(ctx, st.trueOpt.x, st.trueOpt.y, R, 'Đ', mv === 'Đ');
+        drawBubble(ctx, st.falseOpt.x, st.falseOpt.y, R, 'S', mv === 'S');
+      });
+    });
+
+    ctx.strokeRect(28, 920, 784, 215);
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 13.5px Arial';
+    ctx.fillText('PHẦN DÀNH CHO GIÁO VIÊN (Chấm chung hoặc cộng điểm Tự luận kiểm tra định kỳ):', 42, 948);
+    ctx.font = '13px Arial';
+    ctx.fillText('• Điểm Phần I (ABCD): ................. đ     • Điểm Phần II (Đúng/Sai): ................. đ', 42, 982);
+    ctx.fillText('• Điểm Tự luận (nếu có): ............. đ     • TỔNG ĐIỂM TOÀN BÀI: ...................... đ', 42, 1014);
+    ctx.fillText('• Nhận xét của giáo viên: ...........................................................................................................................', 42, 1048);
+    ctx.fillText('Chữ ký học sinh: ................................................     Chữ ký giáo viên chấm: ................................................', 42, 1105);
+  }
+
+  if (currentTemplate === '2026_3P') {
     ctx.textAlign = 'left';
     ctx.font = 'bold 13.5px Arial';
     ctx.fillStyle = '#000';
-    ctx.fillText('PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (Trong mỗi ý a, b, c, d ở mỗi câu, chọn Đúng hoặc Sai)', 28, L.h);
-    ctx.strokeRect(28, L.y, 784, L.bh);
+    ctx.fillText('PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (Trong mỗi ý a, b, c, d ở mỗi câu, chọn Đúng hoặc Sai)', 28, 535);
+    ctx.strokeRect(28, 542, 784, 166);
 
     geo.p2.forEach(item => {
       const hx = item.statements[0].trueOpt.x - 10;
       ctx.fillStyle = '#000';
       ctx.font = 'bold 12px Arial';
       ctx.textAlign = 'left';
-      ctx.fillText('Câu ' + item.q, hx, L.q);
+      ctx.fillText('Câu ' + item.q, hx, 560);
       ctx.font = 'bold 11px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Đúng', item.statements[0].trueOpt.x, L.s);
-      ctx.fillText('Sai', item.statements[0].falseOpt.x, L.s);
+      ctx.fillText('Đúng', item.statements[0].trueOpt.x, 572);
+      ctx.fillText('Sai', item.statements[0].falseOpt.x, 572);
 
       item.statements.forEach(st => {
         ctx.fillStyle = '#000';
@@ -604,63 +1013,55 @@ function drawStandardSheet(targetCanvas, mockData = null) {
         ctx.textAlign = 'right';
         ctx.fillText(st.sub + ')', st.trueOpt.x - 15, st.trueOpt.y + 4);
         const mv = mockData && mockData.p2[item.q] ? mockData.p2[item.q][st.sub] : null;
-        drawBubble(ctx, st.trueOpt.x, st.trueOpt.y, R_BUBBLE, 'Đ', mv === 'Đ');
-        drawBubble(ctx, st.falseOpt.x, st.falseOpt.y, R_BUBBLE, 'S', mv === 'S');
+        drawBubble(ctx, st.trueOpt.x, st.trueOpt.y, R, 'Đ', mv === 'Đ');
+        drawBubble(ctx, st.falseOpt.x, st.falseOpt.y, R, 'S', mv === 'S');
       });
     });
 
-    if (geo.p3.length) {
-      // VẼ PHẦN III: TRẢ LỜI NGẮN (6 CÂU TÔ SỐ)
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 13.5px Arial';
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 13.5px Arial';
+    ctx.fillStyle = '#000';
+    ctx.fillText('PHẦN III: TRẢ LỜI NGẮN (Viết kết quả vào 4 ô vuông đầu câu và tô tròn tương ứng theo từng cột)', 28, 730);
+    ctx.strokeRect(28, 738, 784, 405);
+
+    const rowLabels = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    geo.p3.forEach(item => {
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(item.boxLeft, 746, 120, 388);
+
       ctx.fillStyle = '#000';
-      ctx.fillText('PHẦN III: TRẢ LỜI NGẮN (Viết kết quả vào 4 ô vuông đầu câu và tô tròn tương ứng theo từng cột)', 28, 730);
-      ctx.strokeRect(28, 738, 784, 405);
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Câu ' + item.q, item.boxLeft + 60, 763);
 
-      const rowLabels = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const mockStr = (mockData && mockData.p3 && mockData.p3[item.q]) ? mockData.p3[item.q] : '';
+      const paddedChars = mockStr.replace('.', ',').split('').slice(0, 4);
 
-      geo.p3.forEach(item => {
-        ctx.strokeStyle = '#64748b';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(item.boxLeft, 746, 120, 388);
+      item.cols.forEach((col, cIdx) => {
+        ctx.strokeStyle = '#000';
+        ctx.strokeRect(col.cx - 11, 770, 22, 24);
+        if (paddedChars[cIdx]) {
+          ctx.fillStyle = '#1e3a8a';
+          ctx.font = 'bold 13px Arial';
+          ctx.fillText(paddedChars[cIdx], col.cx, 787);
+        }
+      });
 
-        // Tiêu đề Câu 1..6
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Câu ' + item.q, item.boxLeft + 60, 763);
+      ctx.fillStyle = '#334155';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      rowLabels.forEach((rl, rIdx) => {
+        ctx.fillText(rl, item.boxLeft + 9, 815 + rIdx * 26.5 + 3.5);
+      });
 
-        // 4 ô vuông viết tay kết quả trên đầu mỗi cột
-        const mockStr = (mockData && mockData.p3 && mockData.p3[item.q]) ? mockData.p3[item.q] : '';
-        const paddedChars = mockStr.replace('.', ',').split('').slice(0, 4);
-
-        item.cols.forEach((col, cIdx) => {
-          ctx.strokeStyle = '#000';
-          ctx.strokeRect(col.cx - 11, 770, 22, 24);
-          if (paddedChars[cIdx]) {
-            ctx.fillStyle = '#1e3a8a';
-            ctx.font = 'bold 13px Arial';
-            ctx.fillText(paddedChars[cIdx], col.cx, 787);
-          }
-        });
-
-        // Nhãn hàng bên trái mỗi khối câu
-        ctx.fillStyle = '#334155';
-        ctx.font = 'bold 10px Arial';
-        ctx.textAlign = 'center';
-        rowLabels.forEach((rl, rIdx) => {
-          ctx.fillText(rl, item.boxLeft + 9, 815 + rIdx * 26.5 + 3.5);
-        });
-
-        // Vẽ các ô tròn trong 4 cột
-        item.cols.forEach((col, cIdx) => {
-          const targetChar = paddedChars[cIdx] || null;
-          col.bubbles.forEach(b => {
-            drawBubble(ctx, b.x, b.y, R_BUBBLE, b.char, targetChar === b.char);
-          });
+      item.cols.forEach((col, cIdx) => {
+        const targetChar = paddedChars[cIdx] || null;
+        col.bubbles.forEach(b => {
+          drawBubble(ctx, b.x, b.y, R, b.char, targetChar === b.char);
         });
       });
-    }
+    });
   }
 
   ctx.restore();
@@ -677,14 +1078,14 @@ function drawBubble(ctx, x, y, r, text, filled = false) {
     ctx.lineWidth = 1.1;
     ctx.stroke();
     ctx.fillStyle = '#475569';
-    ctx.font = '9.5px Arial';
+    ctx.font = (r >= 9.5 ? '10.5px' : '9.5px') + ' Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(text, x, y + 3.2);
+    ctx.fillText(text, x, y + 3.4);
   }
 }
 
 /********************************************************************
- * 3. QUẢN LÝ ĐÁP ÁN 3 PHẦN & CHUẨN HÓA SỐ THẬP PHÂN PHẦN III
+ * 4. QUẢN LÝ ĐÁP ÁN 3 NHÓM MÔN
  ********************************************************************/
 function createDefaultKey() {
   const key = { p1: {}, p2: {}, p3: {} };
@@ -702,7 +1103,9 @@ function renderAnswerKeyUI() {
   const currentKey = answerKeys[code];
   const geo = getSheetGeometry(currentTemplate);
 
-  // Phần I
+  document.getElementById('titleP1Key').innerText =
+    `PHẦN I: Trắc nghiệm 4 lựa chọn (${geo.p1.length} câu: A, B, C, D)`;
+
   const gridP1 = document.getElementById('keyGridP1');
   gridP1.innerHTML = '';
   geo.p1.forEach(item => {
@@ -726,15 +1129,16 @@ function renderAnswerKeyUI() {
     gridP1.appendChild(div);
   });
 
-  // Phần II & Phần III
-  const sec23 = document.getElementById('keySectionP2P3');
-  if (currentTemplate === '40Q') {
-    sec23.style.display = 'none';
-  } else {
-    sec23.style.display = 'block';
-    document.getElementById('keyP3Wrap').style.display = currentTemplate === '2026_2P' ? 'none' : 'block';
+  const secP2 = document.getElementById('keySectionP2');
+  const secP3 = document.getElementById('keySectionP3');
+  const wrapPtP3 = document.getElementById('wrapPtP3');
 
-    // Render Phần II
+  if (currentTemplate === '40Q') {
+    secP2.style.display = 'none';
+    secP3.style.display = 'none';
+    wrapPtP3.style.display = 'none';
+  } else {
+    secP2.style.display = 'block';
     const gridP2 = document.getElementById('keyGridP2');
     gridP2.innerHTML = '';
     geo.p2.forEach(item => {
@@ -756,20 +1160,26 @@ function renderAnswerKeyUI() {
       gridP2.appendChild(card);
     });
 
-    // Render Phần III
-    const gridP3 = document.getElementById('keyGridP3');
-    gridP3.innerHTML = '';
-    geo.p3.forEach(item => {
-      const val = currentKey.p3 && currentKey.p3[item.q] !== undefined ? currentKey.p3[item.q] : '';
-      const box = document.createElement('div');
-      box.className = 'p3-item';
-      box.innerHTML = `
-        <label>Câu ${item.q} (Tối đa 4 ký tự):</label>
-        <input type="text" maxlength="4" value="${val}" placeholder="VD: 12,5"
-          oninput="updateP3Key(${item.q}, this.value)">
-      `;
-      gridP3.appendChild(box);
-    });
+    if (currentTemplate === '2026_3P') {
+      secP3.style.display = 'block';
+      wrapPtP3.style.display = 'inline-flex';
+      const gridP3 = document.getElementById('keyGridP3');
+      gridP3.innerHTML = '';
+      geo.p3.forEach(item => {
+        const val = currentKey.p3 && currentKey.p3[item.q] !== undefined ? currentKey.p3[item.q] : '';
+        const box = document.createElement('div');
+        box.className = 'p3-item';
+        box.innerHTML = `
+          <label>Câu ${item.q} (Tối đa 4 ký tự):</label>
+          <input type="text" maxlength="4" value="${val}" placeholder="VD: 12,5"
+            oninput="updateP3Key(${item.q}, this.value)">
+        `;
+        gridP3.appendChild(box);
+      });
+    } else {
+      secP3.style.display = 'none';
+      wrapPtP3.style.display = 'none';
+    }
   }
 }
 
@@ -809,52 +1219,24 @@ function randomFillKey() {
 }
 
 function saveCurrentKey() {
-  localStorage.setItem('omr_keys_full2026', JSON.stringify(answerKeys));
+  localStorage.setItem('omr_keys_ult2026', JSON.stringify(answerKeys));
   playBeep(880, 80);
 }
 
-// So sánh thông minh chuỗi trả lời ngắn (chấp nhận cả dấu '.' và ',' và giá trị số bằng nhau)
 function isShortAnswerMatch(studentRaw, keyRaw) {
   if (!studentRaw || !keyRaw) return false;
   const sClean = studentRaw.trim().replace(/\./g, ',');
   const kClean = keyRaw.trim().replace(/\./g, ',');
   if (sClean === kClean) return true;
-
   const sNum = parseFloat(sClean.replace(',', '.'));
   const kNum = parseFloat(kClean.replace(',', '.'));
-  if (!isNaN(sNum) && !isNaN(kNum)) {
-    return Math.abs(sNum - kNum) < 1e-6;
-  }
+  if (!isNaN(sNum) && !isNaN(kNum)) return Math.abs(sNum - kNum) < 1e-6;
   return false;
 }
 
 /********************************************************************
- * 4. XỬ LÝ ẢNH OPENCV.JS & CHẤM ĐỦ 3 PHẦN
+ * 5. XỬ LÝ ẢNH OPENCV.JS & ĐÓNG DẤU KẾT QUẢ LÊN ẢNH LƯU TRỮ
  ********************************************************************/
-function setCvBadge(text, state) {
-  const b = document.getElementById('cvStatus');
-  b.innerText = text;
-  b.classList.remove('ready', 'error');
-  if (state) b.classList.add(state);
-}
-
-// Gọi sau khi file opencv.js tải xong; xử lý cả 3 kiểu build của opencv.js
-function onOpenCvReady() {
-  const ready = () => {
-    cvReady = true;
-    setCvBadge('OpenCV AI: Sẵn sàng', 'ready');
-    if (videoStream && !liveTimer) startLiveDetect();
-  };
-  if (typeof cv === 'undefined') { setCvBadge('OpenCV: lỗi khởi tạo', 'error'); return; }
-  if (typeof cv.then === 'function') {        // build dạng Promise (4.9+)
-    cv.then(m => { window.cv = m; ready(); });
-  } else if (cv.Mat) {                        // runtime đã khởi tạo xong
-    ready();
-  } else {                                    // build kiểu cũ (4.8)
-    cv.onRuntimeInitialized = ready;
-  }
-}
-
 function findFourCornerMarkers(threshMat, imgW, imgH) {
   let contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
@@ -904,7 +1286,13 @@ function findFourCornerMarkers(threshMat, imgW, imgH) {
   });
 
   const unique = new Set(corners.map(c => `${Math.round(c.cx)}_${Math.round(c.cy)}`));
-  return unique.size === 4 ? corners : null;
+  if (unique.size < 4) return null;
+
+  const topW = Math.hypot(corners[1].cx - corners[0].cx, corners[1].cy - corners[0].cy);
+  const leftH = Math.hypot(corners[3].cx - corners[0].cx, corners[3].cy - corners[0].cy);
+  if (topW < imgW * 0.35 || leftH < imgH * 0.35) return null;
+
+  return corners;
 }
 
 function getBubbleFillRatio(threshMat, x, y, r = 6) {
@@ -920,9 +1308,53 @@ function getBubbleFillRatio(threshMat, x, y, r = 6) {
   return nonZero / (w * h);
 }
 
-function processOMRCanvas(sourceCanvas) {
+// Tạo bức ảnh hoàn chỉnh có dải Banner thông tin học sinh + Điểm số đóng dấu ở trên cùng
+function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
+  const out = document.createElement('canvas');
+  out.width = WARP_W;
+  out.height = WARP_H + STAMP_H;
+  const ctx = out.getContext('2d');
+
+  // Vẽ nền dải thông tin kết quả trên đầu phiếu
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, WARP_W, STAMP_H);
+
+  // Vạch màu xanh lá / đỏ bên trái
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(0, 0, 10, STAMP_H);
+
+  // Dòng 1: Họ tên học sinh - Lớp - SBD - Mã đề
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px Segoe UI, Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText(`HS: ${info.name}  |  Lớp: ${info.className}  |  SBD: ${info.sbd}  |  Mã đề: ${info.made}`, 22, 30);
+
+  // Dòng 2: Điểm chi tiết từng phần & Giờ chấm
+  ctx.fillStyle = '#93c5fd';
+  ctx.font = 'bold 15px Segoe UI, Arial';
+  ctx.fillText(
+    `Phần I (ABCD): ${info.scoreP1}đ (${info.correctP1})   •   Phần II (Đ/S): ${info.scoreP2}đ   •   P.III/TL: ${info.scoreP3OrEssay}đ   •   Lúc: ${info.time}`,
+    22, 58
+  );
+
+  // Hộp Tổng Điểm nổi bật ở góc phải
+  ctx.fillStyle = '#dc2626';
+  ctx.fillRect(WARP_W - 175, 10, 160, STAMP_H - 20);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 12px Segoe UI, Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('TỔNG ĐIỂM', WARP_W - 95, 28);
+  ctx.font = 'bold 26px Segoe UI, Arial';
+  ctx.fillText(`${info.total.toFixed(2)}`, WARP_W - 95, 56);
+
+  // Ghép ảnh phiếu đã khoanh tròn đáp án xuống bên dưới Banner
+  ctx.drawImage(warpedSheetCanvas, 0, STAMP_H);
+  return out;
+}
+
+async function processOMRCanvas(sourceCanvas) {
   if (!cvReady) {
-    alert('Đang khởi tạo OpenCV.js, vui lòng đợi 2 giây!');
+    alert('Đang hoàn tất khởi tạo lõi OpenCV.js, vui lòng đợi 1 giây rồi bấm lại!');
     return;
   }
 
@@ -931,215 +1363,256 @@ function processOMRCanvas(sourceCanvas) {
   let gray = new cv.Mat();
   let blurred = new cv.Mat();
   let thresh = new cv.Mat();
+
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+  cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
+
+  const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
   let warpedColor = new cv.Mat();
   let warpedGray = new cv.Mat();
   let warpedThresh = new cv.Mat();
 
-  try {
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-    cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
+  if (corners) {
+    let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      corners[0].cx, corners[0].cy,
+      corners[1].cx, corners[1].cy,
+      corners[2].cx, corners[2].cy,
+      corners[3].cx, corners[3].cy
+    ]);
+    let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      0, 0, WARP_W, 0, WARP_W, WARP_H, 0, WARP_H
+    ]);
+    let M = cv.getPerspectiveTransform(srcTri, dstTri);
+    cv.warpPerspective(src, warpedColor, M, new cv.Size(WARP_W, WARP_H));
+    cv.warpPerspective(gray, warpedGray, M, new cv.Size(WARP_W, WARP_H));
+    srcTri.delete(); dstTri.delete(); M.delete();
+    document.getElementById('scanMsg').innerText = '✅ Đã chấm & đóng dấu điểm vào ảnh phiếu!';
+    document.getElementById('scanMsg').style.color = '#16a34a';
+  } else {
+    cv.resize(src, warpedColor, new cv.Size(WARP_W, WARP_H));
+    cv.resize(gray, warpedGray, new cv.Size(WARP_W, WARP_H));
+    document.getElementById('scanMsg').innerText = '⚠️ Đã chấm theo khung chuẩn & lưu ảnh phiếu.';
+    document.getElementById('scanMsg').style.color = '#d97706';
+  }
 
-    const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
+  cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
 
-    if (corners) {
-      let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-        corners[0].cx, corners[0].cy,
-        corners[1].cx, corners[1].cy,
-        corners[2].cx, corners[2].cy,
-        corners[3].cx, corners[3].cy
-      ]);
-      let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-        0, 0, WARP_W, 0, WARP_W, WARP_H, 0, WARP_H
-      ]);
-      let M = cv.getPerspectiveTransform(srcTri, dstTri);
-      cv.warpPerspective(src, warpedColor, M, new cv.Size(WARP_W, WARP_H));
-      cv.warpPerspective(gray, warpedGray, M, new cv.Size(WARP_W, WARP_H));
-      srcTri.delete(); dstTri.delete(); M.delete();
-      document.getElementById('scanMsg').innerText = 'Đã bắt 4 điểm neo góc & căn phẳng phiếu chính xác!';
-      document.getElementById('scanMsg').style.color = '#16a34a';
+  const rawSheetColor = document.createElement('canvas');
+  rawSheetColor.width = WARP_W; rawSheetColor.height = WARP_H;
+  cv.imshow(rawSheetColor, warpedColor);
+
+  const rawSheetBin = document.createElement('canvas');
+  rawSheetBin.width = WARP_W; rawSheetBin.height = WARP_H;
+  cv.imshow(rawSheetBin, warpedThresh);
+
+  const ctxColor = rawSheetColor.getContext('2d');
+  const ctxBin = rawSheetBin.getContext('2d');
+  const geo = getSheetGeometry(currentTemplate);
+  const scanR = currentTemplate === '2026_3P' ? 6 : 7;
+
+  const drawBoth = (x, y, r, color, lw) => {
+    drawCircleOverlay(ctxColor, x, y, r, color, lw);
+    drawCircleOverlay(ctxBin, x, y, r, color, lw);
+  };
+
+  // 1. Đọc Số Báo Danh
+  let sbdStr = '';
+  geo.sbd.forEach(col => {
+    let bestD = '0', maxF = thresholdRatio, bestPos = null;
+    col.forEach(b => {
+      const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+      if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
+    });
+    sbdStr += bestD;
+    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
+  });
+
+  const matchedStudent = lookupStudentBySBD(sbdStr);
+  const stName = matchedStudent ? matchedStudent.name : 'Chưa có tên trong DS';
+  const stClass = matchedStudent ? matchedStudent.className : '---';
+
+  document.getElementById('resStudentName').innerText = stName;
+  document.getElementById('resStudentName').style.color = matchedStudent ? '#15803d' : '#b45309';
+  document.getElementById('resStudentClass').innerText = 'Lớp: ' + stClass;
+  document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr;
+
+  // 2. Đọc Mã đề
+  let maDeStr = '';
+  geo.made.forEach(col => {
+    let bestD = '0', maxF = thresholdRatio, bestPos = null;
+    col.forEach(b => {
+      const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+      if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
+    });
+    maDeStr += bestD;
+    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
+  });
+
+  const fallbackCode = document.getElementById('keyExamCode').value.trim() || '101';
+  const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
+
+  // 3. Chấm Phần I
+  let correctP1 = 0;
+  const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
+  geo.p1.forEach(item => {
+    const filled = [];
+    item.opts.forEach(opt => {
+      const r = getBubbleFillRatio(warpedThresh, opt.x, opt.y, scanR);
+      if (r >= thresholdRatio) filled.push(opt);
+    });
+    const rightAns = activeKey.p1[item.q];
+    const rightObj = item.opts.find(o => o.label === rightAns);
+
+    if (filled.length === 1 && filled[0].label === rightAns) {
+      correctP1++;
+      drawBoth(filled[0].x, filled[0].y, 11, '#22c55e', 3);
     } else {
-      cv.resize(src, warpedColor, new cv.Size(WARP_W, WARP_H));
-      cv.resize(gray, warpedGray, new cv.Size(WARP_W, WARP_H));
-      document.getElementById('scanMsg').innerText = 'Không thấy đủ 4 ô vuông góc, đang quét theo khung mặc định.';
-      document.getElementById('scanMsg').style.color = '#d97706';
+      filled.forEach(fo => drawBoth(fo.x, fo.y, 11, '#ef4444', 3));
+      if (rightObj) drawBoth(rightObj.x, rightObj.y, 11, '#eab308', 2.4);
     }
+  });
+  const scoreP1 = correctP1 * ptP1;
 
-    cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
+  // 4. Chấm Phần II
+  let scoreP2 = 0;
+  const progScale = [0, 0.1, 0.25, 0.5, 1.0];
+  if (currentTemplate === '2026_2P' || currentTemplate === '2026_3P') {
+    geo.p2.forEach(item => {
+      let clusterRight = 0;
+      item.statements.forEach(st => {
+        const fT = getBubbleFillRatio(warpedThresh, st.trueOpt.x, st.trueOpt.y, scanR);
+        const fF = getBubbleFillRatio(warpedThresh, st.falseOpt.x, st.falseOpt.y, scanR);
+        let choice = null, chosenPos = null;
+        if (fT >= thresholdRatio && fF < thresholdRatio) { choice = 'Đ'; chosenPos = st.trueOpt; }
+        else if (fF >= thresholdRatio && fT < thresholdRatio) { choice = 'S'; chosenPos = st.falseOpt; }
 
-    const resCanvas = document.getElementById('resultCanvas');
-    cv.imshow(resCanvas, warpedColor);
-    const ctx = resCanvas.getContext('2d');
-    const geo = getSheetGeometry(currentTemplate);
+        const rightSub = activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : 'Đ';
+        const rightPos = rightSub === 'Đ' ? st.trueOpt : st.falseOpt;
 
-    // 1. Đọc SBD
-    let sbdStr = '';
-    geo.sbd.forEach(col => {
-      let bestD = '-', maxF = thresholdRatio, bestPos = null;
-      col.forEach(b => {
-        const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
-        if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
+        if (choice === rightSub) {
+          clusterRight++;
+          drawBoth(chosenPos.x, chosenPos.y, 11, '#22c55e', 3);
+        } else {
+          if (chosenPos) drawBoth(chosenPos.x, chosenPos.y, 11, '#ef4444', 3);
+          drawBoth(rightPos.x, rightPos.y, 11, '#eab308', 2.4);
+        }
       });
-      sbdStr += bestD;
-      if (bestPos) drawCircleOverlay(ctx, bestPos.x, bestPos.y, 10, '#2563eb', 2.2);
+      scoreP2 += progScale[clusterRight];
     });
+  }
 
-    // 2. Đọc Mã đề
-    let maDeStr = '';
-    geo.made.forEach(col => {
-      let bestD = '0', maxF = thresholdRatio, bestPos = null;
-      col.forEach(b => {
-        const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
-        if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
+  // 5. Chấm Phần III
+  let scoreP3 = 0;
+  const essayScore = parseFloat(document.getElementById('manualEssay').value) || 0;
+  const ptP3 = parseFloat(document.getElementById('ptP3').value) || 0.25;
+  const readoutBox = document.getElementById('p3ReadoutBox');
+  readoutBox.innerHTML = '';
+
+  if (currentTemplate === '2026_3P') {
+    geo.p3.forEach(item => {
+      let studentStr = '';
+      const chosenBubbles = [];
+      item.cols.forEach(col => {
+        let bestChar = '', maxF = thresholdRatio, bestB = null;
+        col.bubbles.forEach(b => {
+          const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+          if (r > maxF) { maxF = r; bestChar = b.char; bestB = b; }
+        });
+        studentStr += bestChar;
+        if (bestB) chosenBubbles.push(bestB);
       });
-      maDeStr += bestD;
-      if (bestPos) drawCircleOverlay(ctx, bestPos.x, bestPos.y, 10, '#2563eb', 2.2);
-    });
 
-    const fallbackCode = document.getElementById('keyExamCode').value.trim() || '101';
-    const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
+      const expectedStr = (activeKey.p3 && activeKey.p3[item.q]) ? activeKey.p3[item.q] : '';
+      const isOk = isShortAnswerMatch(studentStr, expectedStr);
 
-    // 3. Chấm Phần I
-    let correctP1 = 0;
-    const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
-    geo.p1.forEach(item => {
-      const filled = [];
-      item.opts.forEach(opt => {
-        const r = getBubbleFillRatio(warpedThresh, opt.x, opt.y, 6);
-        if (r >= thresholdRatio) filled.push(opt);
-      });
-      const rightAns = activeKey.p1[item.q];
-      const rightObj = item.opts.find(o => o.label === rightAns);
-
-      if (filled.length === 1 && filled[0].label === rightAns) {
-        correctP1++;
-        drawCircleOverlay(ctx, filled[0].x, filled[0].y, 10.5, '#16a34a', 2.8);
+      if (isOk) {
+        scoreP3 += ptP3;
+        chosenBubbles.forEach(b => drawBoth(b.x, b.y, 10, '#22c55e', 2.8));
       } else {
-        filled.forEach(fo => drawCircleOverlay(ctx, fo.x, fo.y, 10.5, '#dc2626', 2.8));
-        if (rightObj) drawCircleOverlay(ctx, rightObj.x, rightObj.y, 10.5, '#eab308', 2.2);
-      }
-    });
-    const scoreP1 = correctP1 * ptP1;
-
-    // 4. Chấm Phần II (Đúng/Sai lũy tiến)
-    let scoreP2 = 0;
-    const progScale = [0, 0.1, 0.25, 0.5, 1.0];
-    if (geo.p2.length) {
-      geo.p2.forEach(item => {
-        let clusterRight = 0;
-        item.statements.forEach(st => {
-          const fT = getBubbleFillRatio(warpedThresh, st.trueOpt.x, st.trueOpt.y, 6);
-          const fF = getBubbleFillRatio(warpedThresh, st.falseOpt.x, st.falseOpt.y, 6);
-          let choice = null, chosenPos = null;
-          if (fT >= thresholdRatio && fF < thresholdRatio) { choice = 'Đ'; chosenPos = st.trueOpt; }
-          else if (fF >= thresholdRatio && fT < thresholdRatio) { choice = 'S'; chosenPos = st.falseOpt; }
-
-          const rightSub = activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : 'Đ';
-          const rightPos = rightSub === 'Đ' ? st.trueOpt : st.falseOpt;
-
-          if (choice === rightSub) {
-            clusterRight++;
-            drawCircleOverlay(ctx, chosenPos.x, chosenPos.y, 10.5, '#16a34a', 2.8);
-          } else {
-            if (chosenPos) drawCircleOverlay(ctx, chosenPos.x, chosenPos.y, 10.5, '#dc2626', 2.8);
-            drawCircleOverlay(ctx, rightPos.x, rightPos.y, 10.5, '#eab308', 2.2);
+        chosenBubbles.forEach(b => drawBoth(b.x, b.y, 10, '#ef4444', 2.8));
+        const expChars = expectedStr.replace('.', ',').split('').slice(0, 4);
+        item.cols.forEach((col, cIdx) => {
+          const targetCh = expChars[cIdx];
+          if (targetCh) {
+            const rightB = col.bubbles.find(b => b.char === targetCh);
+            if (rightB) drawBoth(rightB.x, rightB.y, 10, '#eab308', 2.2);
           }
         });
-        scoreP2 += progScale[clusterRight];
-      });
-    }
+      }
 
-    // 5. Chấm Phần III (Trả lời ngắn 6 câu tô số)
-    let scoreP3 = 0;
-    const ptP3 = parseFloat(document.getElementById('ptP3').value) || 0.25;
-    const p3Details = [];
-    const readoutBox = document.getElementById('p3ReadoutBox');
-    readoutBox.innerHTML = '';
-
-    if (geo.p3.length) {
-      geo.p3.forEach(item => {
-        let studentStr = '';
-        const chosenBubbles = [];
-
-        item.cols.forEach(col => {
-          let bestChar = '';
-          let maxF = thresholdRatio;
-          let bestB = null;
-          col.bubbles.forEach(b => {
-            const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
-            if (r > maxF) {
-              maxF = r;
-              bestChar = b.char;
-              bestB = b;
-            }
-          });
-          studentStr += bestChar;
-          if (bestB) chosenBubbles.push(bestB);
-        });
-
-        const expectedStr = (activeKey.p3 && activeKey.p3[item.q]) ? activeKey.p3[item.q] : '';
-        const isOk = isShortAnswerMatch(studentStr, expectedStr);
-
-        if (isOk) {
-          scoreP3 += ptP3;
-          chosenBubbles.forEach(b => drawCircleOverlay(ctx, b.x, b.y, 10, '#16a34a', 2.8));
-        } else {
-          chosenBubbles.forEach(b => drawCircleOverlay(ctx, b.x, b.y, 10, '#dc2626', 2.8));
-          // Khoanh vàng các ô đúng theo đáp án chuẩn
-          const expChars = expectedStr.replace('.', ',').split('').slice(0, 4);
-          item.cols.forEach((col, cIdx) => {
-            const targetCh = expChars[cIdx];
-            if (targetCh) {
-              const rightB = col.bubbles.find(b => b.char === targetCh);
-              if (rightB) drawCircleOverlay(ctx, rightB.x, rightB.y, 10, '#eab308', 2.2);
-            }
-          });
-        }
-
-        p3Details.push(`C${item.q}:${studentStr || '_'}`);
-        const chip = document.createElement('div');
-        chip.className = 'p3-chip ' + (isOk ? 'ok' : 'err');
-        chip.innerHTML = `<strong>Câu ${item.q}:</strong> ${studentStr || '(Trống)'}<br><small>Đ/A: ${expectedStr}</small>`;
-        readoutBox.appendChild(chip);
-      });
-    }
-
-    const totalScore = Math.min(10, +(scoreP1 + scoreP2 + scoreP3).toFixed(2));
-
-    // Cập nhật giao diện kết quả
-    document.getElementById('resMeta').innerText = `${sbdStr} / ${maDeStr}`;
-    document.getElementById('resP1').innerText = scoreP1.toFixed(2);
-    document.getElementById('resP2').innerText = scoreP2.toFixed(2);
-    document.getElementById('resP3').innerText = scoreP3.toFixed(2);
-    document.getElementById('resTotal').innerText = totalScore.toFixed(2);
-
-    // Lưu lịch sử chấm
-    const record = {
-      id: Date.now(),
-      time: new Date().toLocaleTimeString('vi-VN'),
-      date: new Date().toLocaleString('vi-VN'),
-      sbd: sbdStr,
-      made: maDeStr,
-      scoreP1: +scoreP1.toFixed(2),
-      scoreP2: +scoreP2.toFixed(2),
-      scoreP3: +scoreP3.toFixed(2),
-      p3Text: p3Details.join(' | '),
-    mau: TEMPLATE_LABELS[currentTemplate],
-      total: totalScore
-    };
-    gradedList.unshift(record);
-    localStorage.setItem('omr_graded_full2026', JSON.stringify(gradedList));
-    renderResultsTable();
-    sendToWebhook(record);
-    storeResultImage(record);
-    playBeep(1046, 120);
-
-  } catch (e) {
-    console.error(e);
-    alert('Lỗi xử lý ảnh bằng OpenCV: ' + e.message);
-  } finally {
-    [src, gray, blurred, thresh, warpedColor, warpedGray, warpedThresh].forEach(m => { try { m.delete(); } catch (_) {} });
+      const chip = document.createElement('div');
+      chip.className = 'p3-chip ' + (isOk ? 'ok' : 'err');
+      chip.innerHTML = `<strong>Câu ${item.q}:</strong> ${studentStr || '(Trống)'}<br><small>Đ/A: ${expectedStr}</small>`;
+      readoutBox.appendChild(chip);
+    });
   }
+
+  const extraOrP3 = +(scoreP3 + essayScore).toFixed(2);
+  const totalScore = Math.min(10, +(scoreP1 + scoreP2 + extraOrP3).toFixed(2));
+  const recordId = 'OMR_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+
+  const record = {
+    id: recordId,
+    time: new Date().toLocaleTimeString('vi-VN'),
+    sbd: sbdStr,
+    name: stName,
+    className: stClass,
+    made: maDeStr,
+    correctP1: `${correctP1}/${geo.p1.length}`,
+    scoreP1: +scoreP1.toFixed(2),
+    scoreP2: +scoreP2.toFixed(2),
+    scoreP3OrEssay: extraOrP3,
+    total: totalScore
+  };
+
+  // Tạo ảnh đóng dấu kết quả (Stamped Canvas) và lưu vào IndexedDB
+  lastColorCanvas = createStampedAnnotatedCanvas(rawSheetColor, record);
+  lastBinaryCanvas = createStampedAnnotatedCanvas(rawSheetBin, record);
+  currentLatestRecord = record;
+
+  const imgDataUrl = lastColorCanvas.toDataURL('image/jpeg', 0.84);
+  await saveImageToDB(recordId, imgDataUrl);
+
+  renderResultCanvasView();
+
+  // Cập nhật thông số lên Banner
+  document.getElementById('resMeta').innerText = maDeStr;
+  document.getElementById('resP1').innerText = `${scoreP1.toFixed(2)} (${correctP1}/${geo.p1.length})`;
+  document.getElementById('resP2').innerText = scoreP2.toFixed(2);
+  document.getElementById('lblP3OrEssay').innerText = currentTemplate === '2026_3P' ? 'PHẦN III (TLN)' : 'TỰ LUẬN / CỘNG';
+  document.getElementById('resP3').innerText = extraOrP3.toFixed(2);
+  document.getElementById('resTotal').innerText = totalScore.toFixed(2);
+
+  gradedList.unshift(record);
+  localStorage.setItem('omr_graded_ult2026', JSON.stringify(gradedList));
+  renderResultsTable();
+  sendToWebhook(record);
+  playBeep(1046, 120);
+
+  // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
+  if (document.getElementById('autoDownloadImgToggle').checked) {
+    triggerImageDownload(imgDataUrl, buildImageFileName(record));
+  }
+
+  src.delete(); gray.delete(); blurred.delete(); thresh.delete();
+  warpedColor.delete(); warpedGray.delete(); warpedThresh.delete();
+}
+
+function renderResultCanvasView() {
+  const resCanvas = document.getElementById('resultCanvas');
+  const ctx = resCanvas.getContext('2d');
+  const source = showBinaryView ? lastBinaryCanvas : lastColorCanvas;
+  if (source) {
+    resCanvas.width = source.width;
+    resCanvas.height = source.height;
+    ctx.drawImage(source, 0, 0);
+  }
+}
+
+function toggleVisionMode() {
+  showBinaryView = !showBinaryView;
+  renderResultCanvasView();
 }
 
 function drawCircleOverlay(ctx, x, y, r, color, lw) {
@@ -1151,23 +1624,173 @@ function drawCircleOverlay(ctx, x, y, r, color, lw) {
 }
 
 /********************************************************************
- * 5. CAMERA, UPLOAD ẢNH & GIẢ LẬP KIỂM THỬ ĐỦ 3 PHẦN
+ * 6. CHỨC NĂNG LƯU ẢNH, XEM LẠI ẢNH BÀI CHẤM & XUẤT FILE .ZIP
+ ********************************************************************/
+// Đặt tên file ảnh chuẩn không dấu: Lop_SBD_HoVaTen_Diem.jpg
+function removeVietnameseTones(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+function buildImageFileName(rec) {
+  const cls = removeVietnameseTones(rec.className || 'Lop');
+  const name = removeVietnameseTones(rec.name || 'HocSinh');
+  return `${cls}_${rec.sbd}_${name}_${rec.total.toFixed(2)}d.jpg`;
+}
+
+function triggerImageDownload(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function downloadCurrentGradedImage() {
+  if (!lastColorCanvas || !currentLatestRecord) {
+    alert('Chưa có bài chấm nào! Hãy quét phiếu hoặc bấm "Chấm Thử Giả Lập" trước.');
+    return;
+  }
+  const dataUrl = lastColorCanvas.toDataURL('image/jpeg', 0.9);
+  triggerImageDownload(dataUrl, buildImageFileName(currentLatestRecord));
+}
+
+async function shareImageByDataUrl(dataUrl, rec) {
+  try {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], buildImageFileName(rec), { type: 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: `Kết quả chấm thi - ${rec.name} (${rec.total}đ)`,
+        text: `HS: ${rec.name} | Lớp: ${rec.className} | SBD: ${rec.sbd} | Điểm: ${rec.total.toFixed(2)}`,
+        files: [file]
+      });
+    } else {
+      triggerImageDownload(dataUrl, buildImageFileName(rec));
+    }
+  } catch (e) {}
+}
+
+function shareCurrentGradedImage() {
+  if (!lastColorCanvas || !currentLatestRecord) {
+    alert('Chưa có bài chấm nào để chia sẻ!');
+    return;
+  }
+  shareImageByDataUrl(lastColorCanvas.toDataURL('image/jpeg', 0.9), currentLatestRecord);
+}
+
+async function openImageModal(recordId) {
+  const rec = gradedList.find(r => r.id === recordId);
+  if (!rec) return;
+  const dataUrl = await getImageFromDB(recordId);
+  if (!dataUrl) {
+    alert('Không tìm thấy ảnh lưu trữ của bài này!');
+    return;
+  }
+  currentModalRecordId = recordId;
+  document.getElementById('modalTitle').innerText = `${rec.name} - Lớp: ${rec.className} (SBD: ${rec.sbd}) — ${rec.total.toFixed(2)} điểm`;
+  document.getElementById('modalSubInfo').innerText = `Mã đề: ${rec.made} | Phần I: ${rec.scoreP1}đ (${rec.correctP1}) | Phần II: ${rec.scoreP2}đ | P.III/TL: ${rec.scoreP3OrEssay}đ`;
+  document.getElementById('modalImgEl').src = dataUrl;
+  document.getElementById('imgModal').classList.add('open');
+}
+
+function closeImageModal() {
+  document.getElementById('imgModal').classList.remove('open');
+}
+
+async function downloadModalImage() {
+  if (!currentModalRecordId) return;
+  const rec = gradedList.find(r => r.id === currentModalRecordId);
+  const dataUrl = await getImageFromDB(currentModalRecordId);
+  if (rec && dataUrl) triggerImageDownload(dataUrl, buildImageFileName(rec));
+}
+
+async function shareModalImage() {
+  if (!currentModalRecordId) return;
+  const rec = gradedList.find(r => r.id === currentModalRecordId);
+  const dataUrl = await getImageFromDB(currentModalRecordId);
+  if (rec && dataUrl) shareImageByDataUrl(dataUrl, rec);
+}
+
+async function downloadSingleRowImage(recordId) {
+  const rec = gradedList.find(r => r.id === recordId);
+  const dataUrl = await getImageFromDB(recordId);
+  if (!rec || !dataUrl) {
+    alert('Không tìm thấy ảnh lưu trữ của học sinh này!');
+    return;
+  }
+  triggerImageDownload(dataUrl, buildImageFileName(rec));
+}
+
+// Đóng gói toàn bộ ảnh bài chấm của cả lớp thành 1 file .ZIP duy nhất
+async function downloadAllImagesAsZip() {
+  if (!gradedList.length) {
+    alert('Chưa có bài chấm nào để tải file ZIP!');
+    return;
+  }
+  if (typeof JSZip === 'undefined') {
+    alert('Thư viện nén ZIP chưa tải xong, vui lòng kiểm tra kết nối mạng!');
+    return;
+  }
+
+  const zip = new JSZip();
+  let count = 0;
+
+  for (let i = 0; i < gradedList.length; i++) {
+    const rec = gradedList[i];
+    if (!rec.id) continue;
+    const dataUrl = await getImageFromDB(rec.id);
+    if (dataUrl) {
+      const base64Data = dataUrl.split(',')[1];
+      const fileName = `${String(i + 1).padStart(2, '0')}_${buildImageFileName(rec)}`;
+      zip.file(fileName, base64Data, { base64: true });
+      count++;
+    }
+  }
+
+  if (count === 0) {
+    alert('Không có ảnh nào trong kho lưu trữ!');
+    return;
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  triggerImageDownload(url, `KhoAnh_BaiCham_OMR_${new Date().toISOString().slice(0,10)}.zip`);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/********************************************************************
+ * 7. CAMERA LIVE TRACKING & AUTO-SCAN BẰNG OPENCV
  ********************************************************************/
 async function startCamera() {
   try {
     videoStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1700 } }
     });
-    document.getElementById('video').srcObject = videoStream;
+    const video = document.getElementById('video');
+    video.srcObject = videoStream;
     document.getElementById('cameraContainer').style.display = 'block';
-    if (cvReady) startLiveDetect();
+    stableCornerFrames = 0;
+
+    if (autoScanTimer) clearInterval(autoScanTimer);
+    autoScanTimer = setInterval(scanVideoFrameWithOpenCV, 260);
   } catch (err) {
-    alert('Không thể mở Camera (Hãy chạy qua HTTPS hoặc GitHub Pages): ' + err.message);
+    alert('Không thể mở Camera (Vui lòng mở qua HTTPS như GitHub Pages): ' + err.message);
   }
 }
 
 function stopCamera() {
-  stopLiveDetect();
+  if (autoScanTimer) {
+    clearInterval(autoScanTimer);
+    autoScanTimer = null;
+  }
   if (videoStream) {
     videoStream.getTracks().forEach(t => t.stop());
     videoStream = null;
@@ -1175,78 +1798,62 @@ function stopCamera() {
   document.getElementById('cameraContainer').style.display = 'none';
 }
 
-/* ---- OpenCV thời gian thực: vẽ khung 4 góc lên camera, tự chụp khi phiếu ổn định ---- */
-let liveTimer = null, liveBusy = false, liveStable = 0, liveLast = null, liveCooldownUntil = 0;
-const liveWork = document.createElement('canvas');
-
-function startLiveDetect() {
-  stopLiveDetect();
-  liveTimer = setInterval(liveDetectTick, 200);
-}
-
-function stopLiveDetect() {
-  clearInterval(liveTimer);
-  liveTimer = null; liveStable = 0; liveLast = null;
-  const ov = document.getElementById('liveOverlay');
-  ov.getContext('2d').clearRect(0, 0, ov.width, ov.height);
-}
-
-function liveDetectTick() {
+function scanVideoFrameWithOpenCV() {
+  if (!cvReady || !videoStream || isProcessingFrame) return;
   const video = document.getElementById('video');
-  if (!cvReady || liveBusy || !videoStream || !video.videoWidth || Date.now() < liveCooldownUntil) return;
-  liveBusy = true;
+  if (!video.videoWidth) return;
 
-  const w = 480, h = Math.round(video.videoHeight * w / video.videoWidth);
-  liveWork.width = w; liveWork.height = h;
-  liveWork.getContext('2d').drawImage(video, 0, 0, w, h);
-  const ov = document.getElementById('liveOverlay');
-  ov.width = w; ov.height = h;
-  const octx = ov.getContext('2d');
-  const msg = document.getElementById('scanMsg');
-
-  let src = cv.imread(liveWork), gray = new cv.Mat(), blur = new cv.Mat(), th = new cv.Mat();
+  isProcessingFrame = true;
   try {
+    const overlay = document.getElementById('liveOverlayCanvas');
+    overlay.width = video.videoWidth;
+    overlay.height = video.videoHeight;
+    const oCtx = overlay.getContext('2d');
+    oCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+    const tempC = document.createElement('canvas');
+    tempC.width = video.videoWidth;
+    tempC.height = video.videoHeight;
+    tempC.getContext('2d').drawImage(video, 0, 0);
+
+    let src = cv.imread(tempC);
+    let gray = new cv.Mat();
+    let thresh = new cv.Mat();
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-    cv.adaptiveThreshold(blur, th, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
-    const corners = findFourCornerMarkers(th, w, h);
+    cv.adaptiveThreshold(gray, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
 
-    octx.clearRect(0, 0, w, h);
+    const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
+    src.delete(); gray.delete(); thresh.delete();
+
     if (corners) {
-      octx.strokeStyle = '#22c55e'; octx.lineWidth = 3;
-      octx.beginPath();
-      corners.forEach((c, i) => i ? octx.lineTo(c.cx, c.cy) : octx.moveTo(c.cx, c.cy));
-      octx.closePath(); octx.stroke();
+      oCtx.strokeStyle = '#22c55e';
+      oCtx.lineWidth = 6;
+      oCtx.beginPath();
+      oCtx.moveTo(corners[0].cx, corners[0].cy);
+      oCtx.lineTo(corners[1].cx, corners[1].cy);
+      oCtx.lineTo(corners[2].cx, corners[2].cy);
+      oCtx.lineTo(corners[3].cx, corners[3].cy);
+      oCtx.closePath();
+      oCtx.stroke();
 
-      const moved = liveLast ? Math.max(...corners.map((c, i) => Math.hypot(c.cx - liveLast[i].cx, c.cy - liveLast[i].cy))) : 99;
-      liveStable = moved < 5 ? liveStable + 1 : 0;
-      liveLast = corners;
-      msg.innerText = 'Đã nhận đủ 4 góc phiếu. Giữ yên để chấm...';
-      msg.style.color = '#16a34a';
-
-      if (document.getElementById('autoCapture').checked && liveStable >= 5) {
-        liveStable = 0;
-        liveCooldownUntil = Date.now() + 3000;
-        octx.clearRect(0, 0, w, h);
-        captureAndGrade();
+      if (document.getElementById('autoScanToggle').checked) {
+        stableCornerFrames++;
+        if (stableCornerFrames >= 3) {
+          stableCornerFrames = -5;
+          processOMRCanvas(tempC);
+        }
       }
     } else {
-      liveStable = 0; liveLast = null;
-      msg.innerText = 'Đưa phiếu vào khung: chưa thấy đủ 4 ô vuông góc.';
-      msg.style.color = '#d97706';
+      stableCornerFrames = 0;
     }
-  } catch (e) {
-    console.error(e);
-  } finally {
-    src.delete(); gray.delete(); blur.delete(); th.delete();
-    liveBusy = false;
-  }
+  } catch (e) {}
+  isProcessingFrame = false;
 }
 
 function captureAndGrade() {
   const video = document.getElementById('video');
   if (!videoStream || !video.videoWidth) {
-    alert('Hãy bật Camera trước khi chụp!');
+    alert('Hãy bật Camera trước khi bấm chụp!');
     return;
   }
   const c = document.createElement('canvas');
@@ -1271,12 +1878,21 @@ function handleImageUpload(e) {
 }
 
 function runSimulatedTest() {
+  if (Object.keys(studentDB).length === 0) {
+    loadDemoStudents();
+  }
+  const sbdKeys = Object.keys(studentDB);
+  const randomSbd = sbdKeys[Math.floor(Math.random() * sbdKeys.length)];
+  const stObj = studentDB[randomSbd];
+
   const code = document.getElementById('keyExamCode').value.trim() || '101';
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   const key = answerKeys[code];
 
   const mock = {
-    sbd: ['0', '1', '0', '8', String(Math.floor(Math.random() * 10)), String(Math.floor(Math.random() * 10))],
+    sbd: randomSbd.padStart(6, '0').split(''),
+    studentName: stObj.name,
+    className: stObj.className,
     made: code.padStart(3, '0').split(''),
     p1: {},
     p2: {},
@@ -1285,17 +1901,17 @@ function runSimulatedTest() {
 
   const opts = ['A', 'B', 'C', 'D'];
   for (let i = 1; i <= 40; i++) {
-    mock.p1[i] = Math.random() < 0.8 ? key.p1[i] : opts[Math.floor(Math.random() * 4)];
+    mock.p1[i] = Math.random() < 0.85 ? key.p1[i] : opts[Math.floor(Math.random() * 4)];
   }
   for (let q = 1; q <= 4; q++) {
     mock.p2[q] = {};
     ['a', 'b', 'c', 'd'].forEach(sub => {
-      mock.p2[q][sub] = Math.random() < 0.78 ? key.p2[q][sub] : (Math.random() < 0.5 ? 'Đ' : 'S');
+      mock.p2[q][sub] = Math.random() < 0.8 ? key.p2[q][sub] : (Math.random() < 0.5 ? 'Đ' : 'S');
     });
   }
   const wrongSamples = ['9,9', '-1,2', '50', '0,1'];
   for (let q = 1; q <= 6; q++) {
-    mock.p3[q] = Math.random() < 0.75 ? key.p3[q] : wrongSamples[q % wrongSamples.length];
+    mock.p3[q] = Math.random() < 0.78 ? key.p3[q] : wrongSamples[q % wrongSamples.length];
   }
 
   const simCanvas = document.createElement('canvas');
@@ -1304,116 +1920,51 @@ function runSimulatedTest() {
 }
 
 /********************************************************************
- * 6. BẢNG ĐIỂM, XUẤT EXCEL & TIỆN ÍCH
+ * 8. BẢNG ĐIỂM KÈM ẢNH THU NHỎ, XUẤT EXCEL & TIỆN ÍCH
  ********************************************************************/
-function renderResultsTable() {
+async function renderResultsTable() {
   document.getElementById('countGraded').innerText = gradedList.length;
-  document.getElementById('resultsBody').innerHTML = gradedList.map((r, i) => `
+  const keyword = (document.getElementById('searchResultInput')?.value || '').trim().toLowerCase();
+
+  const filtered = gradedList.filter(r => {
+    if (!keyword) return true;
+    return (r.name && r.name.toLowerCase().includes(keyword)) ||
+           (r.sbd && r.sbd.toLowerCase().includes(keyword)) ||
+           (r.className && r.className.toLowerCase().includes(keyword));
+  });
+
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = filtered.map((r, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td>${r.time}</td>
-      <td><strong>${r.sbd}</strong></td>
+      <td>
+        <img id="thumb_${r.id}" class="thumb-img" src="" alt="Phiếu" title="Bấm để phóng to bài làm"
+             onclick="openImageModal('${r.id}')">
+      </td>
+      <td><strong style="color:#1e40af">${r.sbd}</strong></td>
+      <td style="text-align:left; font-weight:700;">${r.name || '---'}</td>
+      <td>${r.className || '---'}</td>
       <td>${r.made}</td>
-      <td style="font-size:0.76rem;">${r.mau || ''}</td>
       <td>${r.scoreP1}</td>
       <td>${r.scoreP2}</td>
-      <td>${r.scoreP3}</td>
-      <td style="font-size:0.76rem; color:#334155;">${r.p3Text || ''}</td>
-      <td><strong style="color:#dc2626">${r.total.toFixed(2)}</strong></td>
-      <td>${r.id ? `<button class="btn btn-outline" onclick="viewResultImage(${r.id})">Xem</button>` : '-'}</td>
+      <td>${r.scoreP3OrEssay}</td>
+      <td><strong style="color:#dc2626; font-size:0.95rem;">${r.total.toFixed(2)}</strong></td>
+      <td>
+        <div style="display:flex; gap:4px; justify-content:center;">
+          <button class="btn btn-primary btn-sm" onclick="openImageModal('${r.id}')">🖼️ Xem Phiếu</button>
+          <button class="btn btn-success btn-sm" onclick="downloadSingleRowImage('${r.id}')">⬇️ Tải Ảnh</button>
+        </div>
+      </td>
     </tr>
   `).join('');
-}
 
-/* ---- LƯU ẢNH KẾT QUẢ: chia sẻ/lưu vào thư viện ảnh điện thoại, xem lại trong bảng điểm ---- */
-let lastResult = null, modalBlob = null, modalRec = null, modalUrl = null;
-
-function imgDbOp(mode, fn) {
-  return new Promise((resolve, reject) => {
-    const open = indexedDB.open('omr_images', 1);
-    open.onupgradeneeded = () => open.result.createObjectStore('imgs');
-    open.onerror = () => reject(open.error);
-    open.onsuccess = () => {
-      const rq = fn(open.result.transaction('imgs', mode).objectStore('imgs'));
-      rq.onsuccess = () => resolve(rq.result);
-      rq.onerror = () => reject(rq.error);
-    };
+  // Nạp bất đồng bộ ảnh thu nhỏ từ IndexedDB vào từng dòng
+  filtered.forEach(async (r) => {
+    if (!r.id) return;
+    const dataUrl = await getImageFromDB(r.id);
+    const imgEl = document.getElementById(`thumb_${r.id}`);
+    if (imgEl && dataUrl) imgEl.src = dataUrl;
   });
-}
-
-// Ghép thanh điểm số lên đầu ảnh phiếu đã chấm (có khoanh xanh/đỏ/vàng)
-function buildResultImage(rec) {
-  const src = document.getElementById('resultCanvas');
-  const H = 150;
-  const c = document.createElement('canvas');
-  c.width = src.width; c.height = src.height + H;
-  const x = c.getContext('2d');
-  x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height);
-  x.fillStyle = '#1e3a8a'; x.fillRect(0, 0, c.width, H);
-  x.fillStyle = '#ffffff'; x.textAlign = 'left';
-  x.font = 'bold 26px Arial';
-  x.fillText(`SBD: ${rec.sbd}   |   Mã đề: ${rec.made}`, 24, 42);
-  x.font = '18px Arial';
-  x.fillText(`Phần I: ${rec.scoreP1.toFixed(2)}   Phần II: ${rec.scoreP2.toFixed(2)}   Phần III: ${rec.scoreP3.toFixed(2)}`, 24, 78);
-  x.fillText(`${rec.mau || ''} - ${rec.date}`, 24, 108);
-  if (rec.p3Text) { x.font = '14px Arial'; x.fillText(rec.p3Text, 24, 134, c.width - 48); }
-  x.textAlign = 'right';
-  x.font = 'bold 56px Arial'; x.fillText(rec.total.toFixed(2), c.width - 24, 76);
-  x.font = '16px Arial'; x.fillText('TỔNG ĐIỂM', c.width - 24, 104);
-  x.drawImage(src, 0, H);
-  return c;
-}
-
-function imageFileName(rec) { return `OMR_SBD${rec.sbd}_MD${rec.made}_${rec.id}.jpg`; }
-
-async function storeResultImage(rec) {
-  try {
-    const blob = await new Promise(r => buildResultImage(rec).toBlob(r, 'image/jpeg', 0.88));
-    lastResult = { rec, blob };
-    await imgDbOp('readwrite', st => st.put(blob, rec.id));
-    if (document.getElementById('autoSaveImg').checked) downloadBlob(blob, imageFileName(rec));
-  } catch (e) { console.warn('Không lưu được ảnh kết quả:', e); }
-}
-
-function downloadBlob(blob, name) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-}
-
-// Điện thoại: mở bảng chia sẻ (chọn "Lưu ảnh"/"Lưu vào Thư viện"). Máy tính: tải file về.
-async function saveBlob(blob, name, title) {
-  const file = new File([blob], name, { type: 'image/jpeg' });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title }); return; }
-    catch (e) { if (e.name === 'AbortError') return; }
-  }
-  downloadBlob(blob, name);
-}
-
-function saveResultImage() {
-  if (!lastResult) { alert('Chưa có kết quả để lưu. Hãy chấm một bài trước!'); return; }
-  saveBlob(lastResult.blob, imageFileName(lastResult.rec), 'Kết quả OMR - SBD ' + lastResult.rec.sbd);
-}
-
-async function viewResultImage(id) {
-  let blob = null;
-  try { blob = await imgDbOp('readonly', st => st.get(id)); } catch (e) {}
-  if (!blob) { alert('Không tìm thấy ảnh của bài này (có thể đã bị xóa).'); return; }
-  modalBlob = blob;
-  modalRec = gradedList.find(r => r.id === id);
-  if (modalUrl) URL.revokeObjectURL(modalUrl);
-  modalUrl = URL.createObjectURL(blob);
-  document.getElementById('modalImg').src = modalUrl;
-  document.getElementById('imgModal').classList.add('open');
-}
-
-function closeImgModal() { document.getElementById('imgModal').classList.remove('open'); }
-
-function saveModalImage() {
-  if (modalBlob && modalRec) saveBlob(modalBlob, imageFileName(modalRec), 'Kết quả OMR - SBD ' + modalRec.sbd);
 }
 
 function exportExcel() {
@@ -1425,26 +1976,26 @@ function exportExcel() {
     'STT': i + 1,
     'Giờ chấm': r.time,
     'Số Báo Danh': r.sbd,
+    'Họ và Tên Học Sinh': r.name,
+    'Lớp': r.className,
     'Mã Đề': r.made,
-    'Mẫu phiếu': r.mau || '',
     'Điểm Phần I (ABCD)': r.scoreP1,
     'Điểm Phần II (Đ/S)': r.scoreP2,
-    'Điểm Phần III (TLN)': r.scoreP3,
-    'Chi tiết trả lời ngắn (P3)': r.p3Text,
-    'Tổng Điểm': r.total
+    'Điểm P3 / Tự luận': r.scoreP3OrEssay,
+    'Tổng Điểm': r.total,
+    'Tên File Ảnh Minh Chứng': buildImageFileName(r)
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'KetQuaOMR_3Phan');
-  XLSX.writeFile(wb, `BangDiem_OMR_3Phan_${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, 'BangDiemOMR');
+  XLSX.writeFile(wb, `BangDiem_OMR_HoTen_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-function clearResults() {
-  if (confirm('Xóa toàn bộ lịch sử chấm bài?')) {
+async function clearResults() {
+  if (confirm('Xóa toàn bộ lịch sử chấm bài và kho ảnh đã lưu?')) {
     gradedList = [];
-    localStorage.removeItem('omr_graded_full2026');
-    imgDbOp('readwrite', st => st.clear()).catch(() => {});
-    lastResult = null;
+    localStorage.removeItem('omr_graded_ult2026');
+    await clearAllImagesInDB();
     renderResultsTable();
   }
 }
@@ -1477,13 +2028,18 @@ function switchTab(tabId, btn) {
   document.getElementById(tabId).classList.add('active');
   btn.classList.add('active');
   if (tabId === 'tab-sheet') drawStandardSheet(document.getElementById('sheetCanvas'));
+  if (tabId === 'tab-results') renderResultsTable();
 }
 
 function onTemplateChange() {
   currentTemplate = document.getElementById('templateSelect').value;
-  if (currentTemplate === '40Q' || currentTemplate === '2026_2P') {
-    document.getElementById('ptP1').value = 0.25;
-  }
+  const titleMap = {
+    '2026_2P': 'Phiếu Trả Lời Trắc Nghiệm 2 Phần (Lịch Sử / KTPL / Công Nghệ)',
+    '2026_3P': 'Phiếu Trả Lời Trắc Nghiệm 3 Phần (Toán / Lý / Hóa / Sinh / Địa)',
+    '40Q': 'Phiếu Trả Lời Trắc Nghiệm 40 Câu (Ngoại Ngữ)'
+  };
+  document.getElementById('sheetTitleDisplay').innerText = titleMap[currentTemplate];
+  document.getElementById('p3ReadoutBox').innerHTML = '';
   renderAnswerKeyUI();
   drawStandardSheet(document.getElementById('sheetCanvas'));
 }
@@ -1498,29 +2054,17 @@ function downloadSheetImage() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('webhookUrl').value = localStorage.getItem('omr_webhook_full') || '';
-  renderAnswerKeyUI();
-  drawStandardSheet(document.getElementById('sheetCanvas'));
+  initImageDB();
+  loadOpenCVWithFallback(0);
+  if (Object.keys(studentDB).length === 0) {
+    loadDemoStudents();
+  } else {
+    renderStudentTable();
+  }
+  document.getElementById('webhookUrl').value = localStorage.getItem('omr_webhook_ult') || '';
+  onTemplateChange();
   renderResultsTable();
 });
-</script>
-<script>
-// Thử lần lượt từng nguồn; nếu nguồn trước bị chặn/lỗi mạng sẽ tự chuyển sang nguồn kế tiếp
-const OPENCV_SOURCES = [
-  'https://docs.opencv.org/4.8.0/opencv.js',
-  'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.9.0-release.3/dist/opencv.js'
-];
-function loadOpenCV(i = 0) {
-  if (i >= OPENCV_SOURCES.length) { setCvBadge('OpenCV: lỗi tải, kiểm tra mạng rồi tải lại trang', 'error'); return; }
-  setCvBadge('Đang tải OpenCV (nguồn ' + (i + 1) + '/' + OPENCV_SOURCES.length + ')...');
-  const sc = document.createElement('script');
-  sc.async = true;
-  sc.src = OPENCV_SOURCES[i];
-  sc.onload = onOpenCvReady;
-  sc.onerror = () => { sc.remove(); loadOpenCV(i + 1); };
-  document.head.appendChild(sc);
-}
-loadOpenCV();
 </script>
 </body>
 </html>
