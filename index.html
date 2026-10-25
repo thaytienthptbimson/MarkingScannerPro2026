@@ -30,11 +30,17 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
     body { background: var(--bg); color: var(--text); padding-bottom: 65px; }
 
+    /* Khối cố định trên cùng: banner xanh + 4 tab, bo tròn đủ 4 góc, nền trùng nền trang */
+    .top-stack {
+      position: sticky; top: 0; z-index: 100; background: var(--bg);
+      padding: calc(4px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) 4px calc(8px + env(safe-area-inset-left, 0px));
+      box-shadow: 0 4px 8px -4px rgba(15, 23, 42, 0.18);
+    }
     header {
       background: linear-gradient(135deg, #1e3a8a, #2563eb);
-      color: #fff; padding: 8px 14px; border-radius: 0 0 14px 14px;
+      color: #fff; padding: 8px 14px; border-radius: 14px;
       display: flex; justify-content: space-between; align-items: center; gap: 6px;
-      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 8px rgba(30, 58, 138, 0.25);
     }
     header h1 { font-size: 0.92rem; font-weight: 700; line-height: 1.2; }
     header > div:first-child { min-width: 0; flex: 1 1 auto; }
@@ -42,7 +48,19 @@
       font-size: 0.72rem; padding: 3px 10px; border-radius: 20px;
       background: #e2e8f0; color: #334155; font-weight: 600; display: flex; align-items: center; gap: 4px;
     }
-    .status-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .status-row { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 6px; margin-bottom: 8px; }
+    .status-row .cv-badge { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.68rem; padding: 3px 8px; }
+    .status-row #licBadge { flex: 0 0 auto; }
+    .status-row #cvStatus { flex: 0 1 auto; }
+    @media (min-width: 481px) { .status-row .cv-badge { font-size: 0.74rem; padding: 3px 10px; } }
+
+    /* 3 nút: Chụp & Chấm Ngay / Chụp Bằng Camera ĐT / Tải Ảnh Phiếu — luôn nằm trên 1 hàng, chia đều */
+    .row-3btn, .row-1line { flex-wrap: nowrap; gap: 6px; }
+    .row-3btn > .btn, .row-1line > .btn { flex: 1 1 0; min-width: 0; justify-content: center; text-align: center; white-space: normal; line-height: 1.2; padding: 8px 4px; font-size: 0.74rem; }
+    @media (min-width: 481px) { .row-3btn > .btn, .row-1line > .btn { font-size: 0.83rem; padding: 8px 12px; } }
+    .row-1line > .btn-sm { padding: 6px 4px; font-size: 0.74rem; }
+    /* Hàng nút nằm trong tiêu đề thẻ / khung quản lý mã đề: chiếm trọn chiều ngang, xuống dưới tiêu đề */
+    .card-title > .row-1line, .code-manager-head > .row-1line { flex: 1 1 100%; margin: 0 !important; }
     .cv-badge.ready { background: #22c55e; color: #fff; }
     .cv-badge.error { background: #ef4444; color: #fff; }
 
@@ -54,13 +72,11 @@
     @keyframes licShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
     .lic-shake { animation: licShake 0.3s; }
 
-    /* Navigation 4 chức năng — gọn, bo góc; lồng 14px dưới thanh xanh để góc bo của thanh xanh không bị hở */
+    /* Navigation 4 chức năng — gọn, bo tròn 4 góc */
     .tabs {
       display: flex; gap: 5px;
-      margin-top: -14px; padding: 18px 8px 6px; background: #fff;
-      border-radius: 0 0 14px 14px; border-bottom: 1px solid #e2e8f0;
-      position: sticky; top: calc(var(--header-h, 46px) - 14px); z-index: 99;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.10);
+      margin-top: 4px; padding: 5px 6px; background: #fff;
+      border-radius: 14px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.10);
     }
     .tab-btn {
       --tc: #2563eb; --tc-bg: #dbeafe;
@@ -175,7 +191,7 @@
     }
     video {
       width: 100%; height: auto; min-height: 240px;
-      max-height: calc(100vh - 175px); max-height: calc(100dvh - 175px);
+      max-height: calc(100vh - 195px); max-height: calc(100dvh - 195px);
       object-fit: contain; display: block; background: #000; /* contain: thấy trọn khung hình, không bị cắt mất chấm đen ở góc */
     }
     #liveOverlayCanvas {
@@ -358,11 +374,6 @@
 
 
     /* iOS / iPhone Specific Enhancements (Notch, Dynamic Island & Safari Auto-Zoom Fix) */
-    header {
-      padding-top: calc(8px + env(safe-area-inset-top, 0px));
-      padding-left: calc(14px + env(safe-area-inset-left, 0px));
-      padding-right: calc(14px + env(safe-area-inset-right, 0px));
-    }
     footer {
       padding-bottom: calc(7px + env(safe-area-inset-bottom, 0px));
     }
@@ -376,10 +387,11 @@
 </head>
 <body>
 
+<div class="top-stack">
 <header>
   <div style="display:flex; align-items:center; gap:8px;">
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACPUlEQVR4nO2bsU7DMBCGDerExAYLYmCEN+gLIPEKlZi6MTYrA2s6snXlFSrxAuUJ4AEqFroxMSHB5Mp2Y599vsSOz99U13Zy9+vu6rixEBXeHGEmTZ9+/qgNoWLzeBLkk/fgnJ224SOGlwCm85+vz1ibeufi9kFrQyI4O1XHc3bahiqGTYhj2+SxOy+EbrcthTsFKMF5CSSCNQLMyWPG5ceBAFKlUpyXSH/MKNAKQ4jz201DZx0Bl9PWa5wsjLIoOlPARm7OC4G3aYK90en5tfb999cHygAsXfffbhrvSJDsI6DU3DcxawEqBUqCvQDBNUAydM73dX/2EcBeAHQK2Jg3y/3nVbs46D97udt/3s3WQfOha2MgFWDeLDXDzLbqvGyrIrjmQ9fGwj4F2AtAmgKrduHM091s7awBrvnQtbGQF0HIsK7C5zufymkV9ilQBUhtQGoGXwjF9EOLKAyDLoRi2tAiCgv7FGAvwKALoZh+aBGFZfCFUEw/ldMqNQXAAe271r56u+/NGAomxq74b3PjHF8jABpgKgj9AxOz4wP1+zwNhv4xQloEY3Z8oHbdEeoJ9gKQpkDMjg/UP5odoZgdH6i/7gj1QBUgtQGpqQKkNiA16F+BHN8RwsA+AqoAqQ1IDepN0RxflBTC71GY5E3R0GfuIcDahP4VyFEEDFoEyLAwj52Ughn+QnSkQKkidDkvBFADShHB5UenAKpKYxcBOjhljYASRPA5NVbPDfpemPXJUZOcxQg9O8yef7abUTOf/dEpAAAAAElFTkSuQmCC" alt="Logo" style="width:26px; height:26px; border-radius:7px;">
-    <h1>OMR PRO 2026 - iOS IPHONE & ANDROID AI</h1>
+    <h1>OMR PRO 2026 - iOS & ANDROID AI</h1>
   </div>
 </header>
 
@@ -389,6 +401,7 @@
   <button class="tab-btn tab-3" title="In Phiếu" onclick="switchTab('tab-sheet', this)"><span class="tab-num">3</span><span class="tab-label"><span class="tab-ico">🖨️</span><span class="tab-txt"> In Phiếu</span></span></button>
   <button class="tab-btn tab-4" title="Bảng Điểm & Ảnh" onclick="switchTab('tab-results', this)"><span class="tab-num">4</span><span class="tab-label"><span class="tab-ico">📊</span><span class="tab-txt"> Bảng Điểm & Ảnh</span></span></button>
 </nav>
+</div>
 
 <div class="container">
 
@@ -440,7 +453,7 @@
         </div>
       </details>
 
-      <div class="row">
+      <div class="row row-3btn">
         <button class="btn btn-success" onclick="captureAndGrade()">⚡ Chụp & Chấm Ngay</button>
         <label class="btn btn-primary" style="background:#0284c7;">
           📸 Chụp Bằng Camera ĐT
@@ -452,7 +465,7 @@
         </label>
       </div>
 
-      <div class="row">
+      <div class="row row-1line">
         <button class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
         <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
       </div>
@@ -535,7 +548,7 @@
       <div class="code-manager">
         <div class="code-manager-head">
           <strong>📋 Danh sách mã đề đã có (<span id="countExamCodes">0</span>) — bấm vào mã để xem / sửa đáp án</strong>
-          <div class="row" style="margin:0;">
+          <div class="row row-1line" style="margin:0;">
             <button class="btn btn-success btn-sm" onclick="openAddCodesModal()">➕ Thêm nhiều mã đề</button>
             <button class="btn btn-danger btn-sm" onclick="deleteCurrentCode()">🗑️ Xóa mã đề đang chọn</button>
           </div>
@@ -575,7 +588,7 @@
     <div class="card">
       <div class="card-title">
         <span id="sheetTitleDisplay">Phiếu Trả Lời Trắc Nghiệm 2 Phần (Lịch Sử / KTPL / Công Nghệ)</span>
-        <div class="row" style="margin:0;">
+        <div class="row row-1line" style="margin:0;">
           <button class="btn btn-primary" onclick="window.print()">🖨️ In Phiếu (A4 / A5)</button>
           <button class="btn btn-success" onclick="downloadSheetImage()">⬇️ Tải Ảnh Phiếu (.PNG)</button>
         </div>
@@ -595,17 +608,6 @@
           <button class="btn btn-primary" onclick="downloadAllImagesAsZip()">📦 Tải Tất Cả Ảnh Bài Chấm (.ZIP)</button>
           <button class="btn btn-success" onclick="exportExcel()">📊 Xuất File Excel (.xlsx)</button>
           <button class="btn btn-danger" onclick="clearResults()">🗑️ Xóa Lịch Sử & Ảnh</button>
-        </div>
-      </div>
-
-      <div class="row" style="background:#f8fafc; padding:8px 10px; border-radius:8px; justify-content:space-between;">
-        <div style="display:flex; gap:8px; align-items:center; flex:1;">
-          <label>Tìm nhanh (SBD / Mã đề):</label>
-          <input type="text" id="searchResultInput" placeholder="Nhập SBD hoặc mã đề để lọc..." style="flex:1;" oninput="renderResultsTable()">
-        </div>
-        <div style="display:flex; gap:8px; align-items:center; flex:1;">
-          <label>Webhook Google Sheets:</label>
-          <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;" onchange="safeSetStorage('omr_webhook_ult', this.value)">
         </div>
       </div>
 
@@ -2177,7 +2179,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     gradedList.unshift(record);
     safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
     renderResultsTable();
-    sendToWebhook(record);
     playScanResultSound(answerKeys[maDeStr] ? 'ok' : 'warn');
 
     // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
@@ -2670,13 +2671,7 @@ function runSimulatedTest(isInitialPreview = false) {
  ********************************************************************/
 async function renderResultsTable() {
   document.getElementById('countGraded').innerText = gradedList.length;
-  const keyword = (document.getElementById('searchResultInput')?.value || '').trim().toLowerCase();
-
-  const filtered = gradedList.filter(r => {
-    if (!keyword) return true;
-    return (r.sbd && r.sbd.toLowerCase().includes(keyword)) ||
-           (r.made && String(r.made).toLowerCase().includes(keyword));
-  });
+  const filtered = gradedList;
 
   const tbody = document.getElementById('resultsBody');
   tbody.innerHTML = filtered.map((r, i) => `
@@ -2740,17 +2735,6 @@ function clearResults() {
     renderResultsTable();
     showAppToast('Đã xóa lịch sử chấm bài và kho ảnh.', 'info');
   });
-}
-
-function sendToWebhook(record) {
-  const url = document.getElementById('webhookUrl').value.trim();
-  if (!url) return;
-  fetch(url, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(record)
-  }).catch(() => {});
 }
 
 /********************************************************************
@@ -3056,7 +3040,6 @@ window.addEventListener('DOMContentLoaded', () => {
   initLicense();
   initImageDB();
   loadOpenCVWithFallback(0);
-  document.getElementById('webhookUrl').value = safeGetStorage('omr_webhook_ult', '');
   document.getElementById('scanSoundToggle').checked = safeGetStorage('omr_scan_sound', '1') !== '0';
   onTemplateChange();
   renderResultsTable();
