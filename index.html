@@ -202,7 +202,23 @@
       flex: none; background: #fff; color: #1e3a8a; font-weight: 800; font-size: 0.82rem;
       padding: 9px 12px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
-    .scanner-box { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; background: #000; overflow: hidden; }
+    .cam-ctrl-bar {
+      flex: none; display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: rgba(15, 23, 42, 0.88); padding: 6px 8px; border-top: 1px solid rgba(255,255,255,0.12);
+    }
+    .cam-ctrl-bar .btn {
+      flex: 1 1 0; min-width: 0; justify-content: center; padding: 7px 6px; font-size: 0.76rem;
+      background: rgba(30, 58, 138, 0.9); color: #fff; border: 1px solid #60a5fa; border-radius: 8px;
+    }
+    .cam-ctrl-bar .btn.active { background: #16a34a; border-color: #4ade80; }
+    .scanner-box {
+      position: relative; flex: 1 1 auto; min-height: 0; width: 100%; background: #000;
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    .scanner-stage {
+      position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      transition: transform 0.2s ease;
+    }
     .scanner-box video {
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: contain; display: block; background: #000; /* contain: thấy trọn khung hình, không bị cắt mất chấm đen ở góc */
@@ -474,7 +490,9 @@
       </div>
 
       <div class="row row-1line">
-        <button class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
+        <button id="btnStartCam" class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
+        <button class="btn btn-outline" onclick="switchCameraFacing()" title="Đổi giữa Camera Sau và Camera Trước">🔄 Đổi Camera Trước/Sau</button>
+        <button class="btn btn-outline" onclick="rotateCameraView(90)" title="Xoay khung hình camera 90°">⤵️ Xoay Camera 90°</button>
         <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
       </div>
 
@@ -484,9 +502,18 @@
           <span id="camLiveStatus">📷 Đang khởi động ống kính Camera...</span>
         </div>
 
+        <div class="cam-ctrl-bar">
+          <button type="button" class="btn" onclick="rotateCameraView(-90)" title="Xoay ngược chiều kim đồng hồ 90°">↺ Xoay Trái 90°</button>
+          <button type="button" class="btn" id="btnCamRotLabel" onclick="rotateCameraView(90)" title="Xoay thuận chiều kim đồng hồ 90°">↻ Xoay Phải (0°)</button>
+          <button type="button" class="btn" id="btnCamMirror" onclick="toggleCameraMirror()" title="Lật gương ngang khung hình camera">↔️ Lật Ngang</button>
+          <button type="button" class="btn" id="btnCamSwitch" onclick="switchCameraFacing()" title="Đổi ống kính Camera Sau / Trước">🔄 Đổi Cam</button>
+        </div>
+
         <div class="scanner-box">
-          <video id="video" playsinline webkit-playsinline autoplay muted></video>
-          <canvas id="liveOverlayCanvas"></canvas>
+          <div id="scannerStage" class="scanner-stage">
+            <video id="video" playsinline webkit-playsinline autoplay muted></video>
+            <canvas id="liveOverlayCanvas"></canvas>
+          </div>
         </div>
 
         <div id="camLastResult" class="cam-last-result" style="display:none;"></div>
@@ -513,6 +540,9 @@
           </button>
           <button class="btn btn-outline btn-sm" onclick="shareCurrentGradedImage()">
             📤 Chia sẻ Zalo / ĐT
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="rotateLastSourceAndRegrade(90)" title="Xoay ảnh phiếu vừa chụp/tải 90° và chấm lại">
+            🔄 Xoay Ảnh Phiếu 90°
           </button>
           <button class="btn btn-outline btn-sm" onclick="toggleVisionMode()">
             👁️ Xem Nhị Phân OpenCV
@@ -2426,7 +2456,86 @@ async function downloadAllImagesAsZip() {
 /********************************************************************
  * 7. CAMERA LIVE TRACKING, VIEWFINDER & AUTO-SCAN
  ********************************************************************/
-const preferredFacingMode = 'environment'; // luôn dùng camera sau
+let preferredFacingMode = safeGetStorage('omr_cam_facing', 'environment') || 'environment';
+let camRotationDeg = parseInt(safeGetStorage('omr_cam_rot', '0'), 10) || 0;
+let camMirrorX = safeGetStorage('omr_cam_mirror', '0') === '1';
+let lastRawSourceCanvas = null;
+
+function applyCameraTransformUI() {
+  const stage = document.getElementById('scannerStage');
+  if (stage) {
+    const isQuarterTurn = (Math.abs(camRotationDeg) % 180) === 90;
+    const scaleVal = isQuarterTurn ? 0.78 : 1;
+    const flipX = camMirrorX ? -scaleVal : scaleVal;
+    stage.style.transform = `rotate(${camRotationDeg}deg) scale(${flipX}, ${scaleVal})`;
+  }
+  const rotBtn = document.getElementById('btnCamRotLabel');
+  if (rotBtn) rotBtn.innerText = `↻ Xoay Phải (${camRotationDeg}°)`;
+  const mirBtn = document.getElementById('btnCamMirror');
+  if (mirBtn) mirBtn.classList.toggle('active', camMirrorX);
+  const startBtn = document.getElementById('btnStartCam');
+  if (startBtn) {
+    startBtn.innerText = preferredFacingMode === 'environment' ? '📷 Bật Camera Sau' : '🤳 Bật Camera Trước';
+  }
+}
+
+function rotateCameraView(deltaDeg = 90) {
+  camRotationDeg = ((camRotationDeg + deltaDeg) % 360 + 360) % 360;
+  safeSetStorage('omr_cam_rot', String(camRotationDeg));
+  applyCameraTransformUI();
+  stableCornerFrames = 0;
+  showAppToast(`Đã xoay khung hình camera: ${camRotationDeg}°`, 'info');
+}
+
+function toggleCameraMirror() {
+  camMirrorX = !camMirrorX;
+  safeSetStorage('omr_cam_mirror', camMirrorX ? '1' : '0');
+  applyCameraTransformUI();
+  stableCornerFrames = 0;
+  showAppToast(camMirrorX ? 'Đã bật lật gương ngang camera' : 'Đã tắt lật gương ngang camera', 'info');
+}
+
+function switchCameraFacing() {
+  preferredFacingMode = preferredFacingMode === 'environment' ? 'user' : 'environment';
+  safeSetStorage('omr_cam_facing', preferredFacingMode);
+  // Khi đổi sang camera trước, mặc định tắt lật gương để chữ và mã đề không bị ngược
+  if (preferredFacingMode === 'user') {
+    camMirrorX = false;
+    safeSetStorage('omr_cam_mirror', '0');
+  }
+  applyCameraTransformUI();
+  const label = preferredFacingMode === 'environment' ? 'Camera Sau' : 'Camera Trước';
+  showAppToast(`Đã chuyển sang ${label}`, 'info');
+  if (videoStream) startCamera();
+}
+
+function createTransformedCanvas(sourceEl, srcW, srcH, rotDeg, mirrorX) {
+  const deg = ((rotDeg % 360) + 360) % 360;
+  const swap = deg === 90 || deg === 270;
+  const c = document.createElement('canvas');
+  c.width = swap ? srcH : srcW;
+  c.height = swap ? srcW : srcH;
+  const ctx = c.getContext('2d');
+  ctx.save();
+  ctx.translate(c.width / 2, c.height / 2);
+  ctx.rotate((deg * Math.PI) / 180);
+  if (mirrorX) ctx.scale(-1, 1);
+  ctx.drawImage(sourceEl, -srcW / 2, -srcH / 2, srcW, srcH);
+  ctx.restore();
+  return c;
+}
+
+function rotateLastSourceAndRegrade(deltaDeg = 90) {
+  const baseCanvas = lastRawSourceCanvas;
+  if (!baseCanvas) {
+    rotateCameraView(deltaDeg);
+    return;
+  }
+  const rotated = createTransformedCanvas(baseCanvas, baseCanvas.width, baseCanvas.height, deltaDeg, false);
+  lastRawSourceCanvas = rotated;
+  processOMRCanvas(rotated);
+  showAppToast(`Đã xoay ảnh phiếu ${deltaDeg}° và chấm lại!`, 'info');
+}
 
 function buildRandomMockSheetData() {
   const randomSbd = '0209' + String(1 + Math.floor(Math.random() * 99)).padStart(2, '0');
@@ -2516,8 +2625,10 @@ async function startCamera() {
     });
     await video.play().catch(() => {});
 
+    applyCameraTransformUI();
     if (statusEl) {
-      statusEl.innerText = '🟢 Camera Sau đang hoạt động — Canh 4 chấm đen ở 4 góc phiếu vào khung ngắm';
+      const camName = preferredFacingMode === 'environment' ? 'Camera Sau' : 'Camera Trước';
+      statusEl.innerText = `🟢 ${camName} (${camRotationDeg}°) đang hoạt động — Canh 4 chấm đen vào khung ngắm`;
     }
     stableCornerFrames = 0;
     if (autoScanTimer) clearInterval(autoScanTimer);
@@ -2632,12 +2743,18 @@ function scanVideoFrameWithOpenCV() {
 
   isProcessingFrame = true;
   try {
-    const tempC = document.createElement('canvas');
-    tempC.width = w;
-    tempC.height = h;
-    tempC.getContext('2d').drawImage(video, 0, 0, w, h);
+    const rawC = document.createElement('canvas');
+    rawC.width = w;
+    rawC.height = h;
+    rawC.getContext('2d').drawImage(video, 0, 0, w, h);
+
+    // Áp dụng góc xoay & lật gương camera hiện tại cho ảnh đem đi nhận diện OpenCV
+    const tempC = (camRotationDeg !== 0 || camMirrorX)
+      ? createTransformedCanvas(rawC, w, h, camRotationDeg, camMirrorX)
+      : rawC;
 
     let corners = null;
+    let rawCornersForOverlay = null;
     if (cvReady && typeof cv !== 'undefined' && cv.Mat) {
       let src = cv.imread(tempC);
       let gray = new cv.Mat();
@@ -2649,9 +2766,27 @@ function scanVideoFrameWithOpenCV() {
       cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
       corners = findFourCornerMarkers(thresh, src.cols, src.rows, gray);
       src.delete(); gray.delete(); blurred.delete(); thresh.delete();
+
+      if (corners) {
+        if (camRotationDeg === 0 && !camMirrorX) {
+          rawCornersForOverlay = corners;
+        } else {
+          // Chuyển tọa độ từ tempC về hệ tọa độ video gốc để vẽ lên liveOverlayCanvas (vì liveOverlayCanvas nằm trong #scannerStage đã xoay CSS)
+          const deg = ((camRotationDeg % 360) + 360) % 360;
+          rawCornersForOverlay = corners.map(pt => {
+            let dx = pt.cx - tempC.width / 2;
+            let dy = pt.cy - tempC.height / 2;
+            if (camMirrorX) dx = -dx;
+            const rad = (-deg * Math.PI) / 180;
+            const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+            const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+            return { cx: rx + w / 2, cy: ry + h / 2 };
+          });
+        }
+      }
     }
 
-    drawViewfinderGuide(oCtx, w, h, corners);
+    drawViewfinderGuide(oCtx, w, h, rawCornersForOverlay);
 
     const camStatus = document.getElementById('camLiveStatus');
     if (camStatus) {
@@ -2661,7 +2796,7 @@ function scanVideoFrameWithOpenCV() {
             ? (document.getElementById('autoScanToggle').checked
                 ? '🟢 Đã thấy đủ 4 chấm đen — giữ yên phiếu để tự chấm...'
                 : '🟢 Đã thấy đủ 4 chấm đen — bấm Chụp & Chấm Ngay')
-            : '🔎 Chưa thấy đủ 4 chấm đen ở 4 góc — canh lại phiếu');
+            : '🔎 Chưa thấy đủ 4 chấm đen ở 4 góc — canh hoặc bấm Xoay Camera');
     }
 
     if (corners) {
@@ -2669,6 +2804,7 @@ function scanVideoFrameWithOpenCV() {
         stableCornerFrames++;
         if (stableCornerFrames >= 3) {
           stableCornerFrames = -5;
+          lastRawSourceCanvas = tempC;
           processOMRCanvas(tempC);
         }
       }
@@ -2684,10 +2820,8 @@ function scanVideoFrameWithOpenCV() {
 function captureAndGrade() {
   const video = document.getElementById('video');
   if (videoStream && video.videoWidth) {
-    const c = document.createElement('canvas');
-    c.width = video.videoWidth;
-    c.height = video.videoHeight;
-    c.getContext('2d').drawImage(video, 0, 0);
+    const c = createTransformedCanvas(video, video.videoWidth, video.videoHeight, camRotationDeg, camMirrorX);
+    lastRawSourceCanvas = c;
     processOMRCanvas(c);
     return;
   }
@@ -2702,10 +2836,17 @@ function handleImageUpload(e) {
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.width;
-      c.height = img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
+      // Nếu ảnh chụp từ điện thoại bị nằm ngang (width > height), tự động dựng dọc theo chiều phiếu chuẩn
+      let c = document.createElement('canvas');
+      if (img.width > img.height * 1.08) {
+        c = createTransformedCanvas(img, img.width, img.height, 90, false);
+        showAppToast('Đã tự động xoay dọc ảnh phiếu nằm ngang (bấm "Xoay Ảnh Phiếu 90°" nếu cần đảo chiều).', 'info');
+      } else {
+        c.width = img.width;
+        c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+      }
+      lastRawSourceCanvas = c;
       if (document.body.classList.contains('cam-fs-open')) stopCamera();
       processOMRCanvas(c);
       const resEl = document.getElementById('resultCanvas');
@@ -3097,6 +3238,7 @@ window.addEventListener('DOMContentLoaded', () => {
   try { new ResizeObserver(syncHeaderHeight).observe(document.querySelector('header')); } catch (e) {}
   initLicense();
   initImageDB();
+  applyCameraTransformUI();
   loadOpenCVWithFallback(0);
   document.getElementById('scanSoundToggle').checked = safeGetStorage('omr_scan_sound', '1') !== '0';
   const keyInput = document.getElementById('keyExamCode');
