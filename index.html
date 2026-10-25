@@ -52,39 +52,38 @@
     @keyframes licShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
     .lic-shake { animation: licShake 0.3s; }
 
-    /* Navigation 4 chức năng — nổi bật, mỗi chức năng một màu */
+    /* Navigation 4 chức năng — thu nhỏ tối đa (1 hàng mỏng) để nhường chỗ cho camera */
     .tabs {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-      padding: 8px 10px; background: #fff; border-bottom: 2px solid #e2e8f0;
+      display: flex; gap: 3px;
+      padding: 2px 4px; background: #fff; border-bottom: 1px solid #e2e8f0;
       position: sticky; top: var(--header-h, 46px); z-index: 99;
-      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.10);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.10);
     }
     .tab-btn {
       --tc: #2563eb; --tc-bg: #dbeafe;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-      padding: 8px 4px; border: 2px solid var(--tc); border-radius: 12px;
+      flex: 0 0 auto; min-width: 0; min-height: 22px;
+      display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px;
+      padding: 1px 6px; border: 1px solid var(--tc); border-radius: 6px;
       background: var(--tc-bg); color: var(--tc);
-      font-size: 0.76rem; font-weight: 800; line-height: 1.2; text-align: center;
-      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s, color 0.15s;
+      font-size: 0.62rem; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden;
+      cursor: pointer; transition: background 0.15s, color 0.15s;
     }
     .tab-btn .tab-num {
-      width: 26px; height: 26px; border-radius: 50%; flex: none;
+      width: 15px; height: 15px; border-radius: 50%; flex: none;
       display: inline-flex; align-items: center; justify-content: center;
-      background: var(--tc); color: #fff; font-size: 0.9rem; font-weight: 800;
+      background: var(--tc); color: #fff; font-size: 0.62rem; font-weight: 800;
     }
-    .tab-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18); }
-    .tab-btn.active {
-      background: var(--tc); color: #fff;
-      box-shadow: 0 5px 14px rgba(15, 23, 42, 0.30); transform: translateY(-1px);
-    }
+    .tab-btn.active { flex: 1 1 auto; background: var(--tc); color: #fff; }
     .tab-btn.active .tab-num { background: #fff; color: var(--tc); }
     .tab-btn.tab-1 { --tc: #2563eb; --tc-bg: #dbeafe; }
     .tab-btn.tab-2 { --tc: #16a34a; --tc-bg: #dcfce7; }
     .tab-btn.tab-3 { --tc: #ea580c; --tc-bg: #ffedd5; }
     .tab-btn.tab-4 { --tc: #7c3aed; --tc-bg: #ede9fe; }
-    @media (min-width: 640px) {
-      .tab-btn { flex-direction: row; gap: 9px; padding: 10px 8px; font-size: 0.95rem; }
-      .tab-btn .tab-num { width: 28px; height: 28px; }
+    /* Điện thoại: tab không chọn chỉ hiện số + biểu tượng, tab đang chọn hiện đủ chữ */
+    .tab-btn:not(.active) .tab-txt { display: none; }
+    @media (min-width: 481px) {
+      .tab-btn { flex: 1 1 0; font-size: 0.7rem; }
+      .tab-btn:not(.active) .tab-txt { display: inline; }
     }
 
     .container { max-width: 1080px; margin: 12px auto; padding: 0 10px; }
@@ -381,10 +380,10 @@
 </header>
 
 <nav class="tabs">
-  <button class="tab-btn tab-1 active" onclick="switchTab('tab-scan', this)"><span class="tab-num">1</span><span class="tab-label">📷 Quét Chấm</span></button>
-  <button class="tab-btn tab-2" onclick="switchTab('tab-key', this)"><span class="tab-num">2</span><span class="tab-label">🔑 Đáp Án</span></button>
-  <button class="tab-btn tab-3" onclick="switchTab('tab-sheet', this)"><span class="tab-num">3</span><span class="tab-label">🖨️ In Phiếu</span></button>
-  <button class="tab-btn tab-4" onclick="switchTab('tab-results', this)"><span class="tab-num">4</span><span class="tab-label">📊 Bảng Điểm & Ảnh</span></button>
+  <button class="tab-btn tab-1 active" title="Quét Chấm" onclick="switchTab('tab-scan', this)"><span class="tab-num">1</span><span class="tab-label"><span class="tab-ico">📷</span><span class="tab-txt"> Quét Chấm</span></span></button>
+  <button class="tab-btn tab-2" title="Đáp Án" onclick="switchTab('tab-key', this)"><span class="tab-num">2</span><span class="tab-label"><span class="tab-ico">🔑</span><span class="tab-txt"> Đáp Án</span></span></button>
+  <button class="tab-btn tab-3" title="In Phiếu" onclick="switchTab('tab-sheet', this)"><span class="tab-num">3</span><span class="tab-label"><span class="tab-ico">🖨️</span><span class="tab-txt"> In Phiếu</span></span></button>
+  <button class="tab-btn tab-4" title="Bảng Điểm & Ảnh" onclick="switchTab('tab-results', this)"><span class="tab-num">4</span><span class="tab-label"><span class="tab-ico">📊</span><span class="tab-txt"> Bảng Điểm & Ảnh</span></span></button>
 </nav>
 
 <div class="container">
