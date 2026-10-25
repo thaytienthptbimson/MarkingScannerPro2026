@@ -31,6 +31,7 @@
       background: rgba(255,255,255,0.2); font-weight: 600;
     }
     .cv-badge.ready { background: #22c55e; color: #fff; }
+    .cv-badge.error { background: #dc2626; color: #fff; }
 
     .tabs {
       display: grid; grid-template-columns: repeat(4, 1fr);
@@ -113,6 +114,8 @@
       position: absolute; inset: 0; pointer-events: none;
       border: 2px dashed rgba(59, 130, 246, 0.85); margin: 14px; border-radius: 8px;
     }
+
+    .live-overlay { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; box-shadow: none; pointer-events: none; }
 
     .canvas-preview-wrap {
       width: 100%; overflow-x: auto; text-align: center; background: #e2e8f0;
@@ -201,6 +204,8 @@
         <button class="btn btn-warning" onclick="runSimulatedTest()">Chấm Thử Phiếu Giả Lập (Đủ 3 Phần)</button>
       </div>
 
+      <div class="row"><label><input type="checkbox" id="autoCapture" checked> Tự động chụp &amp; chấm khi OpenCV nhận đủ 4 ô vuông góc (giữ yên phiếu khoảng 1 giây)</label></div>
+
       <div class="row" style="justify-content: space-between; background:#f8fafc; padding:8px 12px; border-radius:8px;">
         <div>
           <label>Ngưỡng nhận diện độ đậm bút chì: <span id="threshVal">35</span>%</label>
@@ -213,6 +218,7 @@
 
       <div id="cameraContainer" class="scanner-box" style="display:none; margin-top:8px;">
         <video id="video" playsinline autoplay muted></video>
+        <canvas id="liveOverlay" class="live-overlay"></canvas>
         <div class="guide-overlay"></div>
       </div>
     </div>
@@ -773,13 +779,28 @@ function isShortAnswerMatch(studentRaw, keyRaw) {
 /********************************************************************
  * 4. XỬ LÝ ẢNH OPENCV.JS & CHẤM ĐỦ 3 PHẦN
  ********************************************************************/
+function setCvBadge(text, state) {
+  const b = document.getElementById('cvStatus');
+  b.innerText = text;
+  b.classList.remove('ready', 'error');
+  if (state) b.classList.add(state);
+}
+
+// Gọi sau khi file opencv.js tải xong; xử lý cả 3 kiểu build của opencv.js
 function onOpenCvReady() {
-  cv['onRuntimeInitialized'] = () => {
+  const ready = () => {
     cvReady = true;
-    const badge = document.getElementById('cvStatus');
-    badge.innerText = 'OpenCV AI: Sẵn sàng';
-    badge.classList.add('ready');
+    setCvBadge('OpenCV AI: Sẵn sàng', 'ready');
+    if (videoStream && !liveTimer) startLiveDetect();
   };
+  if (typeof cv === 'undefined') { setCvBadge('OpenCV: lỗi khởi tạo', 'error'); return; }
+  if (typeof cv.then === 'function') {        // build dạng Promise (4.9+)
+    cv.then(m => { window.cv = m; ready(); });
+  } else if (cv.Mat) {                        // runtime đã khởi tạo xong
+    ready();
+  } else {                                    // build kiểu cũ (4.8)
+    cv.onRuntimeInitialized = ready;
+  }
 }
 
 function findFourCornerMarkers(threshMat, imgW, imgH) {
@@ -858,206 +879,211 @@ function processOMRCanvas(sourceCanvas) {
   let gray = new cv.Mat();
   let blurred = new cv.Mat();
   let thresh = new cv.Mat();
-
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-  cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-  cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
-
-  const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
   let warpedColor = new cv.Mat();
   let warpedGray = new cv.Mat();
   let warpedThresh = new cv.Mat();
 
-  if (corners) {
-    let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-      corners[0].cx, corners[0].cy,
-      corners[1].cx, corners[1].cy,
-      corners[2].cx, corners[2].cy,
-      corners[3].cx, corners[3].cy
-    ]);
-    let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-      0, 0, WARP_W, 0, WARP_W, WARP_H, 0, WARP_H
-    ]);
-    let M = cv.getPerspectiveTransform(srcTri, dstTri);
-    cv.warpPerspective(src, warpedColor, M, new cv.Size(WARP_W, WARP_H));
-    cv.warpPerspective(gray, warpedGray, M, new cv.Size(WARP_W, WARP_H));
-    srcTri.delete(); dstTri.delete(); M.delete();
-    document.getElementById('scanMsg').innerText = 'Đã bắt 4 điểm neo góc & căn phẳng phiếu chính xác!';
-    document.getElementById('scanMsg').style.color = '#16a34a';
-  } else {
-    cv.resize(src, warpedColor, new cv.Size(WARP_W, WARP_H));
-    cv.resize(gray, warpedGray, new cv.Size(WARP_W, WARP_H));
-    document.getElementById('scanMsg').innerText = 'Không thấy đủ 4 ô vuông góc, đang quét theo khung mặc định.';
-    document.getElementById('scanMsg').style.color = '#d97706';
-  }
+  try {
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
 
-  cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
+    const corners = findFourCornerMarkers(thresh, src.cols, src.rows);
 
-  const resCanvas = document.getElementById('resultCanvas');
-  cv.imshow(resCanvas, warpedColor);
-  const ctx = resCanvas.getContext('2d');
-  const geo = getSheetGeometry(currentTemplate);
-
-  // 1. Đọc SBD
-  let sbdStr = '';
-  geo.sbd.forEach(col => {
-    let bestD = '-', maxF = thresholdRatio, bestPos = null;
-    col.forEach(b => {
-      const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
-      if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
-    });
-    sbdStr += bestD;
-    if (bestPos) drawCircleOverlay(ctx, bestPos.x, bestPos.y, 10, '#2563eb', 2.2);
-  });
-
-  // 2. Đọc Mã đề
-  let maDeStr = '';
-  geo.made.forEach(col => {
-    let bestD = '0', maxF = thresholdRatio, bestPos = null;
-    col.forEach(b => {
-      const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
-      if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
-    });
-    maDeStr += bestD;
-    if (bestPos) drawCircleOverlay(ctx, bestPos.x, bestPos.y, 10, '#2563eb', 2.2);
-  });
-
-  const fallbackCode = document.getElementById('keyExamCode').value.trim() || '101';
-  const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
-
-  // 3. Chấm Phần I
-  let correctP1 = 0;
-  const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
-  geo.p1.forEach(item => {
-    const filled = [];
-    item.opts.forEach(opt => {
-      const r = getBubbleFillRatio(warpedThresh, opt.x, opt.y, 6);
-      if (r >= thresholdRatio) filled.push(opt);
-    });
-    const rightAns = activeKey.p1[item.q];
-    const rightObj = item.opts.find(o => o.label === rightAns);
-
-    if (filled.length === 1 && filled[0].label === rightAns) {
-      correctP1++;
-      drawCircleOverlay(ctx, filled[0].x, filled[0].y, 10.5, '#16a34a', 2.8);
+    if (corners) {
+      let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+        corners[0].cx, corners[0].cy,
+        corners[1].cx, corners[1].cy,
+        corners[2].cx, corners[2].cy,
+        corners[3].cx, corners[3].cy
+      ]);
+      let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+        0, 0, WARP_W, 0, WARP_W, WARP_H, 0, WARP_H
+      ]);
+      let M = cv.getPerspectiveTransform(srcTri, dstTri);
+      cv.warpPerspective(src, warpedColor, M, new cv.Size(WARP_W, WARP_H));
+      cv.warpPerspective(gray, warpedGray, M, new cv.Size(WARP_W, WARP_H));
+      srcTri.delete(); dstTri.delete(); M.delete();
+      document.getElementById('scanMsg').innerText = 'Đã bắt 4 điểm neo góc & căn phẳng phiếu chính xác!';
+      document.getElementById('scanMsg').style.color = '#16a34a';
     } else {
-      filled.forEach(fo => drawCircleOverlay(ctx, fo.x, fo.y, 10.5, '#dc2626', 2.8));
-      if (rightObj) drawCircleOverlay(ctx, rightObj.x, rightObj.y, 10.5, '#eab308', 2.2);
+      cv.resize(src, warpedColor, new cv.Size(WARP_W, WARP_H));
+      cv.resize(gray, warpedGray, new cv.Size(WARP_W, WARP_H));
+      document.getElementById('scanMsg').innerText = 'Không thấy đủ 4 ô vuông góc, đang quét theo khung mặc định.';
+      document.getElementById('scanMsg').style.color = '#d97706';
     }
-  });
-  const scoreP1 = correctP1 * ptP1;
 
-  // 4. Chấm Phần II (Đúng/Sai lũy tiến)
-  let scoreP2 = 0;
-  const progScale = [0, 0.1, 0.25, 0.5, 1.0];
-  if (currentTemplate === '2026_FULL') {
-    geo.p2.forEach(item => {
-      let clusterRight = 0;
-      item.statements.forEach(st => {
-        const fT = getBubbleFillRatio(warpedThresh, st.trueOpt.x, st.trueOpt.y, 6);
-        const fF = getBubbleFillRatio(warpedThresh, st.falseOpt.x, st.falseOpt.y, 6);
-        let choice = null, chosenPos = null;
-        if (fT >= thresholdRatio && fF < thresholdRatio) { choice = 'Đ'; chosenPos = st.trueOpt; }
-        else if (fF >= thresholdRatio && fT < thresholdRatio) { choice = 'S'; chosenPos = st.falseOpt; }
+    cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
 
-        const rightSub = activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : 'Đ';
-        const rightPos = rightSub === 'Đ' ? st.trueOpt : st.falseOpt;
+    const resCanvas = document.getElementById('resultCanvas');
+    cv.imshow(resCanvas, warpedColor);
+    const ctx = resCanvas.getContext('2d');
+    const geo = getSheetGeometry(currentTemplate);
 
-        if (choice === rightSub) {
-          clusterRight++;
-          drawCircleOverlay(ctx, chosenPos.x, chosenPos.y, 10.5, '#16a34a', 2.8);
-        } else {
-          if (chosenPos) drawCircleOverlay(ctx, chosenPos.x, chosenPos.y, 10.5, '#dc2626', 2.8);
-          drawCircleOverlay(ctx, rightPos.x, rightPos.y, 10.5, '#eab308', 2.2);
-        }
+    // 1. Đọc SBD
+    let sbdStr = '';
+    geo.sbd.forEach(col => {
+      let bestD = '-', maxF = thresholdRatio, bestPos = null;
+      col.forEach(b => {
+        const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+        if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
       });
-      scoreP2 += progScale[clusterRight];
+      sbdStr += bestD;
+      if (bestPos) drawCircleOverlay(ctx, bestPos.x, bestPos.y, 10, '#2563eb', 2.2);
     });
-  }
 
-  // 5. Chấm Phần III (Trả lời ngắn 6 câu tô số)
-  let scoreP3 = 0;
-  const ptP3 = parseFloat(document.getElementById('ptP3').value) || 0.25;
-  const p3Details = [];
-  const readoutBox = document.getElementById('p3ReadoutBox');
-  readoutBox.innerHTML = '';
-
-  if (currentTemplate === '2026_FULL') {
-    geo.p3.forEach(item => {
-      let studentStr = '';
-      const chosenBubbles = [];
-
-      item.cols.forEach(col => {
-        let bestChar = '';
-        let maxF = thresholdRatio;
-        let bestB = null;
-        col.bubbles.forEach(b => {
-          const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
-          if (r > maxF) {
-            maxF = r;
-            bestChar = b.char;
-            bestB = b;
-          }
-        });
-        studentStr += bestChar;
-        if (bestB) chosenBubbles.push(bestB);
+    // 2. Đọc Mã đề
+    let maDeStr = '';
+    geo.made.forEach(col => {
+      let bestD = '0', maxF = thresholdRatio, bestPos = null;
+      col.forEach(b => {
+        const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+        if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
       });
+      maDeStr += bestD;
+      if (bestPos) drawCircleOverlay(ctx, bestPos.x, bestPos.y, 10, '#2563eb', 2.2);
+    });
 
-      const expectedStr = (activeKey.p3 && activeKey.p3[item.q]) ? activeKey.p3[item.q] : '';
-      const isOk = isShortAnswerMatch(studentStr, expectedStr);
+    const fallbackCode = document.getElementById('keyExamCode').value.trim() || '101';
+    const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
 
-      if (isOk) {
-        scoreP3 += ptP3;
-        chosenBubbles.forEach(b => drawCircleOverlay(ctx, b.x, b.y, 10, '#16a34a', 2.8));
+    // 3. Chấm Phần I
+    let correctP1 = 0;
+    const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
+    geo.p1.forEach(item => {
+      const filled = [];
+      item.opts.forEach(opt => {
+        const r = getBubbleFillRatio(warpedThresh, opt.x, opt.y, 6);
+        if (r >= thresholdRatio) filled.push(opt);
+      });
+      const rightAns = activeKey.p1[item.q];
+      const rightObj = item.opts.find(o => o.label === rightAns);
+
+      if (filled.length === 1 && filled[0].label === rightAns) {
+        correctP1++;
+        drawCircleOverlay(ctx, filled[0].x, filled[0].y, 10.5, '#16a34a', 2.8);
       } else {
-        chosenBubbles.forEach(b => drawCircleOverlay(ctx, b.x, b.y, 10, '#dc2626', 2.8));
-        // Khoanh vàng các ô đúng theo đáp án chuẩn
-        const expChars = expectedStr.replace('.', ',').split('').slice(0, 4);
-        item.cols.forEach((col, cIdx) => {
-          const targetCh = expChars[cIdx];
-          if (targetCh) {
-            const rightB = col.bubbles.find(b => b.char === targetCh);
-            if (rightB) drawCircleOverlay(ctx, rightB.x, rightB.y, 10, '#eab308', 2.2);
+        filled.forEach(fo => drawCircleOverlay(ctx, fo.x, fo.y, 10.5, '#dc2626', 2.8));
+        if (rightObj) drawCircleOverlay(ctx, rightObj.x, rightObj.y, 10.5, '#eab308', 2.2);
+      }
+    });
+    const scoreP1 = correctP1 * ptP1;
+
+    // 4. Chấm Phần II (Đúng/Sai lũy tiến)
+    let scoreP2 = 0;
+    const progScale = [0, 0.1, 0.25, 0.5, 1.0];
+    if (currentTemplate === '2026_FULL') {
+      geo.p2.forEach(item => {
+        let clusterRight = 0;
+        item.statements.forEach(st => {
+          const fT = getBubbleFillRatio(warpedThresh, st.trueOpt.x, st.trueOpt.y, 6);
+          const fF = getBubbleFillRatio(warpedThresh, st.falseOpt.x, st.falseOpt.y, 6);
+          let choice = null, chosenPos = null;
+          if (fT >= thresholdRatio && fF < thresholdRatio) { choice = 'Đ'; chosenPos = st.trueOpt; }
+          else if (fF >= thresholdRatio && fT < thresholdRatio) { choice = 'S'; chosenPos = st.falseOpt; }
+
+          const rightSub = activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : 'Đ';
+          const rightPos = rightSub === 'Đ' ? st.trueOpt : st.falseOpt;
+
+          if (choice === rightSub) {
+            clusterRight++;
+            drawCircleOverlay(ctx, chosenPos.x, chosenPos.y, 10.5, '#16a34a', 2.8);
+          } else {
+            if (chosenPos) drawCircleOverlay(ctx, chosenPos.x, chosenPos.y, 10.5, '#dc2626', 2.8);
+            drawCircleOverlay(ctx, rightPos.x, rightPos.y, 10.5, '#eab308', 2.2);
           }
         });
-      }
+        scoreP2 += progScale[clusterRight];
+      });
+    }
 
-      p3Details.push(`C${item.q}:${studentStr || '_'}`);
-      const chip = document.createElement('div');
-      chip.className = 'p3-chip ' + (isOk ? 'ok' : 'err');
-      chip.innerHTML = `<strong>Câu ${item.q}:</strong> ${studentStr || '(Trống)'}<br><small>Đ/A: ${expectedStr}</small>`;
-      readoutBox.appendChild(chip);
-    });
+    // 5. Chấm Phần III (Trả lời ngắn 6 câu tô số)
+    let scoreP3 = 0;
+    const ptP3 = parseFloat(document.getElementById('ptP3').value) || 0.25;
+    const p3Details = [];
+    const readoutBox = document.getElementById('p3ReadoutBox');
+    readoutBox.innerHTML = '';
+
+    if (currentTemplate === '2026_FULL') {
+      geo.p3.forEach(item => {
+        let studentStr = '';
+        const chosenBubbles = [];
+
+        item.cols.forEach(col => {
+          let bestChar = '';
+          let maxF = thresholdRatio;
+          let bestB = null;
+          col.bubbles.forEach(b => {
+            const r = getBubbleFillRatio(warpedThresh, b.x, b.y, 6);
+            if (r > maxF) {
+              maxF = r;
+              bestChar = b.char;
+              bestB = b;
+            }
+          });
+          studentStr += bestChar;
+          if (bestB) chosenBubbles.push(bestB);
+        });
+
+        const expectedStr = (activeKey.p3 && activeKey.p3[item.q]) ? activeKey.p3[item.q] : '';
+        const isOk = isShortAnswerMatch(studentStr, expectedStr);
+
+        if (isOk) {
+          scoreP3 += ptP3;
+          chosenBubbles.forEach(b => drawCircleOverlay(ctx, b.x, b.y, 10, '#16a34a', 2.8));
+        } else {
+          chosenBubbles.forEach(b => drawCircleOverlay(ctx, b.x, b.y, 10, '#dc2626', 2.8));
+          // Khoanh vàng các ô đúng theo đáp án chuẩn
+          const expChars = expectedStr.replace('.', ',').split('').slice(0, 4);
+          item.cols.forEach((col, cIdx) => {
+            const targetCh = expChars[cIdx];
+            if (targetCh) {
+              const rightB = col.bubbles.find(b => b.char === targetCh);
+              if (rightB) drawCircleOverlay(ctx, rightB.x, rightB.y, 10, '#eab308', 2.2);
+            }
+          });
+        }
+
+        p3Details.push(`C${item.q}:${studentStr || '_'}`);
+        const chip = document.createElement('div');
+        chip.className = 'p3-chip ' + (isOk ? 'ok' : 'err');
+        chip.innerHTML = `<strong>Câu ${item.q}:</strong> ${studentStr || '(Trống)'}<br><small>Đ/A: ${expectedStr}</small>`;
+        readoutBox.appendChild(chip);
+      });
+    }
+
+    const totalScore = Math.min(10, +(scoreP1 + scoreP2 + scoreP3).toFixed(2));
+
+    // Cập nhật giao diện kết quả
+    document.getElementById('resMeta').innerText = `${sbdStr} / ${maDeStr}`;
+    document.getElementById('resP1').innerText = scoreP1.toFixed(2);
+    document.getElementById('resP2').innerText = scoreP2.toFixed(2);
+    document.getElementById('resP3').innerText = scoreP3.toFixed(2);
+    document.getElementById('resTotal').innerText = totalScore.toFixed(2);
+
+    // Lưu lịch sử chấm
+    const record = {
+      time: new Date().toLocaleTimeString('vi-VN'),
+      sbd: sbdStr,
+      made: maDeStr,
+      scoreP1: +scoreP1.toFixed(2),
+      scoreP2: +scoreP2.toFixed(2),
+      scoreP3: +scoreP3.toFixed(2),
+      p3Text: p3Details.join(' | '),
+      total: totalScore
+    };
+    gradedList.unshift(record);
+    localStorage.setItem('omr_graded_full2026', JSON.stringify(gradedList));
+    renderResultsTable();
+    sendToWebhook(record);
+    playBeep(1046, 120);
+
+  } catch (e) {
+    console.error(e);
+    alert('Lỗi xử lý ảnh bằng OpenCV: ' + e.message);
+  } finally {
+    [src, gray, blurred, thresh, warpedColor, warpedGray, warpedThresh].forEach(m => { try { m.delete(); } catch (_) {} });
   }
-
-  const totalScore = Math.min(10, +(scoreP1 + scoreP2 + scoreP3).toFixed(2));
-
-  // Cập nhật giao diện kết quả
-  document.getElementById('resMeta').innerText = `${sbdStr} / ${maDeStr}`;
-  document.getElementById('resP1').innerText = scoreP1.toFixed(2);
-  document.getElementById('resP2').innerText = scoreP2.toFixed(2);
-  document.getElementById('resP3').innerText = scoreP3.toFixed(2);
-  document.getElementById('resTotal').innerText = totalScore.toFixed(2);
-
-  // Lưu lịch sử chấm
-  const record = {
-    time: new Date().toLocaleTimeString('vi-VN'),
-    sbd: sbdStr,
-    made: maDeStr,
-    scoreP1: +scoreP1.toFixed(2),
-    scoreP2: +scoreP2.toFixed(2),
-    scoreP3: +scoreP3.toFixed(2),
-    p3Text: p3Details.join(' | '),
-    total: totalScore
-  };
-  gradedList.unshift(record);
-  localStorage.setItem('omr_graded_full2026', JSON.stringify(gradedList));
-  renderResultsTable();
-  sendToWebhook(record);
-  playBeep(1046, 120);
-
-  src.delete(); gray.delete(); blurred.delete(); thresh.delete();
-  warpedColor.delete(); warpedGray.delete(); warpedThresh.delete();
 }
 
 function drawCircleOverlay(ctx, x, y, r, color, lw) {
@@ -1078,17 +1104,87 @@ async function startCamera() {
     });
     document.getElementById('video').srcObject = videoStream;
     document.getElementById('cameraContainer').style.display = 'block';
+    if (cvReady) startLiveDetect();
   } catch (err) {
     alert('Không thể mở Camera (Hãy chạy qua HTTPS hoặc GitHub Pages): ' + err.message);
   }
 }
 
 function stopCamera() {
+  stopLiveDetect();
   if (videoStream) {
     videoStream.getTracks().forEach(t => t.stop());
     videoStream = null;
   }
   document.getElementById('cameraContainer').style.display = 'none';
+}
+
+/* ---- OpenCV thời gian thực: vẽ khung 4 góc lên camera, tự chụp khi phiếu ổn định ---- */
+let liveTimer = null, liveBusy = false, liveStable = 0, liveLast = null, liveCooldownUntil = 0;
+const liveWork = document.createElement('canvas');
+
+function startLiveDetect() {
+  stopLiveDetect();
+  liveTimer = setInterval(liveDetectTick, 200);
+}
+
+function stopLiveDetect() {
+  clearInterval(liveTimer);
+  liveTimer = null; liveStable = 0; liveLast = null;
+  const ov = document.getElementById('liveOverlay');
+  ov.getContext('2d').clearRect(0, 0, ov.width, ov.height);
+}
+
+function liveDetectTick() {
+  const video = document.getElementById('video');
+  if (!cvReady || liveBusy || !videoStream || !video.videoWidth || Date.now() < liveCooldownUntil) return;
+  liveBusy = true;
+
+  const w = 480, h = Math.round(video.videoHeight * w / video.videoWidth);
+  liveWork.width = w; liveWork.height = h;
+  liveWork.getContext('2d').drawImage(video, 0, 0, w, h);
+  const ov = document.getElementById('liveOverlay');
+  ov.width = w; ov.height = h;
+  const octx = ov.getContext('2d');
+  const msg = document.getElementById('scanMsg');
+
+  let src = cv.imread(liveWork), gray = new cv.Mat(), blur = new cv.Mat(), th = new cv.Mat();
+  try {
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+    cv.adaptiveThreshold(blur, th, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 8);
+    const corners = findFourCornerMarkers(th, w, h);
+
+    octx.clearRect(0, 0, w, h);
+    if (corners) {
+      octx.strokeStyle = '#22c55e'; octx.lineWidth = 3;
+      octx.beginPath();
+      corners.forEach((c, i) => i ? octx.lineTo(c.cx, c.cy) : octx.moveTo(c.cx, c.cy));
+      octx.closePath(); octx.stroke();
+
+      const moved = liveLast ? Math.max(...corners.map((c, i) => Math.hypot(c.cx - liveLast[i].cx, c.cy - liveLast[i].cy))) : 99;
+      liveStable = moved < 5 ? liveStable + 1 : 0;
+      liveLast = corners;
+      msg.innerText = 'Đã nhận đủ 4 góc phiếu. Giữ yên để chấm...';
+      msg.style.color = '#16a34a';
+
+      if (document.getElementById('autoCapture').checked && liveStable >= 5) {
+        liveStable = 0;
+        liveCooldownUntil = Date.now() + 3000;
+        octx.clearRect(0, 0, w, h);
+        captureAndGrade();
+      }
+    } else {
+      liveStable = 0; liveLast = null;
+      msg.innerText = 'Đưa phiếu vào khung: chưa thấy đủ 4 ô vuông góc.';
+      msg.style.color = '#d97706';
+    }
+  } catch (e) {
+    console.error(e);
+  } finally {
+    src.delete(); gray.delete(); blur.delete(); th.delete();
+    liveBusy = false;
+  }
 }
 
 function captureAndGrade() {
@@ -1256,6 +1352,23 @@ window.addEventListener('DOMContentLoaded', () => {
   renderResultsTable();
 });
 </script>
-<script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady()"></script>
+<script>
+// Thử lần lượt từng nguồn; nếu nguồn trước bị chặn/lỗi mạng sẽ tự chuyển sang nguồn kế tiếp
+const OPENCV_SOURCES = [
+  'https://docs.opencv.org/4.8.0/opencv.js',
+  'https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.9.0-release.3/dist/opencv.js'
+];
+function loadOpenCV(i = 0) {
+  if (i >= OPENCV_SOURCES.length) { setCvBadge('OpenCV: lỗi tải, kiểm tra mạng rồi tải lại trang', 'error'); return; }
+  setCvBadge('Đang tải OpenCV (nguồn ' + (i + 1) + '/' + OPENCV_SOURCES.length + ')...');
+  const sc = document.createElement('script');
+  sc.async = true;
+  sc.src = OPENCV_SOURCES[i];
+  sc.onload = onOpenCvReady;
+  sc.onerror = () => { sc.remove(); loadOpenCV(i + 1); };
+  document.head.appendChild(sc);
+}
+loadOpenCV();
+</script>
 </body>
 </html>
