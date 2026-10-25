@@ -135,16 +135,19 @@
       background: transparent !important; box-shadow: none !important;
       max-width: none; object-fit: cover; /* cùng cách cắt với <video> để khung ngắm khớp hình */
     }
+    /* Khung quét: thanh trạng thái ở TRÊN, camera ở GIỮA, các nút ở DƯỚI — không còn đè lên hình camera */
+    .cam-wrap { width: 100%; max-width: 520px; margin: 0 auto; }
     .cam-status-bar {
-      position: absolute; top: 8px; left: 8px; right: 8px; z-index: 3;
-      display: flex; justify-content: space-between; align-items: center; gap: 6px;
-      background: rgba(15, 23, 42, 0.78); color: #fff; padding: 6px 10px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 8px;
+      background: #1e293b; color: #fff; padding: 7px 10px; margin-bottom: 8px;
       border-radius: 8px; font-size: 0.78rem; font-weight: 600;
     }
+    .cam-status-bar #camLiveStatus { flex: 1 1 200px; min-width: 0; }
+    .cam-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .cam-bottom-bar {
-      position: absolute; bottom: 10px; left: 10px; right: 10px; z-index: 3;
-      display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+      display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px;
     }
+    .cam-bottom-bar .btn { flex: 1 1 160px; justify-content: center; text-align: center; }
 
     .canvas-preview-wrap {
       width: 100%; overflow-x: auto; text-align: center; background: #e2e8f0;
@@ -374,22 +377,26 @@
         </div>
       </div>
 
-      <div id="cameraContainer" class="scanner-box" style="display:none; margin-top:8px;">
+      <div id="cameraContainer" class="cam-wrap" style="display:none; margin-top:8px;">
         <div class="cam-status-bar">
           <span id="camLiveStatus">📷 Đang khởi động ống kính Camera...</span>
-          <div style="display:flex; gap:6px;">
+          <div class="cam-actions">
             <button type="button" class="btn btn-warning btn-sm" onclick="startSimulatedCameraStream()">🎥 Mô phỏng Phiếu trong Camera</button>
             <button type="button" class="btn btn-outline btn-sm" style="padding:3px 7px;" onclick="switchCameraFacing()">🔄 Đổi ống kính</button>
           </div>
         </div>
-        <video id="video" playsinline webkit-playsinline autoplay muted></video>
-        <canvas id="simCameraCanvas" width="720" height="980"></canvas>
-        <canvas id="liveOverlayCanvas"></canvas>
+
+        <div class="scanner-box">
+          <video id="video" playsinline webkit-playsinline autoplay muted></video>
+          <canvas id="simCameraCanvas" width="720" height="980"></canvas>
+          <canvas id="liveOverlayCanvas"></canvas>
+        </div>
+
         <div class="cam-bottom-bar">
-          <button type="button" class="btn btn-success" onclick="captureAndGrade()" style="box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+          <button type="button" class="btn btn-success" onclick="captureAndGrade()" style="box-shadow:0 2px 6px rgba(0,0,0,0.18);">
             ⚡ CHỤP & CHẤM PHIẾU NGAY
           </button>
-          <label class="btn btn-primary" style="background:#0284c7; box-shadow:0 4px 12px rgba(0,0,0,0.4);">
+          <label class="btn btn-primary" style="background:#0284c7; box-shadow:0 2px 6px rgba(0,0,0,0.18);">
             📸 Mở Camera Gốc ĐT
             <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(event)">
           </label>
