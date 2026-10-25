@@ -44,9 +44,9 @@
     .cv-badge.ready { background: #22c55e; color: #fff; }
     .cv-badge.error { background: #ef4444; color: #fff; }
 
-    /* Navigation 5 Tabs */
+    /* Navigation 4 Tabs */
     .tabs {
-      display: grid; grid-template-columns: repeat(5, 1fr);
+      display: grid; grid-template-columns: repeat(4, 1fr);
       background: #fff; border-bottom: 2px solid #e2e8f0;
       position: sticky; top: 46px; z-index: 99;
     }
@@ -352,10 +352,9 @@
 
 <nav class="tabs">
   <button class="tab-btn active" onclick="switchTab('tab-scan', this)">1. Quét Chấm</button>
-  <button class="tab-btn" onclick="switchTab('tab-students', this)">2. DS Học Sinh</button>
-  <button class="tab-btn" onclick="switchTab('tab-key', this)">3. Đáp Án</button>
-  <button class="tab-btn" onclick="switchTab('tab-sheet', this)">4. In Phiếu</button>
-  <button class="tab-btn" onclick="switchTab('tab-results', this)">5. Bảng Điểm & Ảnh</button>
+  <button class="tab-btn" onclick="switchTab('tab-key', this)">2. Đáp Án</button>
+  <button class="tab-btn" onclick="switchTab('tab-sheet', this)">3. In Phiếu</button>
+  <button class="tab-btn" onclick="switchTab('tab-results', this)">4. Bảng Điểm & Ảnh</button>
 </nav>
 
 <div class="container">
@@ -397,6 +396,10 @@
           <label style="color:#15803d; cursor:pointer; display:flex; align-items:center; gap:5px;">
             <input type="checkbox" id="autoDownloadImgToggle" style="width:16px; height:16px;">
             Tự động tải file ảnh (.JPG) về máy sau mỗi lần chấm
+          </label>
+          <label style="color:#7c3aed; cursor:pointer; display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" id="scanSoundToggle" checked style="width:16px; height:16px;" onchange="onScanSoundToggle(this)">
+            🔊 Âm thanh khi quét
           </label>
         </div>
         <div>
@@ -453,16 +456,10 @@
         </div>
       </div>
 
-      <!-- Băng rôn hiển thị Họ tên & Lớp tự động tra cứu từ SBD -->
+      <!-- Băng rôn hiển thị Số báo danh đọc được từ phiếu -->
       <div class="student-banner">
-        <div>
-          <span style="font-size:0.76rem; color:#475569; font-weight:700; display:block;">THÔNG TIN HỌC SINH (KHỚP TỰ ĐỘNG TỪ SBD):</span>
-          <span class="st-name" id="resStudentName">Chưa quét phiếu</span>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <span class="st-class" id="resStudentClass">Lớp: ---</span>
-          <span class="st-class" id="resStudentSBD" style="background:#1e3a8a; color:#fff;">SBD: ------</span>
-        </div>
+        <span style="font-size:0.76rem; color:#475569; font-weight:700;">SỐ BÁO DANH ĐỌC ĐƯỢC TỪ PHIẾU:</span>
+        <span class="st-class" id="resStudentSBD" style="background:#1e3a8a; color:#fff; font-size:1rem; padding:4px 14px;">SBD: ------</span>
       </div>
 
       <div class="score-banner">
@@ -481,51 +478,7 @@
     </div>
   </div>
 
-  <!-- TAB 2: QUẢN LÝ DANH SÁCH HỌC SINH (EXCEL IMPORT) -->
-  <div id="tab-students" class="tab-content">
-    <div class="card">
-      <div class="card-title">
-        <span>Danh Sách Học Sinh Để Tự Động Khớp Số Báo Danh (<span id="countStudents">0</span> học sinh)</span>
-        <div class="row" style="margin:0;">
-          <label class="btn btn-primary">
-            📂 Nhập File Excel (.xlsx / .xls)
-            <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importStudentExcel(event)">
-          </label>
-          <button class="btn btn-outline" onclick="downloadSampleStudentExcel()">📥 Tải File Excel Mẫu</button>
-          <button class="btn btn-warning" onclick="loadDemoStudents()">⚡ Nạp Danh Sách Học Sinh Mẫu</button>
-          <button class="btn btn-danger" onclick="clearStudents()">🗑️ Xóa DS</button>
-        </div>
-      </div>
-
-      <p style="font-size:0.83rem; color:#475569; margin-bottom:10px;">
-        <strong>Hướng dẫn:</strong> File Excel chỉ cần có các cột <code>SBD</code>, <code>Họ và tên</code> và <code>Lớp</code>. Khi quét phiếu, hệ thống sẽ tự động lấy Họ tên và Lớp in thẳng lên đầu bức ảnh bài chấm của học sinh đó!
-      </p>
-
-      <div class="row" style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
-        <input type="text" id="addStSbd" placeholder="SBD (VD: 020901)" maxlength="6" style="width:140px;">
-        <input type="text" id="addStName" placeholder="Họ và tên học sinh" style="flex:1;">
-        <input type="text" id="addStClass" placeholder="Lớp (VD: 12A1)" style="width:120px;">
-        <button class="btn btn-success" onclick="addSingleStudent()">+ Thêm Học Sinh</button>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>STT</th>
-              <th>Số Báo Danh (Chuẩn 6 số)</th>
-              <th>Họ và Tên Học Sinh</th>
-              <th>Lớp</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="studentTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB 3: ĐÁP ÁN -->
+  <!-- TAB 2: ĐÁP ÁN -->
   <div id="tab-key" class="tab-content">
     <div class="card">
       <div class="card-title">
@@ -577,7 +530,7 @@
     </div>
   </div>
 
-  <!-- TAB 4: IN PHIẾU CHUẨN -->
+  <!-- TAB 3: IN PHIẾU CHUẨN -->
   <div id="tab-sheet" class="tab-content">
     <div class="card">
       <div class="card-title">
@@ -593,7 +546,7 @@
     </div>
   </div>
 
-  <!-- TAB 5: BẢNG ĐIỂM & KHO ẢNH BÀI CHẤM -->
+  <!-- TAB 4: BẢNG ĐIỂM & KHO ẢNH BÀI CHẤM -->
   <div id="tab-results" class="tab-content">
     <div class="card">
       <div class="card-title">
@@ -607,8 +560,8 @@
 
       <div class="row" style="background:#f8fafc; padding:8px 10px; border-radius:8px; justify-content:space-between;">
         <div style="display:flex; gap:8px; align-items:center; flex:1;">
-          <label>Tìm nhanh học sinh (Tên / SBD / Lớp):</label>
-          <input type="text" id="searchResultInput" placeholder="Nhập tên, SBD hoặc lớp để lọc..." style="flex:1;" oninput="renderResultsTable()">
+          <label>Tìm nhanh (SBD / Mã đề):</label>
+          <input type="text" id="searchResultInput" placeholder="Nhập SBD hoặc mã đề để lọc..." style="flex:1;" oninput="renderResultsTable()">
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex:1;">
           <label>Webhook Google Sheets:</label>
@@ -623,8 +576,6 @@
               <th>STT</th>
               <th>Ảnh Phiếu</th>
               <th>SBD</th>
-              <th>Họ và Tên Học Sinh</th>
-              <th>Lớp</th>
               <th>Mã đề</th>
               <th>Điểm P1</th>
               <th>Điểm P2</th>
@@ -751,7 +702,7 @@
         <p style="margin-top:4px; color:#334155;">
           1. Mở thư mục dự án trong <strong>Android Studio</strong> (hoặc chạy <span class="code-pill">build_apk.bat</span> trên Windows / <span class="code-pill">./build_apk.sh</span> trên macOS/Linux).<br>
           2. Chọn menu <strong>Build → Build Bundle(s) / APK(s) → Build APK(s)</strong>.<br>
-          3. Dự án đã tích hợp sẵn <strong>AndroidBridge Native</strong>: tự động cấp quyền Camera sau để quét phiếu OMR, hỗ trợ chọn file Excel danh sách học sinh, lưu ảnh bài chấm <span class="code-pill">.JPG</span>, gói <span class="code-pill">.ZIP</span> và bảng điểm <span class="code-pill">.XLSX</span> vào thư mục <span class="code-pill">Downloads/OMR_Pro_2026</span> cũng như chia sẻ trực tiếp qua Zalo.
+          3. Dự án đã tích hợp sẵn <strong>AndroidBridge Native</strong>: tự động cấp quyền Camera sau để quét phiếu OMR, lưu ảnh bài chấm <span class="code-pill">.JPG</span>, gói <span class="code-pill">.ZIP</span> và bảng điểm <span class="code-pill">.XLSX</span> vào thư mục <span class="code-pill">Downloads/OMR_Pro_2026</span> cũng như chia sẻ trực tiếp qua Zalo.
         </p>
       </div>
 
@@ -1122,158 +1073,6 @@ async function clearAllImagesInDB() {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).clear();
   } catch (e) {}
-}
-
-/********************************************************************
- * 1. QUẢN LÝ DANH SÁCH HỌC SINH & TRA CỨU SBD THÔNG MINH
- ********************************************************************/
-let studentDB = JSON.parse(safeGetStorage('omr_students_2026', '{}'));
-
-function normalizeSBDKey(sbd) {
-  const clean = String(sbd || '').trim().replace(/[^0-9]/g, '');
-  if (!clean) return '';
-  return clean.replace(/^0+/, '') || '0';
-}
-
-function formatSBD6(sbd) {
-  const clean = String(sbd || '').trim().replace(/[^0-9]/g, '');
-  return clean ? clean.padStart(6, '0').slice(-6) : '------';
-}
-
-function lookupStudentBySBD(scannedSbd) {
-  const exact = studentDB[scannedSbd];
-  if (exact) return exact;
-  const norm = normalizeSBDKey(scannedSbd);
-  for (const k in studentDB) {
-    if (normalizeSBDKey(k) === norm && norm !== '') {
-      return studentDB[k];
-    }
-  }
-  return null;
-}
-
-function loadDemoStudents() {
-  const sampleList = [
-    { sbd: '020901', name: 'Nguyễn Minh Anh', className: '12A1' },
-    { sbd: '020902', name: 'Trần Quốc Bảo', className: '12A1' },
-    { sbd: '020903', name: 'Lê Hoàng Chi', className: '12A1' },
-    { sbd: '020904', name: 'Phạm Tiến Dũng', className: '12A2' },
-    { sbd: '020905', name: 'Hoàng Gia Hân', className: '12A2' },
-    { sbd: '020906', name: 'Vũ Trung Hiếu', className: '11B1' },
-    { sbd: '020907', name: 'Đặng Hải Đăng', className: '11B1' },
-    { sbd: '020908', name: 'Bùi Tường Vy', className: '10C1' }
-  ];
-  sampleList.forEach(st => {
-    studentDB[st.sbd] = { sbd: st.sbd, name: st.name, className: st.className };
-  });
-  saveStudentDB();
-  renderStudentTable();
-}
-
-function saveStudentDB() {
-  safeSetStorage('omr_students_2026', JSON.stringify(studentDB));
-}
-
-function renderStudentTable() {
-  const keys = Object.keys(studentDB).sort();
-  document.getElementById('countStudents').innerText = keys.length;
-  const tbody = document.getElementById('studentTableBody');
-  if (!keys.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:#64748b; padding:16px;">Chưa có danh sách học sinh. Hãy bấm "Nạp Danh Sách Học Sinh Mẫu" hoặc tải file Excel lên!</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = keys.map((k, idx) => {
-    const st = studentDB[k];
-    return `
-      <tr>
-        <td>${idx + 1}</td>
-        <td><strong style="color:#1e40af">${st.sbd}</strong></td>
-        <td style="text-align:left; font-weight:600;">${st.name}</td>
-        <td>${st.className}</td>
-        <td><button class="btn btn-danger btn-sm" onclick="deleteStudent('${k}')">Xóa</button></td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function addSingleStudent() {
-  const rawSbd = document.getElementById('addStSbd').value.trim();
-  const name = document.getElementById('addStName').value.trim();
-  const cls = document.getElementById('addStClass').value.trim() || '---';
-  if (!rawSbd || !name) {
-    showAppToast('Vui lòng nhập Số báo danh và Họ tên học sinh!', 'warn');
-    return;
-  }
-  const sbd6 = formatSBD6(rawSbd);
-  studentDB[sbd6] = { sbd: sbd6, name, className: cls };
-  saveStudentDB();
-  renderStudentTable();
-  document.getElementById('addStSbd').value = '';
-  document.getElementById('addStName').value = '';
-}
-
-function deleteStudent(sbdKey) {
-  delete studentDB[sbdKey];
-  saveStudentDB();
-  renderStudentTable();
-}
-
-function clearStudents() {
-  showAppConfirm('Xóa toàn bộ danh sách học sinh đã lưu?', () => {
-    studentDB = {};
-    saveStudentDB();
-    renderStudentTable();
-    showAppToast('Đã xóa danh sách học sinh.', 'info');
-  });
-}
-
-function importStudentExcel(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-
-    let added = 0;
-    rows.forEach(r => {
-      const keys = Object.keys(r);
-      const sbdCol = keys.find(k => /sbd|báo danh|mã hs|ma hs|id/i.test(k)) || keys[0];
-      const nameCol = keys.find(k => /họ và tên|họ tên|ho ten|tên|name/i.test(k)) || keys[1];
-      const clsCol = keys.find(k => /lớp|lop|class/i.test(k)) || keys[2];
-
-      const rawSbd = String(r[sbdCol] || '').trim();
-      const name = String(r[nameCol] || '').trim();
-      const cls = String(r[clsCol] || '').trim() || '---';
-
-      if (rawSbd && /\d/.test(rawSbd) && name) {
-        const sbd6 = formatSBD6(rawSbd);
-        studentDB[sbd6] = { sbd: sbd6, name, className: cls };
-        added++;
-      }
-    });
-
-    saveStudentDB();
-    renderStudentTable();
-    showAppToast(`Đã nhập thành công ${added} học sinh từ file Excel!`, 'warn');
-    event.target.value = '';
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function downloadSampleStudentExcel() {
-  const sample = [
-    { 'SBD': '020901', 'Họ và tên': 'Nguyễn Minh Anh', 'Lớp': '12A1' },
-    { 'SBD': '020902', 'Họ và tên': 'Trần Quốc Bảo', 'Lớp': '12A1' },
-    { 'SBD': '020903', 'Họ và tên': 'Lê Hoàng Chi', 'Lớp': '12A1' },
-    { 'SBD': '020904', 'Họ và tên': 'Phạm Tiến Dũng', 'Lớp': '12A2' }
-  ];
-  const ws = XLSX.utils.json_to_sheet(sample);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'DanhSachHocSinh');
-  saveWorkbookCrossPlatform(wb, 'Mau_Danh_Sach_Hoc_Sinh_OMR.xlsx');
 }
 
 /********************************************************************
@@ -2054,11 +1853,11 @@ function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   ctx.fillStyle = '#22c55e';
   ctx.fillRect(0, 0, 10, STAMP_H);
 
-  // Dòng 1: Họ tên học sinh - Lớp - SBD - Mã đề
+  // Dòng 1: SBD - Mã đề
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 20px Segoe UI, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(`HS: ${info.name}  |  Lớp: ${info.className}  |  SBD: ${info.sbd}  |  Mã đề: ${info.made}`, 22, 30);
+  ctx.fillText(`SBD: ${info.sbd}  |  Mã đề: ${info.made}`, 22, 30);
 
   // Dòng 2: Điểm chi tiết từng phần & Giờ chấm
   ctx.fillStyle = '#93c5fd';
@@ -2152,6 +1951,7 @@ function getMaskBubbleFillRatio(mask, x, y, r = 6) {
 }
 
 async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
+  if (!isInitialPreview) playShutterClick();
   const thresholdRatio = parseInt(document.getElementById('fillThreshold').value, 10) / 100;
   let rawSheetColor, rawSheetBin;
   let src = null, gray = null, blurred = null, thresh = null;
@@ -2252,13 +2052,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
   });
 
-  const matchedStudent = lookupStudentBySBD(sbdStr);
-  const stName = matchedStudent ? matchedStudent.name : 'Chưa có tên trong DS';
-  const stClass = matchedStudent ? matchedStudent.className : '---';
-
-  document.getElementById('resStudentName').innerText = stName;
-  document.getElementById('resStudentName').style.color = matchedStudent ? '#15803d' : '#b45309';
-  document.getElementById('resStudentClass').innerText = 'Lớp: ' + stClass;
   document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr;
 
   // 2. Đọc Mã đề
@@ -2383,8 +2176,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     id: recordId,
     time: new Date().toLocaleTimeString('vi-VN'),
     sbd: sbdStr,
-    name: stName,
-    className: stClass,
     made: maDeStr,
     correctP1: `${correctP1}/${geo.p1.length}`,
     scoreP1: +scoreP1.toFixed(2),
@@ -2416,7 +2207,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
     renderResultsTable();
     sendToWebhook(record);
-    playBeep(1046, 120);
+    playScanResultSound(answerKeys[maDeStr] ? 'ok' : 'warn');
 
     // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
     if (document.getElementById('autoDownloadImgToggle').checked) {
@@ -2476,9 +2267,7 @@ function removeVietnameseTones(str) {
 }
 
 function buildImageFileName(rec) {
-  const cls = removeVietnameseTones(rec.className || 'Lop');
-  const name = removeVietnameseTones(rec.name || 'HocSinh');
-  return `${cls}_${rec.sbd}_${name}_${rec.total.toFixed(2)}d.jpg`;
+  return `SBD${rec.sbd}_MaDe${rec.made}_${rec.total.toFixed(2)}d.jpg`;
 }
 
 function triggerImageDownload(dataUrl, filename) {
@@ -2522,7 +2311,7 @@ function downloadCurrentGradedImage() {
 
 async function shareImageByDataUrl(dataUrl, rec) {
   const filename = buildImageFileName(rec);
-  const shareText = `HS: ${rec.name} | Lớp: ${rec.className} | SBD: ${rec.sbd} | Điểm: ${rec.total.toFixed(2)}`;
+  const shareText = `SBD: ${rec.sbd} | Mã đề: ${rec.made} | Điểm: ${rec.total.toFixed(2)}`;
   if (isAndroidNativeAPK() && typeof window.AndroidBridge.shareBase64File === 'function' && String(dataUrl).startsWith('data:')) {
     try {
       const b64 = String(dataUrl).split(',')[1];
@@ -2543,7 +2332,7 @@ async function shareImageByDataUrl(dataUrl, rec) {
     const file = new File([blob], filename, { type: 'image/jpeg' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
-        title: `Kết quả chấm thi - ${rec.name} (${rec.total}đ)`,
+        title: `Kết quả chấm thi - SBD ${rec.sbd} (${rec.total}đ)`,
         text: shareText,
         files: [file]
       });
@@ -2570,7 +2359,7 @@ async function openImageModal(recordId) {
     return;
   }
   currentModalRecordId = recordId;
-  document.getElementById('modalTitle').innerText = `${rec.name} - Lớp: ${rec.className} (SBD: ${rec.sbd}) — ${rec.total.toFixed(2)} điểm`;
+  document.getElementById('modalTitle').innerText = `SBD: ${rec.sbd} — ${rec.total.toFixed(2)} điểm`;
   document.getElementById('modalSubInfo').innerText = `Mã đề: ${rec.made} | Phần I: ${rec.scoreP1}đ (${rec.correctP1}) | Phần II: ${rec.scoreP2}đ | P.III/TL: ${rec.scoreP3OrEssay}đ`;
   document.getElementById('modalImgEl').src = dataUrl;
   document.getElementById('imgModal').classList.add('open');
@@ -2663,21 +2452,14 @@ let simCameraSheetCanvas = null;
 let simTick = 0;
 
 function buildRandomMockSheetData() {
-  if (Object.keys(studentDB).length === 0) {
-    loadDemoStudents();
-  }
-  const sbdKeys = Object.keys(studentDB);
-  const randomSbd = sbdKeys[Math.floor(Math.random() * sbdKeys.length)];
-  const stObj = studentDB[randomSbd];
+  const randomSbd = '0209' + String(1 + Math.floor(Math.random() * 99)).padStart(2, '0');
 
   const code = document.getElementById('keyExamCode').value.trim() || '101';
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   const key = answerKeys[code];
 
   const mock = {
-    sbd: randomSbd.padStart(6, '0').split(''),
-    studentName: stObj.name,
-    className: stObj.className,
+    sbd: randomSbd.split(''),
     made: code.padStart(3, '0').split(''),
     p1: {},
     p2: {},
@@ -3019,9 +2801,8 @@ async function renderResultsTable() {
 
   const filtered = gradedList.filter(r => {
     if (!keyword) return true;
-    return (r.name && r.name.toLowerCase().includes(keyword)) ||
-           (r.sbd && r.sbd.toLowerCase().includes(keyword)) ||
-           (r.className && r.className.toLowerCase().includes(keyword));
+    return (r.sbd && r.sbd.toLowerCase().includes(keyword)) ||
+           (r.made && String(r.made).toLowerCase().includes(keyword));
   });
 
   const tbody = document.getElementById('resultsBody');
@@ -3033,8 +2814,6 @@ async function renderResultsTable() {
              onclick="openImageModal('${r.id}')">
       </td>
       <td><strong style="color:#1e40af">${r.sbd}</strong></td>
-      <td style="text-align:left; font-weight:700;">${r.name || '---'}</td>
-      <td>${r.className || '---'}</td>
       <td>${r.made}</td>
       <td>${r.scoreP1}</td>
       <td>${r.scoreP2}</td>
@@ -3067,8 +2846,6 @@ function exportExcel() {
     'STT': i + 1,
     'Giờ chấm': r.time,
     'Số Báo Danh': r.sbd,
-    'Họ và Tên Học Sinh': r.name,
-    'Lớp': r.className,
     'Mã Đề': r.made,
     'Điểm Phần I (ABCD)': r.scoreP1,
     'Điểm Phần II (Đ/S)': r.scoreP2,
@@ -3101,6 +2878,109 @@ function sendToWebhook(record) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(record)
   }).catch(() => {});
+}
+
+/********************************************************************
+ * ÂM THANH ĐẶC TRƯNG KHI QUÉT PHIẾU (Web Audio API - không cần file âm thanh)
+ *  • "Tạch-tạch": tiếng màn trập máy ảnh ngay khi bắt đầu quét
+ *  • "Ting-ting-tinh": 3 nốt Đô-Mi-Sol đi lên khi chấm xong
+ *  • "Bù-bùm": 2 nốt đi xuống khi mã đề quét được chưa có đáp án
+ ********************************************************************/
+let sharedAudioCtx = null;
+
+function getAudioCtx() {
+  try {
+    if (!sharedAudioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      sharedAudioCtx = new AC();
+    }
+    if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+    return sharedAudioCtx;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Trình duyệt (nhất là iPhone) chỉ cho phát tiếng sau khi người dùng chạm vào trang ít nhất một lần
+['click', 'touchend', 'keydown'].forEach(ev => window.addEventListener(ev, () => getAudioCtx(), { passive: true }));
+
+function isScanSoundEnabled() {
+  const el = document.getElementById('scanSoundToggle');
+  return !el || el.checked;
+}
+
+function onScanSoundToggle(el) {
+  safeSetStorage('omr_scan_sound', el.checked ? '1' : '0');
+  if (el.checked) {
+    playShutterClick();
+    setTimeout(() => playScanResultSound('ok'), 220);
+  }
+}
+
+// Một tiếng "tạch": nhiễu trắng ngắn qua bộ lọc dải thông
+function scheduleClick(ctx, when, peak, freq) {
+  const len = Math.floor(ctx.sampleRate * 0.05);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = freq;
+  bp.Q.value = 1.1;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(peak, when + 0.003);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
+  src.connect(bp);
+  bp.connect(g);
+  g.connect(ctx.destination);
+  src.start(when);
+  src.stop(when + 0.06);
+}
+
+// Một nốt nhạc ngắn, tắt dần
+function scheduleTone(ctx, when, freq, dur, peak, type = 'sine') {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, when);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(peak, when + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  osc.connect(g);
+  g.connect(ctx.destination);
+  osc.start(when);
+  osc.stop(when + dur + 0.02);
+}
+
+// "Tạch-tạch": màn trập mở (to, sáng) rồi đóng (nhỏ, trầm)
+function playShutterClick() {
+  if (!isScanSoundEnabled()) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime + 0.01;
+  scheduleClick(ctx, t, 0.5, 3200);
+  scheduleClick(ctx, t + 0.075, 0.3, 1800);
+}
+
+// kind = 'ok': chuông 3 nốt đi lên | 'warn': 2 nốt đi xuống
+function playScanResultSound(kind = 'ok') {
+  if (!isScanSoundEnabled()) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const t = ctx.currentTime + 0.02;
+  if (kind === 'warn') {
+    scheduleTone(ctx, t, 392, 0.16, 0.22, 'triangle');          // Sol4
+    scheduleTone(ctx, t + 0.15, 294, 0.32, 0.22, 'triangle');   // Re4
+    return;
+  }
+  [[1046.5, 0, 0.16], [1318.5, 0.09, 0.16], [1568, 0.18, 0.45]].forEach(([freq, dt, dur]) => {
+    scheduleTone(ctx, t + dt, freq, dur, 0.22, 'sine');          // Đô6 - Mi6 - Sol6
+    scheduleTone(ctx, t + dt, freq * 2, dur * 0.7, 0.05, 'sine'); // âm bồi quãng tám cho "lấp lánh"
+  });
 }
 
 function playBeep(freq = 900, duration = 100) {
@@ -3218,12 +3098,8 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('DOMContentLoaded', () => {
   initImageDB();
   loadOpenCVWithFallback(0);
-  if (Object.keys(studentDB).length === 0) {
-    loadDemoStudents();
-  } else {
-    renderStudentTable();
-  }
   document.getElementById('webhookUrl').value = safeGetStorage('omr_webhook_ult', '');
+  document.getElementById('scanSoundToggle').checked = safeGetStorage('omr_scan_sound', '1') !== '0';
   onTemplateChange();
   renderResultsTable();
 });
