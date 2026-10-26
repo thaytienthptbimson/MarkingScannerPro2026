@@ -301,6 +301,52 @@
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
     }
 
+    /* Trình chiếu (slide) ảnh phiếu đã chấm */
+    body.slide-open { overflow: hidden; }
+    .slide-overlay {
+      display: none; position: fixed; inset: 0; z-index: 2500; background: #0b1220; color: #e2e8f0;
+      flex-direction: column; height: 100vh; height: 100dvh;
+    }
+    .slide-overlay.open { display: flex; }
+    .slide-top {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px));
+      background: #111c33; border-bottom: 1px solid #1f2d4d;
+    }
+    .slide-title { flex: 1; min-width: 0; font-weight: 800; font-size: 1rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .slide-count { font-weight: 700; font-size: 0.85rem; color: #93c5fd; white-space: nowrap; }
+    .slide-sub { padding: 5px 12px; font-size: 0.78rem; color: #cbd5e1; background: #0f172a; white-space: nowrap; overflow-x: auto; }
+    .slide-stage { position: relative; flex: 1; min-height: 0; display: flex; }
+    .slide-scroll { flex: 1; min-width: 0; overflow: auto; display: flex; padding: 6px; -webkit-overflow-scrolling: touch; }
+    .slide-scroll img {
+      margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; background: #fff;
+      border-radius: 4px; box-shadow: 0 4px 18px rgba(0,0,0,0.55);
+    }
+    .slide-scroll.zoom { cursor: zoom-out; }
+    .slide-scroll:not(.zoom) img { cursor: zoom-in; }
+    .slide-scroll.zoom img { max-width: none; max-height: none; }
+    .slide-msg { margin: auto; color: #94a3b8; font-weight: 600; text-align: center; padding: 20px; }
+    .slide-nav {
+      position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; width: 42px; height: 68px;
+      border: none; border-radius: 10px; background: rgba(30, 41, 59, 0.62); color: #fff;
+      font-size: 2rem; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .slide-nav:hover { background: rgba(37, 99, 235, 0.85); }
+    .slide-prev { left: 6px; } .slide-next { right: 6px; }
+    .slide-bottom {
+      padding: 8px 10px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      background: #111c33; border-top: 1px solid #1f2d4d; display: flex; flex-direction: column; gap: 8px;
+    }
+    .slide-bottom input[type="range"] { width: 100%; accent-color: #3b82f6; }
+    .slide-ctrls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+    .slide-btn {
+      background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px;
+      padding: 7px 11px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .slide-btn:hover { background: #334155; }
+    .slide-btn.on { background: #2563eb; border-color: #3b82f6; color: #fff; }
+    .slide-ctrls select { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 6px 8px; font-size: 0.82rem; }
+    .slide-ctrls label { color: #cbd5e1; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+
     footer {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #0f172a; color: #cbd5e1; text-align: center;
@@ -666,6 +712,7 @@
       <div class="card-title">
         <span>Danh Sách Kết Quả & Kho Ảnh Minh Chứng (<span id="countGraded">0</span> bài)</span>
         <div class="row" style="margin:0;">
+          <button class="btn btn-warning" onclick="openSlideshow(0)">🎞️ Xem Slide Ảnh Phiếu</button>
           <button class="btn btn-primary" onclick="downloadAllImagesAsZip()">📦 Tải Tất Cả Ảnh Bài Chấm (.ZIP)</button>
           <button class="btn btn-success" onclick="exportExcel()">📊 Xuất File Excel (.xlsx)</button>
           <button class="btn btn-danger" onclick="clearResults()">🗑️ Xóa Lịch Sử & Ảnh</button>
@@ -721,6 +768,42 @@
 
 </div>
 
+<!-- TRÌNH CHIẾU (SLIDE) ẢNH PHIẾU ĐÃ CHẤM -->
+<div id="slideOverlay" class="slide-overlay" role="dialog" aria-label="Trình chiếu ảnh phiếu đã chấm">
+  <div class="slide-top">
+    <div class="slide-title" id="slideTitle">Ảnh phiếu đã chấm</div>
+    <div class="slide-count" id="slideCount"></div>
+    <button type="button" class="slide-btn" id="slideFsBtn" onclick="slideToggleFullscreen()" title="Toàn màn hình (phím F)">⛶</button>
+    <button type="button" class="slide-btn" onclick="closeSlideshow()" title="Đóng (phím Esc)">✕ Đóng</button>
+  </div>
+  <div class="slide-sub" id="slideSub"></div>
+  <div class="slide-stage" id="slideStage">
+    <button type="button" class="slide-nav slide-prev" onclick="slideStep(-1)" title="Bài trước (←)" aria-label="Bài trước">‹</button>
+    <div class="slide-scroll" id="slideScroll">
+      <img id="slideImg" alt="Phiếu đã chấm" style="display:none;" onclick="slideToggleZoom()">
+      <div class="slide-msg" id="slideMsg">Đang tải ảnh…</div>
+    </div>
+    <button type="button" class="slide-nav slide-next" onclick="slideStep(1)" title="Bài sau (→)" aria-label="Bài sau">›</button>
+  </div>
+  <div class="slide-bottom">
+    <input type="range" id="slideRange" min="1" max="1" value="1" oninput="slideGoto(+this.value - 1)" aria-label="Chọn bài">
+    <div class="slide-ctrls">
+      <button type="button" class="slide-btn" onclick="slideGoto(0)" title="Bài đầu (Home)">⏮</button>
+      <button type="button" class="slide-btn" onclick="slideStep(-1)">◀ Trước</button>
+      <button type="button" class="slide-btn" id="slidePlayBtn" onclick="slideTogglePlay()" title="Tự chạy / tạm dừng (phím Cách)">▶ Tự chạy</button>
+      <button type="button" class="slide-btn" onclick="slideStep(1)">Sau ▶</button>
+      <button type="button" class="slide-btn" onclick="slideGoto(gradedList.length - 1)" title="Bài cuối (End)">⏭</button>
+      <select id="slideInterval" onchange="slideSetInterval(this.value)" title="Thời gian giữa 2 bài khi tự chạy">
+        <option value="2">2 giây</option><option value="3">3 giây</option><option value="5">5 giây</option>
+        <option value="8">8 giây</option><option value="15">15 giây</option>
+      </select>
+      <label><input type="checkbox" id="slideLoop" onchange="slideSetLoop(this.checked)"> Lặp lại</label>
+      <button type="button" class="slide-btn" id="slideZoomBtn" onclick="slideToggleZoom()" title="Phóng to / vừa khung (phím Z)">🔍 Phóng to</button>
+      <button type="button" class="slide-btn" onclick="slideDownloadCurrent()">⬇️ Tải ảnh</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL XEM CHI TIẾT ẢNH BÀI CHẤM CỦA HỌC SINH -->
 <div id="imgModal" class="modal-backdrop" onclick="if(event.target===this) closeImageModal()">
   <div class="modal-card">
@@ -734,6 +817,7 @@
     <div class="modal-footer">
       <span id="modalSubInfo" style="font-size:0.83rem; font-weight:600; color:#334155;"></span>
       <div style="display:flex; gap:8px;">
+        <button class="btn btn-warning" onclick="slideFromModal()">🎞️ Chạy slide từ bài này</button>
         <button class="btn btn-outline" onclick="shareModalImage()">📤 Chia sẻ Zalo / ĐT</button>
         <button class="btn btn-success" onclick="downloadModalImage()">⬇️ Tải Ảnh Này (.JPG)</button>
       </div>
@@ -3639,6 +3723,222 @@ function setRecordName(id, value) {
   const inp = document.getElementById('nm_' + id);
   if (inp) inp.value = getRecordName(r);
 }
+
+
+/********************************************************************
+ * TRÌNH CHIẾU (SLIDE) ẢNH PHIẾU ĐÃ CHẤM
+ ********************************************************************/
+let slideOpen = false, slideIdx = 0, slideTimer = null, slidePlaying = false, slideZoom = false;
+let slideHistoryPushed = false, slideToken = 0, slideSec = 3, slideLoop = false;
+
+function slideEl(id) { return document.getElementById(id); }
+
+function openSlideshow(start) {
+  if (!gradedList.length) {
+    showAppToast('Chưa có bài chấm nào để xem slide!', 'warn');
+    return;
+  }
+  slideSec = +safeGetStorage('omr_slide_sec', '3') || 3;
+  slideLoop = safeGetStorage('omr_slide_loop', '0') === '1';
+  const sel = slideEl('slideInterval');
+  if (![...sel.options].some(o => +o.value === slideSec)) slideSec = 3;
+  sel.value = String(slideSec);
+  slideEl('slideLoop').checked = slideLoop;
+  slideEl('slideFsBtn').style.display = (document.fullscreenEnabled || document.webkitFullscreenEnabled) ? '' : 'none';
+  slideZoom = false; slidePlaying = false;
+  slideEl('slideScroll').classList.remove('zoom');
+  slideUpdatePlayUI();
+  slideOpen = true;
+  slideEl('slideOverlay').classList.add('open');
+  document.body.classList.add('slide-open');
+  if (!slideHistoryPushed) {
+    try { history.pushState({ slide: 1 }, ''); slideHistoryPushed = true; } catch (e) {}
+  }
+  slideGoto(start || 0);
+}
+
+function closeSlideshow(fromPop) {
+  if (!slideOpen) return;
+  slideOpen = false; slidePlaying = false; slideToken++;
+  clearTimeout(slideTimer); slideTimer = null;
+  try {
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } catch (e) {}
+  slideEl('slideOverlay').classList.remove('open');
+  document.body.classList.remove('slide-open');
+  const img = slideEl('slideImg'); img.removeAttribute('src'); img.style.display = 'none';
+  if (slideHistoryPushed) {
+    slideHistoryPushed = false;
+    if (!fromPop) { try { history.back(); } catch (e) {} }
+  }
+}
+
+// Nút Back của điện thoại chỉ đóng slide, không thoát khỏi ứng dụng
+window.addEventListener('popstate', () => {
+  if (slideOpen && slideHistoryPushed) { slideHistoryPushed = false; closeSlideshow(true); }
+});
+
+function slideFromModal() {
+  const i = gradedList.findIndex(r => r.id === currentModalRecordId);
+  closeImageModal();
+  openSlideshow(i >= 0 ? i : 0);
+}
+
+async function slideGoto(i) {
+  const n = gradedList.length;
+  if (!n) { closeSlideshow(); return; }
+  slideIdx = Math.max(0, Math.min(n - 1, Math.round(+i) || 0));
+  const my = ++slideToken;
+  clearTimeout(slideTimer); slideTimer = null;
+  const r = gradedList[slideIdx];
+  const nm = getRecordName(r);
+  slideEl('slideTitle').innerText = `${nm ? nm + ' · ' : ''}SBD ${r.sbd}`;
+  slideEl('slideCount').innerText = `${slideIdx + 1} / ${n}`;
+  slideEl('slideSub').innerText = `Mã đề ${r.made}  ·  Phần I: ${r.scoreP1}đ (${r.correctP1})  ·  Phần II: ${r.scoreP2}đ  ·  P.III/TL: ${r.scoreP3OrEssay}đ  ·  Tổng: ${Number(r.total).toFixed(2)} điểm`;
+  const rg = slideEl('slideRange'); rg.max = String(n); rg.value = String(slideIdx + 1);
+
+  const img = slideEl('slideImg'), msg = slideEl('slideMsg');
+  if (img.style.display === 'none') { msg.innerText = 'Đang tải ảnh…'; msg.style.display = ''; }
+  let url = '';
+  try {
+    url = await Promise.race([getImageFromDB(r.id), new Promise(res => setTimeout(() => res(''), 4000))]) || '';
+  } catch (e) { url = ''; }
+  if (my !== slideToken || !slideOpen) return;   // đã chuyển sang bài khác / đã đóng
+
+  if (url) {
+    img.src = url; img.style.display = ''; msg.style.display = 'none';
+  } else {
+    img.removeAttribute('src'); img.style.display = 'none';
+    msg.innerText = 'Không tìm thấy ảnh lưu trữ của bài này'; msg.style.display = '';
+  }
+  const sc = slideEl('slideScroll'); sc.scrollTop = 0; sc.scrollLeft = 0;
+
+  // nạp trước ảnh bài kế bên cho chuyển slide mượt
+  [slideIdx + 1, slideIdx - 1].forEach(j => { if (gradedList[j]) getImageFromDB(gradedList[j].id).catch(() => {}); });
+
+  if (slidePlaying) slideTimer = setTimeout(slideAutoNext, Math.max(0.2, slideSec) * 1000);
+}
+
+function slideStep(d) {
+  const n = gradedList.length;
+  if (!n) return;
+  let j = slideIdx + d;
+  if (j < 0) j = slideLoop ? n - 1 : 0;
+  if (j >= n) j = slideLoop ? 0 : n - 1;
+  if (j === slideIdx) return;
+  slideGoto(j);
+}
+
+function slideAutoNext() {
+  if (!slideOpen || !slidePlaying) return;
+  const n = gradedList.length;
+  if (slideIdx >= n - 1) {
+    if (slideLoop) { slideGoto(0); return; }
+    slidePlaying = false; slideUpdatePlayUI();
+    showAppToast('Đã chạy hết danh sách bài chấm.', 'info');
+    return;
+  }
+  slideGoto(slideIdx + 1);
+}
+
+function slideUpdatePlayUI() {
+  const b = slideEl('slidePlayBtn');
+  b.innerText = slidePlaying ? '⏸ Tạm dừng' : '▶ Tự chạy';
+  b.classList.toggle('on', slidePlaying);
+}
+
+function slideTogglePlay() {
+  slidePlaying = !slidePlaying;
+  slideUpdatePlayUI();
+  clearTimeout(slideTimer); slideTimer = null;
+  if (slidePlaying) {
+    // đang ở bài cuối mà bấm chạy → chạy lại từ đầu
+    if (slideIdx >= gradedList.length - 1 && gradedList.length > 1 && !slideLoop) slideGoto(0);
+    else slideTimer = setTimeout(slideAutoNext, Math.max(0.2, slideSec) * 1000);
+  }
+}
+
+function slideSetInterval(v) {
+  slideSec = +v || 3;
+  safeSetStorage('omr_slide_sec', String(slideSec));
+  if (slidePlaying) { clearTimeout(slideTimer); slideTimer = setTimeout(slideAutoNext, Math.max(0.2, slideSec) * 1000); }
+}
+
+function slideSetLoop(on) {
+  slideLoop = !!on;
+  safeSetStorage('omr_slide_loop', slideLoop ? '1' : '0');
+}
+
+function slideToggleZoom() {
+  slideZoom = !slideZoom;
+  slideEl('slideScroll').classList.toggle('zoom', slideZoom);
+  slideEl('slideZoomBtn').innerText = slideZoom ? '🔍 Vừa khung' : '🔍 Phóng to';
+  slideEl('slideZoomBtn').classList.toggle('on', slideZoom);
+}
+
+function slideToggleFullscreen() {
+  const el = slideEl('slideOverlay');
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    }
+  } catch (e) {}
+}
+
+function slideDownloadCurrent() {
+  const r = gradedList[slideIdx];
+  if (!r) return;
+  getImageFromDB(r.id).then(u => {
+    if (u) triggerImageDownload(u, buildImageFileName(r));
+    else showAppToast('Không tìm thấy ảnh lưu trữ của bài này!', 'warn');
+  });
+}
+
+// Phím tắt: ← → chuyển bài · Cách chạy/dừng · Home/End · Z phóng to · F toàn màn hình · Esc đóng
+window.addEventListener('keydown', (e) => {
+  if (!slideOpen) return;
+  const t = e.target, tag = t && t.tagName;
+  if (e.key === 'Escape') { closeSlideshow(); e.preventDefault(); return; }
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if ((e.key === ' ' || e.key === 'Enter') && tag === 'BUTTON') return;  // để nút tự xử lý
+  switch (e.key) {
+    case 'ArrowRight': case 'PageDown': slideStep(1); break;
+    case 'ArrowLeft': case 'PageUp': slideStep(-1); break;
+    case 'Home': slideGoto(0); break;
+    case 'End': slideGoto(gradedList.length - 1); break;
+    case ' ': slideTogglePlay(); break;
+    case 'z': case 'Z': slideToggleZoom(); break;
+    case 'f': case 'F': slideToggleFullscreen(); break;
+    default: return;
+  }
+  e.preventDefault();
+});
+
+// Vuốt trái / phải để chuyển bài (khi chưa phóng to)
+(function () {
+  let sx = 0, sy = 0, st = 0, multi = false;
+  const bind = () => {
+    const stage = slideEl('slideStage');
+    if (!stage) return;
+    // bấm nút xong bỏ focus để phím Cách / mũi tên vẫn điều khiển slide
+    slideEl('slideOverlay').addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b) b.blur(); });
+    // chọn xong ô tick / danh sách / thanh trượt cũng bỏ focus (tránh phím mũi tên đổi giá trị ô thay vì chuyển bài)
+    slideEl('slideOverlay').addEventListener('change', e => { try { e.target.blur(); } catch (err) {} });
+    stage.addEventListener('touchstart', e => {
+      multi = e.touches.length > 1;
+      if (e.touches.length === 1) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); }
+    }, { passive: true });
+    stage.addEventListener('touchend', e => {
+      if (multi || slideZoom || !e.changedTouches.length) return;
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 55 && Math.abs(dy) < 70 && Date.now() - st < 700) slideStep(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
 
 /********************************************************************
  * 8. BẢNG ĐIỂM KÈM ẢNH THU NHỎ, XUẤT EXCEL & TIỆN ÍCH
