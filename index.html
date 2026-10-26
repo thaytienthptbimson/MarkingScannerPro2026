@@ -503,7 +503,7 @@
           </label>
         </div>
         <div>
-          <label>Độ nhạy chì: <span id="threshVal">35</span>%</label>
+          <label title="Số NHỎ = nhạy hơn (nhận cả nét chì rất nhạt, dễ nhầm vết bẩn/vết tẩy). Số LỚN = chặt hơn (chỉ nhận ô tô đậm). Mặc định 35 là hợp lý cho hầu hết phiếu.">Độ nhạy chì: <span id="threshVal">35</span>%</label>
           <input type="range" id="fillThreshold" min="20" max="60" value="35" oninput="document.getElementById('threshVal').innerText=this.value">
         </div>
         <div>
@@ -2449,6 +2449,154 @@ function analyzeIdColumn(ratios, thr) {
   return { idx: bi, state: sorted[0] >= 0.7 ? 'multi' : 'blank' };
 }
 
+/* ---- BỘ ĐỌC Ô TÔ THEO ĐỘ ĐẬM TRÊN ẢNH XÁM (dùng cho mọi mẫu phiếu khi có OpenCV) ----
+ * Cách cũ: nhị phân hoá ảnh bằng 1 ngưỡng rồi đếm tỉ lệ điểm đen trong ô vuông 14x14. Cách này làm RƠI các ô tô:
+ *   • nét chì / bút mờ / mực nhạt bị cắt thành "không đen" → câu coi như bỏ trống;
+ *   • học sinh tô nhỏ hơn vòng tròn, tô thiếu nửa ô → tỉ lệ đen thấp hơn ngưỡng;
+ *   • ảnh bị bóng đổ hoặc giấy cong → ngưỡng cố định lúc đúng lúc sai.
+ * Cách mới đo trực tiếp ĐỘ ĐẬM trên ảnh xám: với mỗi ô, lấy hình tròn trong lòng ô (0.65 bán kính, không chạm viền vòng
+ * tròn), tìm mức xám mà 40% điểm tối nhất của hình tròn đạt tới rồi so với mức xám của GIẤY ngay quanh ô.
+ *   • chữ A/B/C/D và viền vòng tròn chỉ chiếm ~25% diện tích nên KHÔNG kéo điểm của ô trống lên;
+ *   • ô được tô (kể cả chì nhạt, tô nhỏ, tô thiếu) có ≥ 40% diện tích tối hơn giấy → điểm cao rõ rệt;
+ *   • so với giấy cục bộ nên bóng đổ / ảnh thiếu sáng / ảnh bạc màu không làm lệch;
+ *   • thử thêm 9 vị trí lệch ±2 px để chịu được giấy cong, ống kính méo.
+ * "Nền" của mỗi ô = mức đậm thường thấy của ĐÚNG KÝ TỰ ĐÓ trên cả tờ phiếu (mọi chữ A, mọi chữ B, ..., mọi số 7, ...):
+ * chữ B/D in đậm hơn chữ A/C nên so với nền chung của câu sẽ bị lệch, còn so với nền của chính chữ B thì sai số rất nhỏ.
+ * Ô chỉ được coi là "đã tô" khi nổi hẳn lên so với nền đó VÀ không yếu hơn 60% ô mạnh nhất cùng câu. */
+const INK_RHO = 0.65, INK_FRAC = 0.40, INK_WIN = 1.6, INK_PAPER_Q = 0.88, INK_OFFS = [-2, 0, 2];
+const INK_REL_K = 0.17, INK_ABS_K = 0.30;      // ngưỡng = độ nhạy (20–60%) × hệ số
+const INK_CAP = 0.08, INK_BASE_Q = 0.30, INK_MULTI = 0.6;
+const _inkHistP = new Uint32Array(256), _inkHistD = new Uint32Array(256);
+
+function inkScoreAt(D, W, H, x, y, R) {
+  const cx = Math.round(x), cy = Math.round(y);
+  const hw = Math.max(6, Math.round(R * INK_WIN));
+  const hp = _inkHistP; hp.fill(0);
+  let np = 0;
+  const y0 = Math.max(0, cy - hw), y1 = Math.min(H - 1, cy + hw), x0 = Math.max(0, cx - hw), x1 = Math.min(W - 1, cx + hw);
+  for (let yy = y0; yy <= y1; yy++) {
+    const off = yy * W;
+    for (let xx = x0; xx <= x1; xx++) { hp[D[off + xx]]++; np++; }
+  }
+  if (np < 50) return 0;
+  let c = 0, paper = 255;
+  const tp = INK_PAPER_Q * np;
+  for (let v = 0; v < 256; v++) { c += hp[v]; if (c >= tp) { paper = v; break; } }
+  paper = Math.max(60, paper);                     // mức xám của giấy quanh ô
+  const ri = Math.max(3, INK_RHO * R), r2 = ri * ri, ir = Math.ceil(ri);
+  const hd = _inkHistD;
+  let best = 0;
+  for (let oi = 0; oi < INK_OFFS.length; oi++) {
+    const oy = INK_OFFS[oi];
+    for (let oj = 0; oj < INK_OFFS.length; oj++) {
+      const ox = INK_OFFS[oj];
+      hd.fill(0);
+      let n = 0;
+      for (let dy = -ir; dy <= ir; dy++) {
+        const yy = cy + oy + dy;
+        if (yy < 0 || yy >= H) continue;
+        for (let dx = -ir; dx <= ir; dx++) {
+          if (dx * dx + dy * dy > r2) continue;
+          const xx = cx + ox + dx;
+          if (xx < 0 || xx >= W) continue;
+          hd[D[yy * W + xx]]++; n++;
+        }
+      }
+      if (n < 12) continue;
+      let cum = 0, g = 255;
+      const t = INK_FRAC * n;
+      for (let v = 0; v < 256; v++) { cum += hd[v]; if (cum >= t) { g = v; break; } }
+      const s = Math.max(0, 1 - g / paper);
+      if (s > best) best = s;
+    }
+  }
+  return best;
+}
+
+function inkQuantile(a, q) {
+  const s = a.slice().sort((x, y) => x - y);
+  return s[Math.max(0, Math.min(s.length - 1, Math.floor(q * (s.length - 1))))];
+}
+
+// Đo mọi ô tô của phiếu một lần và tính "nền" cho từng ký tự (phân vị 30% của các ô cùng ký tự trên cả phiếu)
+function inkSheetModel(geo, measure) {
+  const sc = new Map(), gk = new Map(), groups = {};
+  const R = geo.bubbleRadius, idR = geo.idBubbleRadius || 8.5;
+  const add = (key, b, r) => {
+    const s = measure(b.x, b.y, r);
+    sc.set(b, s); gk.set(b, key);
+    (groups[key] = groups[key] || []).push(s);
+  };
+  geo.p1.forEach(it => it.opts.forEach(b => add('p1' + b.label, b, R)));
+  geo.p2.forEach(it => it.statements.forEach(st => { add('p2T', st.trueOpt, R); add('p2F', st.falseOpt, R); }));
+  geo.p3.forEach(it => it.cols.forEach(col => col.bubbles.forEach(b => add('p3' + b.char, b, R))));
+  geo.sbd.concat(geo.made).forEach(col => col.forEach(b => add('id' + b.digit, b, idR)));
+  const lb = {};
+  for (const k in groups) lb[k] = groups[k].length >= 3 ? inkQuantile(groups[k], INK_BASE_Q) : Infinity;
+  return { score: b => sc.get(b), lbOf: b => lb[gk.get(b)] };
+}
+
+function inkLimits(thr) { return { rel: thr * INK_REL_K, abs: thr * INK_ABS_K }; }
+function inkRowBase2(s) { const a = s.slice().sort((x, y) => x - y); return (a[0] + a[1]) / 2; }
+function inkRowBase3(s) { const a = s.slice().sort((x, y) => x - y), k = Math.min(3, a.length); let t = 0; for (let i = 0; i < k; i++) t += a[i]; return t / k; }
+function inkMedian(s) { const a = s.slice().sort((x, y) => x - y), n = a.length; return n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2; }
+
+// z = độ nổi lên của ô so với nền: nền = min(nền theo ký tự, nền của chính câu/cột + INK_CAP).
+// (nếu cả tờ đều tô cùng một chữ thì nền theo ký tự bị "nhiễm" — mức nền của câu giữ cho ô vẫn được nhận)
+function inkExcess(M, bubbles, rowBaseFn) {
+  const s = bubbles.map(b => M.score(b)), rb = rowBaseFn(s);
+  return { s, z: bubbles.map((b, i) => s[i] - Math.min(M.lbOf(b), rb + INK_CAP)) };
+}
+
+// Phần I: 4 ô A-D của một câu → mảng chỉ số các ô được tô
+function inkPickRow(M, bubbles, thr) {
+  const t = inkLimits(thr), e = inkExcess(M, bubbles, inkRowBase2), mz = Math.max(...e.z), out = [];
+  e.z.forEach((v, i) => { if (v >= t.rel && e.s[i] >= t.abs && v >= mz * INK_MULTI) out.push(i); });
+  return out;
+}
+
+// Câu chưa thấy ô nào được tô nhưng có 1 ô "nhạt bất thường" (nét chì rất nhạt?) → trả về chỉ số ô đó, -1 nếu không có.
+// Dùng để báo giáo viên xem lại (vòng xanh lơ) chứ KHÔNG tự tính là đã tô.
+function inkFaintCandidate(M, bubbles, thr) {
+  const t = inkLimits(thr), e = inkExcess(M, bubbles, inkRowBase2);
+  let bi = -1, bz = -9;
+  e.z.forEach((v, i) => { if (v > bz) { bz = v; bi = i; } });
+  return (bz >= t.rel * 0.55 && bz < t.rel && e.s[bi] >= t.abs * 0.6) ? bi : -1;
+}
+
+// Phần II: 4 ý (mỗi ý 2 ô Đ/S) của một câu → ['Đ' | 'S' | null, ...]
+function inkPickP2(M, statements, thr) {
+  const t = inkLimits(thr), all = [];
+  statements.forEach(st => { all.push(M.score(st.trueOpt), M.score(st.falseOpt)); });
+  const rb = inkRowBase3(all);                              // nền câu = trung bình 3 ô nhạt nhất trong 8 ô
+  const zOf = b => ({ s: M.score(b), z: M.score(b) - Math.min(M.lbOf(b), rb + INK_CAP) });
+  return statements.map(st => {
+    const T = zOf(st.trueOpt), F = zOf(st.falseOpt), hi = Math.max(T.z, F.z);
+    const mT = T.z >= t.rel && T.s >= t.abs && T.z >= hi * INK_MULTI;
+    const mF = F.z >= t.rel && F.s >= t.abs && F.z >= hi * INK_MULTI;
+    return (mT && !mF) ? 'Đ' : ((mF && !mT) ? 'S' : null);  // tô cả 2 hoặc không tô → bỏ qua
+  });
+}
+
+// Phần III: một cột ký tự → chỉ số ô được tô, hoặc -1 nếu cột để trống
+function inkPickCol(M, bubbles, thr) {
+  const t = inkLimits(thr), e = inkExcess(M, bubbles, inkMedian);
+  let bi = -1, bz = -9;
+  e.z.forEach((v, i) => { if (v > bz) { bz = v; bi = i; } });
+  return (bz >= t.rel && e.s[bi] >= t.abs) ? bi : -1;
+}
+
+// SBD / Mã đề: một cột 10 chữ số → { idx: ô đậm nhất (hoặc -1), state: 'ok' | 'blank' | 'multi' }
+function inkAnalyzeId(M, bubbles, thr) {
+  const t = inkLimits(thr), e = inkExcess(M, bubbles, inkMedian);
+  let bi = -1, bz = -9;
+  e.z.forEach((v, i) => { if (v > bz) { bz = v; bi = i; } });
+  if (bz < t.rel || e.s[bi] < t.abs) return { idx: -1, state: 'blank' };
+  const srt = e.z.slice().sort((a, b) => b - a);
+  if (srt[1] >= bz * INK_MULTI && srt[1] >= t.rel) return { idx: bi, state: 'multi' };
+  return { idx: bi, state: 'ok' };
+}
+
 // Tạo bức ảnh hoàn chỉnh có dải Banner thông tin học sinh + Điểm số đóng dấu ở trên cùng
 function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   const out = document.createElement('canvas');
@@ -2725,9 +2873,24 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
 
 
 
+  // Ảnh xám đã nắn phẳng (sao chép ra mảng riêng) để đo độ đậm từng ô tô. Không có OpenCV → dùng cách cũ (ảnh nhị phân).
+  let inkGray = null;
+  if (useOpenCV && warpedGray) {
+    try { inkGray = new Uint8Array(warpedGray.data); } catch (e) { inkGray = null; }
+  }
+  const useInk = !!(inkGray && inkGray.length === WARP_W * WARP_H);
+  const inkMeasure = (x, y, R) => {
+    const [dx, dy] = shiftXY(x, y);
+    return inkScoreAt(inkGray, WARP_W, WARP_H, x + dx, y + dy, R);
+  };
+
   const ctxColor = rawSheetColor.getContext('2d');
   const ctxBin = rawSheetBin.getContext('2d');
   const geo = getSheetGeometry(currentTemplate);
+  const inkModel = useInk ? inkSheetModel(geo, inkMeasure) : null;   // đo mọi ô một lần + nền chuẩn từng ký tự
+  const readIdCol = col => useInk
+    ? inkAnalyzeId(inkModel, col, thresholdRatio)
+    : analyzeIdColumn(col.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
   // Phiếu ngang > 52 câu có ô tô nhỏ (bán kính 8.5): thu vùng đo lại để không chạm viền vòng tròn
   const scanR = currentTemplate === '2026_3P' ? 6
     : (currentTemplate === 'NGANG_CUSTOM' && geo.bubbleRadius < 9 ? 6 : 7);
@@ -2741,7 +2904,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   // 1. Đọc Số Báo Danh
   let sbdStr = '';
   geo.sbd.forEach(col => {
-    const a = analyzeIdColumn(col.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+    const a = readIdCol(col);
     const bestPos = a.idx >= 0 ? col[a.idx] : null;
     sbdStr += bestPos ? bestPos.digit : '0';
     if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
@@ -2751,7 +2914,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   let maDeStr = '', maDeShown = '';
   const maDeBad = [];
   geo.made.forEach((col, cIdx) => {
-    const a = analyzeIdColumn(col.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+    const a = readIdCol(col);
     const bestPos = a.idx >= 0 ? col[a.idx] : null;
     const bestD = bestPos ? bestPos.digit : '0';
     maDeStr += bestD;
@@ -2794,9 +2957,17 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   // 3. Chấm Phần I
   let correctP1 = 0;
   const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
+  let blankP1 = 0, multiP1 = 0, faintP1 = 0;
   geo.p1.forEach(item => {
-    const ratios = item.opts.map(opt => measureBubble(opt.x, opt.y, scanR));
-    const filled = pickFilledInRow(ratios, thresholdRatio).map(i => item.opts[i]);
+    const filledIdx = useInk
+      ? inkPickRow(inkModel, item.opts, thresholdRatio)
+      : pickFilledInRow(item.opts.map(opt => measureBubble(opt.x, opt.y, scanR)), thresholdRatio);
+    const filled = filledIdx.map(i => item.opts[i]);
+    if (filled.length === 0) {
+      blankP1++;
+      const fi = useInk ? inkFaintCandidate(inkModel, item.opts, thresholdRatio) : -1;
+      if (fi >= 0) { faintP1++; drawBoth(item.opts[fi].x, item.opts[fi].y, 12.5, '#06b6d4', 2.4); }
+    } else if (filled.length > 1) multiP1++;
     const rightAns = activeKey.p1[item.q];
     const rightObj = item.opts.find(o => o.label === rightAns);
 
@@ -2818,11 +2989,12 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   if (currentTemplate === '2026_2P' || currentTemplate === '2026_3P') {
     geo.p2.forEach(item => {
       let clusterRight = 0;
-      const tf = item.statements.map(st => [
-        measureBubble(st.trueOpt.x, st.trueOpt.y, scanR),
-        measureBubble(st.falseOpt.x, st.falseOpt.y, scanR)
-      ]);
-      const choices = pickP2Choices(tf, thresholdRatio);
+      const choices = useInk
+        ? inkPickP2(inkModel, item.statements, thresholdRatio)
+        : pickP2Choices(item.statements.map(st => [
+            measureBubble(st.trueOpt.x, st.trueOpt.y, scanR),
+            measureBubble(st.falseOpt.x, st.falseOpt.y, scanR)
+          ]), thresholdRatio);
       item.statements.forEach((st, si) => {
         const choice = choices[si];
         const chosenPos = choice === 'Đ' ? st.trueOpt : (choice === 'S' ? st.falseOpt : null);
@@ -2854,7 +3026,9 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       let studentStr = '';
       const chosenBubbles = [];
       item.cols.forEach(col => {
-        const bi = pickDigitInColumn(col.bubbles.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+        const bi = useInk
+          ? inkPickCol(inkModel, col.bubbles, thresholdRatio)
+          : pickDigitInColumn(col.bubbles.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
         const bestB = bi >= 0 ? col.bubbles[bi] : null;
         studentStr += bestB ? bestB.char : '';
         if (bestB) chosenBubbles.push(bestB);
@@ -2883,6 +3057,14 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       chip.innerHTML = `<strong>Câu ${item.q}:</strong> ${studentStr || '(Trống)'}<br><small>Đ/A: ${expectedStr}</small>`;
       readoutBox.appendChild(chip);
     });
+  }
+
+  if (!isInitialPreview && (blankP1 || multiP1)) {
+    const parts = [];
+    if (blankP1) parts.push(`${blankP1} câu không thấy ô tô (vòng vàng = đáp án đúng chưa được tô)`);
+    if (faintP1) parts.push(`${faintP1} câu có nét rất nhạt, CHƯA tính điểm (vòng xanh lơ — nếu đúng là học sinh đã tô, kéo "Độ nhạy chì" xuống rồi chấm lại)`);
+    if (multiP1) parts.push(`${multiP1} câu tô nhiều ô`);
+    document.getElementById('scanMsg').innerText += '  •  Phần I: ' + parts.join('; ');
   }
 
   const extraOrP3 = +(scoreP3 + essayScore).toFixed(2);
