@@ -1630,10 +1630,22 @@ function createDefaultKey() {
   return key;
 }
 
+// Bảng đáp án cũ có thể thiếu một số câu (lưu từ bản trước) → giao diện hiện "A" nhưng lúc chấm lại không có đáp án
+// nên câu đó luôn bị tính sai. Hàm này ghi sẵn "A" (đúng cái giao diện đang hiển thị) cho các câu còn thiếu.
+function fillMissingP1(key, maxQ = 60) {
+  if (!key.p1) key.p1 = {};
+  let added = 0;
+  for (let i = 1; i <= maxQ; i++) {
+    if (!['A', 'B', 'C', 'D'].includes(key.p1[i])) { key.p1[i] = 'A'; added++; }
+  }
+  return added;
+}
+
 function renderAnswerKeyUI() {
   const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   const currentKey = answerKeys[code];
+  if (fillMissingP1(currentKey) > 0) persistKeys();
   const geo = getSheetGeometry(currentTemplate);
   renderExamCodeChips();
 
@@ -2052,6 +2064,8 @@ const LANDSCAPE_ANCHORS = [
 }, []));
 const LANDSCAPE_BIG_RATIO = 0.45;  // chấm góc có diện tích ≥ 45% ô lớn nhất (ô định vị chỉ ≈ 37% chấm góc)
 const LANDSCAPE_MIN_ANCHORS = 8;   // cho phép tối đa 4/12 ô định vị bị che/mờ (phiếu căn đúng ≈ 12/12, căn sai ≤ 2/12)
+const LANDSCAPE_ANCHOR_TOL = 8;    // ô định vị được phép lệch ≤ 8 px (tính trên phiếu 1180x780) do giấy cong/ống kính méo
+const LANDSCAPE_ANCHOR_SEARCH = 12; // khi bù lệch: tìm ô định vị trong ±12 px quanh vị trí chuẩn
 const LANDSCAPE_W = 1180, LANDSCAPE_H = 780; // khung chuẩn của phiếu ngang (khớp syncWarpDimensions)
 
 // Ma trận biến đổi phối cảnh 3x3 (src → dst) từ 4 cặp điểm; trả về mảng 9 phần tử hoặc null
@@ -2088,21 +2102,93 @@ function landscapeAnchorScore(quad4, grayMat, darkLimit) {
   );
   if (!H) return 0;
   const W = grayMat.cols, Hh = grayMat.rows, data = grayMat.data;
+  const T = LANDSCAPE_ANCHOR_TOL;
+  const shifts = [];
+  for (let ox = -T; ox <= T; ox += T) for (let oy = -T; oy <= T; oy += T) shifts.push([ox, oy]);
+  shifts.sort((a, b) => (Math.abs(a[0]) + Math.abs(a[1])) - (Math.abs(b[0]) + Math.abs(b[1]))); // thử chính giữa trước
   let good = 0;
   LANDSCAPE_ANCHORS.forEach(([ax, ay]) => {
-    let sum = 0, n = 0;
-    for (let dx = -5; dx <= 5; dx += 5) {
-      for (let dy = -5; dy <= 5; dy += 5) {
-        const sx = ax + dx, sy = ay + dy;
-        const w = H[6] * sx + H[7] * sy + 1;
-        const px = Math.round((H[0] * sx + H[1] * sy + H[2]) / w);
-        const py = Math.round((H[3] * sx + H[4] * sy + H[5]) / w);
-        if (px >= 0 && px < W && py >= 0 && py < Hh) { sum += data[py * W + px]; n++; }
+    for (let k = 0; k < shifts.length; k++) {
+      let sum = 0, n = 0;
+      for (let dx = -5; dx <= 5; dx += 5) {
+        for (let dy = -5; dy <= 5; dy += 5) {
+          const sx = ax + shifts[k][0] + dx, sy = ay + shifts[k][1] + dy;
+          const w = H[6] * sx + H[7] * sy + 1;
+          const px = Math.round((H[0] * sx + H[1] * sy + H[2]) / w);
+          const py = Math.round((H[3] * sx + H[4] * sy + H[5]) / w);
+          if (px >= 0 && px < W && py >= 0 && py < Hh) { sum += data[py * W + px]; n++; }
+        }
       }
+      if (n >= 6 && sum / n <= darkLimit) { good++; break; }
     }
-    if (n >= 6 && sum / n <= darkLimit) good++;
   });
   return good;
+}
+
+/* ---- Bù lệch vị trí ô tô bằng 12 ô vuông định vị (sau khi đã nắn phẳng) ----
+ * Giấy cong nhẹ / ống kính méo nhẹ làm các ô tô lệch vài px so với vị trí chuẩn; vùng đo 14x14 px khi đó
+ * chạm vào viền vòng tròn nên ô TRỐNG bị đọc là "đã tô" → câu đúng bị tính là tô nhiều ô.
+ * Mỗi khối (MÃ ĐỀ, SBD, 4 nhóm đáp án) có ô định vị ở trên và dưới: đo độ lệch thật của 2 ô này rồi
+ * nội suy theo chiều dọc để dời vị trí đo cho từng ô tô trong khối. */
+const LANDSCAPE_BLOCK_X = [49, 237, 483, 653, 823, 993];   // x của ô định vị từng khối (trùng LANDSCAPE_ANCHORS)
+function landscapeBlockIndex(x) {
+  if (x < 200) return 0;                                    // MÃ ĐỀ
+  if (x < 470) return 1;                                    // SỐ BÁO DANH
+  return 2 + Math.max(0, Math.min(3, Math.floor((x - 472) / 170))); // 4 nhóm đáp án
+}
+
+// Tìm độ lệch [dx, dy] của ô vuông đen 22x22 quanh (ax, ay); null nếu không thấy ô đen đặc ở gần đó
+function findAnchorShift(data, W, H, ax, ay, darkLimit) {
+  const BOX = 22, half = 11, S = LANDSCAPE_ANCHOR_SEARCH;
+  const x0 = Math.round(ax) - half - S, y0 = Math.round(ay) - half - S;
+  const n = 2 * half + 2 * S + 1;
+  if (x0 < 0 || y0 < 0 || x0 + n > W || y0 + n > H) return null;
+  const stride = n + 1;
+  const ii = new Int32Array(stride * stride); // ảnh tích phân của "điểm đen"
+  for (let y = 0; y < n; y++) {
+    let row = 0;
+    const off = (y0 + y) * W + x0;
+    for (let x = 0; x < n; x++) {
+      if (data[off + x] <= darkLimit) row++;
+      ii[(y + 1) * stride + x + 1] = ii[y * stride + x + 1] + row;
+    }
+  }
+  let best = -1, bx = 0, by = 0, bd = 1e9;
+  for (let oy = 0; oy <= 2 * S; oy++) {
+    for (let ox = 0; ox <= 2 * S; ox++) {
+      const sum = ii[(oy + BOX) * stride + ox + BOX] - ii[oy * stride + ox + BOX] - ii[(oy + BOX) * stride + ox] + ii[oy * stride + ox];
+      const d = (ox - S) * (ox - S) + (oy - S) * (oy - S);
+      if (sum > best || (sum === best && d < bd)) { best = sum; bx = ox - S; by = oy - S; bd = d; }
+    }
+  }
+  return best >= 0.6 * BOX * BOX ? [bx, by] : null;
+}
+
+// grayMat: ảnh xám ĐÃ NẮN PHẲNG (WARP_W x WARP_H). Trả về {top:[..], bot:[..]} cho 6 khối, hoặc null
+function computeLandscapeShifts(grayMat) {
+  if (!grayMat || grayMat.cols !== LANDSCAPE_W || grayMat.rows !== LANDSCAPE_H) return null;
+  const darkLimit = getMarkerDarkLimit(grayMat, grayMat.cols, grayMat.rows);
+  const blocks = [];
+  let found = 0;
+  for (let i = 0; i < 6; i++) {
+    const top = LANDSCAPE_ANCHORS[2 * i], bot = LANDSCAPE_ANCHORS[2 * i + 1];
+    const t = findAnchorShift(grayMat.data, grayMat.cols, grayMat.rows, top[0], top[1], darkLimit);
+    const b = findAnchorShift(grayMat.data, grayMat.cols, grayMat.rows, bot[0], bot[1], darkLimit);
+    if (t) found++; if (b) found++;
+    blocks.push({ t, b, yt: top[1], yb: bot[1] });
+  }
+  return found >= 6 ? blocks : null; // quá ít ô định vị thấy được → không bù (giữ vị trí chuẩn)
+}
+
+// Độ lệch [dx, dy] (số nguyên) cần cộng vào vị trí chuẩn (x, y) của một ô tô
+function landscapeShiftAt(blocks, x, y) {
+  const blk = blocks[landscapeBlockIndex(x)];
+  let t = blk.t, b = blk.b;
+  if (!t && !b) return [0, 0];
+  if (!t) t = b;
+  if (!b) b = t;
+  const k = Math.max(0, Math.min(1, (y - blk.yt) / (blk.yb - blk.yt)));
+  return [Math.round(t[0] + (b[0] - t[0]) * k), Math.round(t[1] + (b[1] - t[1]) * k)];
 }
 
 // Chọn 4 góc cho phiếu ngang (theo thứ tự TL, TR, BR, BL CỦA PHIẾU) hoặc null nếu không căn chỉnh được
@@ -2327,6 +2413,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   let src = null, gray = null, blurred = null, thresh = null;
   let warpedColor = null, warpedGray = null, warpedThresh = null;
   let pureMask = null;
+  let landscapeShifts = null; // độ lệch thật của từng khối ô tô (chỉ phiếu ngang)
   let useOpenCV = Boolean(cvReady && typeof cv !== 'undefined' && cv.Mat);
 
   const freeMats = () => {
@@ -2386,6 +2473,9 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
         cv.warpPerspective(src, warpedColor, M, new cv.Size(WARP_W, WARP_H));
         cv.warpPerspective(gray, warpedGray, M, new cv.Size(WARP_W, WARP_H));
         srcTri.delete(); dstTri.delete(); M.delete();
+        if (currentTemplate === 'NGANG_CUSTOM') {
+          try { landscapeShifts = computeLandscapeShifts(warpedGray); } catch (e) { landscapeShifts = null; }
+        }
         document.getElementById('scanMsg').innerText = '✅ Đã bắt 4 góc OpenCV & đóng dấu điểm lên ảnh phiếu!';
         document.getElementById('scanMsg').style.color = '#16a34a';
       } else {
@@ -2430,11 +2520,13 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     document.getElementById('scanMsg').style.color = '#16a34a';
   }
 
+  const shiftXY = (x, y) => landscapeShifts ? landscapeShiftAt(landscapeShifts, x, y) : [0, 0];
   const measureBubble = (x, y, r) => {
+    const [dx, dy] = shiftXY(x, y);
     if (useOpenCV && warpedThresh) {
-      return getBubbleFillRatio.call(null, warpedThresh, x, y, r);
+      return getBubbleFillRatio.call(null, warpedThresh, x + dx, y + dy, r);
     }
-    return getMaskBubbleFillRatio(pureMask, x, y, r);
+    return getMaskBubbleFillRatio(pureMask, x + dx, y + dy, r);
   };
 
 
@@ -2442,11 +2534,14 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   const ctxColor = rawSheetColor.getContext('2d');
   const ctxBin = rawSheetBin.getContext('2d');
   const geo = getSheetGeometry(currentTemplate);
-  const scanR = currentTemplate === '2026_3P' ? 6 : 7;
+  // Phiếu ngang > 52 câu có ô tô nhỏ (bán kính 8.5): thu vùng đo lại để không chạm viền vòng tròn
+  const scanR = currentTemplate === '2026_3P' ? 6
+    : (currentTemplate === 'NGANG_CUSTOM' && geo.bubbleRadius < 9 ? 6 : 7);
 
   const drawBoth = (x, y, r, color, lw) => {
-    drawCircleOverlay(ctxColor, x, y, r, color, lw);
-    drawCircleOverlay(ctxBin, x, y, r, color, lw);
+    const [dx, dy] = shiftXY(x, y);
+    drawCircleOverlay(ctxColor, x + dx, y + dy, r, color, lw);
+    drawCircleOverlay(ctxBin, x + dx, y + dy, r, color, lw);
   };
 
   // 1. Đọc Số Báo Danh
@@ -2477,6 +2572,11 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
 
   const fallbackCode = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
+  const keyGapsInRange = geo.p1.filter(it => !['A', 'B', 'C', 'D'].includes(activeKey.p1 && activeKey.p1[it.q])).length;
+  if (fillMissingP1(activeKey) > 0) persistKeys();
+  if (keyGapsInRange > 0 && !isInitialPreview) {
+    showAppToast(`⚠️ Đáp án mã đề ${answerKeys[maDeStr] ? maDeStr : fallbackCode} còn thiếu ${keyGapsInRange} câu — đã tạm ghi "A". Hãy mở tab Đáp án, kiểm tra rồi bấm Lưu.`, 'warn');
+  }
   if (!answerKeys[maDeStr] && !isInitialPreview) {
     showAppToast(`⚠️ Mã đề ${maDeStr} chưa có đáp án! Đang chấm tạm theo đáp án mã đề ${fallbackCode}.`, 'warn');
   }
@@ -2486,10 +2586,17 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
   geo.p1.forEach(item => {
     const filled = [];
-    item.opts.forEach(opt => {
-      const r = measureBubble(opt.x, opt.y, scanR);
-      if (r >= thresholdRatio) filled.push(opt);
-    });
+    const ratios = item.opts.map(opt => measureBubble(opt.x, opt.y, scanR));
+    if (currentTemplate === 'NGANG_CUSTOM') {
+      // Phiếu ngang: ô trống luôn có "nền" 0.2–0.4 (viền vòng tròn + chữ A/B/C/D), nên ngoài ngưỡng tuyệt đối
+      // còn yêu cầu ô được tô phải ĐẬM HƠN HẲN các ô khác cùng câu (≥ 60% ô đậm nhất và hơn ô nhạt nhất ≥ 0.12).
+      const mx = Math.max.apply(null, ratios), mn = Math.min.apply(null, ratios);
+      item.opts.forEach((opt, i) => {
+        if (ratios[i] >= thresholdRatio && ratios[i] >= mx * 0.6 && ratios[i] - mn >= 0.12) filled.push(opt);
+      });
+    } else {
+      item.opts.forEach((opt, i) => { if (ratios[i] >= thresholdRatio) filled.push(opt); });
+    }
     const rightAns = activeKey.p1[item.q];
     const rightObj = item.opts.find(o => o.label === rightAns);
 
@@ -2604,7 +2711,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   currentLatestRecord = record;
 
   const imgDataUrl = lastColorCanvas.toDataURL('image/jpeg', 0.84);
-  await saveImageToDB(recordId, imgDataUrl);
+  // Lưu ảnh có thể bị treo trên một số trình duyệt (chế độ riêng tư, WebView) → tối đa chờ 2.5 giây rồi vẫn hiện điểm
+  await Promise.race([saveImageToDB(recordId, imgDataUrl), new Promise(res => setTimeout(() => res(false), 2500))]);
 
   renderResultCanvasView();
 
