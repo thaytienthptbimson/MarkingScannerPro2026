@@ -449,6 +449,10 @@
             <input type="checkbox" id="scanSoundToggle" checked style="width:16px; height:16px;" onchange="onScanSoundToggle(this)">
             🔊 Âm thanh khi quét
           </label>
+          <label style="color:#b91c1c; cursor:pointer; display:flex; align-items:center; gap:5px;" title="Bật: phiếu có mã đề không có trong danh sách đáp án, hoặc tô thiếu/tô thừa ô ở cột mã đề thì KHÔNG chấm và không đưa vào bảng điểm.">
+            <input type="checkbox" id="strictExamCodeToggle" checked style="width:16px; height:16px;" onchange="onStrictExamCodeToggle(this)">
+            🚫 Không chấm khi tô sai mã đề
+          </label>
         </div>
         <div>
           <label>Độ nhạy chì: <span id="threshVal">35</span>%</label>
@@ -2275,6 +2279,64 @@ function getBubbleFillRatio(threshMat, x, y, r = 6) {
   return nonZero / (w * h);
 }
 
+/* ---- LUẬT ĐỌC Ô TÔ DÙNG CHUNG CHO MỌI MẪU PHIẾU ----
+ * Ô TRỐNG không bao giờ có tỉ lệ 0: viền vòng tròn + chữ A/B/C/D luôn cho "nền" 0.2–0.4. Chỉ cần phiếu cong 1–2 mm,
+ * ống kính méo nhẹ hay ảnh hơi nhòe là nền này chạm/vượt ngưỡng 35% → ô trống bị đọc là "đã tô" → câu đúng bị tính
+ * là "tô nhiều ô" và không có điểm. Vì vậy ngoài ngưỡng tuyệt đối, một ô chỉ được coi là ĐÃ TÔ khi nó nổi hẳn lên
+ * so với "nền" của chính câu / cột đó (cùng vùng giấy nên cùng chịu một mức cong, nhòe). */
+function readMarginFor(thr) { return Math.min(0.2, thr * 0.6); }
+
+// Phần I: tỉ lệ 4 ô A-D của một câu → mảng chỉ số các ô được tô
+function pickFilledInRow(ratios, thr) {
+  const sorted = ratios.slice().sort((a, b) => a - b);
+  const mx = sorted[sorted.length - 1];
+  const base = (sorted[0] + sorted[1]) / 2;       // nền = trung bình 2 ô nhạt nhất
+  const need = readMarginFor(thr);
+  const out = [];
+  ratios.forEach((r, i) => { if (r >= thr && r >= mx * 0.6 && r - base >= need) out.push(i); });
+  return out;
+}
+
+// Phần II: tf = [[tỉ lệ Đ, tỉ lệ S], ...] của MỘT câu (4 ý a-d) → ['Đ' | 'S' | null, ...]
+function pickP2Choices(tf, thr) {
+  const all = [];
+  tf.forEach(pair => { all.push(pair[0], pair[1]); });
+  all.sort((a, b) => a - b);
+  const k = Math.min(3, all.length);
+  let base = 0;
+  for (let i = 0; i < k; i++) base += all[i];
+  base /= Math.max(1, k);                          // nền = trung bình 3 ô nhạt nhất trong 8 ô của câu
+  const need = readMarginFor(thr);
+  return tf.map(pair => {
+    const t = pair[0], f = pair[1];
+    const hi = Math.max(t, f);
+    const markT = t >= thr && t >= hi * 0.6 && t - base >= need;   // cùng tiêu chí với Phần I
+    const markF = f >= thr && f >= hi * 0.6 && f - base >= need;
+    return (markT && !markF) ? 'Đ' : ((markF && !markT) ? 'S' : null);   // tô cả 2 hoặc không tô → bỏ qua
+  });
+}
+
+// Phần III: một cột ký tự → chỉ số ô được tô, hoặc -1 nếu cột để trống
+function pickDigitInColumn(ratios, thr) {
+  let bi = -1, bm = thr;
+  ratios.forEach((r, i) => { if (r > bm) { bm = r; bi = i; } });
+  if (bi < 0) return -1;
+  const sorted = ratios.slice().sort((a, b) => a - b);
+  const n = sorted.length;
+  const med = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+  return (bm - med >= readMarginFor(thr)) ? bi : -1;
+}
+
+// SBD / Mã đề: một cột 10 chữ số → { idx: ô đậm nhất (hoặc -1), state: 'ok' | 'blank' | 'multi' }
+function analyzeIdColumn(ratios, thr) {
+  let bi = -1, bm = thr;
+  ratios.forEach((r, i) => { if (r > bm) { bm = r; bi = i; } });
+  if (bi < 0) return { idx: -1, state: 'blank' };
+  const sorted = ratios.slice().sort((a, b) => b - a);
+  if (sorted[0] - sorted[1] >= 0.15) return { idx: bi, state: 'ok' };
+  return { idx: bi, state: sorted[0] >= 0.7 ? 'multi' : 'blank' };
+}
+
 // Tạo bức ảnh hoàn chỉnh có dải Banner thông tin học sinh + Điểm số đóng dấu ở trên cùng
 function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   const out = document.createElement('canvas');
@@ -2400,6 +2462,25 @@ function rejectScanNoMarkers(reason) {
   if (now - lastNoMarkerToastAt > 3000) {
     lastNoMarkerToastAt = now;
     showAppToast(text, 'warn');
+  }
+}
+
+let lastBadCodeAlertAt = 0;
+function rejectScanBadExamCode(why) {
+  const text = `❌ ${why} — KHÔNG CHẤM phiếu này. Nhờ thí sinh tô lại mã đề, hoặc thêm đáp án cho mã đề ở tab Đáp án.`;
+  const msgEl = document.getElementById('scanMsg');
+  if (msgEl) { msgEl.innerText = text; msgEl.style.color = '#dc2626'; }
+  const camEl = document.getElementById('camLastResult');
+  if (camEl && document.body.classList.contains('cam-fs-open')) {
+    camEl.style.display = 'block';
+    camEl.style.background = '#450a0a'; camEl.style.color = '#fecaca'; camEl.style.borderTopColor = '#dc2626';
+    camEl.innerText = '❌ ' + why + ' — KHÔNG CHẤM';
+  }
+  const now = Date.now();
+  if (now - lastBadCodeAlertAt > 3000) {
+    lastBadCodeAlertAt = now;
+    showAppToast(text, 'error');
+    playScanResultSound('warn');
   }
 }
 
@@ -2547,28 +2628,44 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   // 1. Đọc Số Báo Danh
   let sbdStr = '';
   geo.sbd.forEach(col => {
-    let bestD = '0', maxF = thresholdRatio, bestPos = null;
-    col.forEach(b => {
-      const r = measureBubble(b.x, b.y, 6);
-      if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
-    });
-    sbdStr += bestD;
+    const a = analyzeIdColumn(col.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+    const bestPos = a.idx >= 0 ? col[a.idx] : null;
+    sbdStr += bestPos ? bestPos.digit : '0';
     if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
   });
+
+  // 2. Đọc Mã đề — mỗi cột phải có ĐÚNG 1 ô được tô ('?' = cột bỏ trống, '*' = cột tô 2 ô trở lên)
+  let maDeStr = '', maDeShown = '';
+  const maDeBad = [];
+  geo.made.forEach((col, cIdx) => {
+    const a = analyzeIdColumn(col.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+    const bestPos = a.idx >= 0 ? col[a.idx] : null;
+    const bestD = bestPos ? bestPos.digit : '0';
+    maDeStr += bestD;
+    if (a.state === 'blank') { maDeShown += '?'; maDeBad.push(`cột ${cIdx + 1} bỏ trống (hoặc tô quá mờ)`); }
+    else if (a.state === 'multi') { maDeShown += '*'; maDeBad.push(`cột ${cIdx + 1} tô nhiều ô`); }
+    else maDeShown += bestD;
+    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
+  });
+
+  // Tô sai mã đề (cột bỏ trống / tô 2 ô / mã không có trong danh sách đáp án) → không chấm, không lưu vào bảng điểm
+  const strictCode = document.getElementById('strictExamCodeToggle');
+  if (!isInitialPreview && (!strictCode || strictCode.checked)) {
+    let why = null;
+    if (maDeBad.length) {
+      why = `Mã đề tô sai (${maDeBad.join(', ')}; đọc được "${maDeShown}")`;
+    } else if (!answerKeys[maDeStr]) {
+      const have = getSortedExamCodes();
+      why = `Mã đề ${maDeStr} không có trong danh sách đáp án (đang có: ${have.slice(0, 8).join(', ')}${have.length > 8 ? ', …' : ''})`;
+    }
+    if (why) {
+      freeMats();
+      rejectScanBadExamCode(why);
+      return false;
+    }
+  }
 
   document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr;
-
-  // 2. Đọc Mã đề
-  let maDeStr = '';
-  geo.made.forEach(col => {
-    let bestD = '0', maxF = thresholdRatio, bestPos = null;
-    col.forEach(b => {
-      const r = measureBubble(b.x, b.y, 6);
-      if (r > maxF) { maxF = r; bestD = b.digit; bestPos = b; }
-    });
-    maDeStr += bestD;
-    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
-  });
 
   const fallbackCode = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
@@ -2585,18 +2682,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   let correctP1 = 0;
   const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
   geo.p1.forEach(item => {
-    const filled = [];
     const ratios = item.opts.map(opt => measureBubble(opt.x, opt.y, scanR));
-    if (currentTemplate === 'NGANG_CUSTOM') {
-      // Phiếu ngang: ô trống luôn có "nền" 0.2–0.4 (viền vòng tròn + chữ A/B/C/D), nên ngoài ngưỡng tuyệt đối
-      // còn yêu cầu ô được tô phải ĐẬM HƠN HẲN các ô khác cùng câu (≥ 60% ô đậm nhất và hơn ô nhạt nhất ≥ 0.12).
-      const mx = Math.max.apply(null, ratios), mn = Math.min.apply(null, ratios);
-      item.opts.forEach((opt, i) => {
-        if (ratios[i] >= thresholdRatio && ratios[i] >= mx * 0.6 && ratios[i] - mn >= 0.12) filled.push(opt);
-      });
-    } else {
-      item.opts.forEach((opt, i) => { if (ratios[i] >= thresholdRatio) filled.push(opt); });
-    }
+    const filled = pickFilledInRow(ratios, thresholdRatio).map(i => item.opts[i]);
     const rightAns = activeKey.p1[item.q];
     const rightObj = item.opts.find(o => o.label === rightAns);
 
@@ -2618,12 +2705,14 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   if (currentTemplate === '2026_2P' || currentTemplate === '2026_3P') {
     geo.p2.forEach(item => {
       let clusterRight = 0;
-      item.statements.forEach(st => {
-        const fT = measureBubble(st.trueOpt.x, st.trueOpt.y, scanR);
-        const fF = measureBubble(st.falseOpt.x, st.falseOpt.y, scanR);
-        let choice = null, chosenPos = null;
-        if (fT >= thresholdRatio && fF < thresholdRatio) { choice = 'Đ'; chosenPos = st.trueOpt; }
-        else if (fF >= thresholdRatio && fT < thresholdRatio) { choice = 'S'; chosenPos = st.falseOpt; }
+      const tf = item.statements.map(st => [
+        measureBubble(st.trueOpt.x, st.trueOpt.y, scanR),
+        measureBubble(st.falseOpt.x, st.falseOpt.y, scanR)
+      ]);
+      const choices = pickP2Choices(tf, thresholdRatio);
+      item.statements.forEach((st, si) => {
+        const choice = choices[si];
+        const chosenPos = choice === 'Đ' ? st.trueOpt : (choice === 'S' ? st.falseOpt : null);
 
         const rightSub = activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : 'Đ';
         const rightPos = rightSub === 'Đ' ? st.trueOpt : st.falseOpt;
@@ -2652,12 +2741,9 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       let studentStr = '';
       const chosenBubbles = [];
       item.cols.forEach(col => {
-        let bestChar = '', maxF = thresholdRatio, bestB = null;
-        col.bubbles.forEach(b => {
-          const r = measureBubble(b.x, b.y, 6);
-          if (r > maxF) { maxF = r; bestChar = b.char; bestB = b; }
-        });
-        studentStr += bestChar;
+        const bi = pickDigitInColumn(col.bubbles.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+        const bestB = bi >= 0 ? col.bubbles[bi] : null;
+        studentStr += bestB ? bestB.char : '';
         if (bestB) chosenBubbles.push(bestB);
       });
 
@@ -3179,6 +3265,7 @@ function updateCamLastResult(rec) {
   const el = document.getElementById('camLastResult');
   if (!el || !document.body.classList.contains('cam-fs-open')) return;
   el.style.display = 'block';
+  el.style.background = ''; el.style.color = ''; el.style.borderTopColor = '';
   el.innerText = `✅ Vừa chấm: SBD ${rec.sbd} · Mã đề ${rec.made} · ${Number(rec.total).toFixed(2)} điểm — bảng điểm có ${gradedList.length} bài`;
 }
 
@@ -3420,6 +3507,13 @@ function getAudioCtx() {
 function isScanSoundEnabled() {
   const el = document.getElementById('scanSoundToggle');
   return !el || el.checked;
+}
+
+function onStrictExamCodeToggle(el) {
+  safeSetStorage('omr_strict_exam_code', el.checked ? '1' : '0');
+  showAppToast(el.checked
+    ? 'Đã bật: phiếu tô sai mã đề (không có đáp án / bỏ trống / tô 2 ô) sẽ KHÔNG được chấm.'
+    : 'Đã tắt: phiếu tô sai mã đề vẫn được chấm tạm theo đáp án của mã đề đang chọn ở tab Đáp án.', 'info');
 }
 
 function onScanSoundToggle(el) {
@@ -3800,6 +3894,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initImageDB();
   loadOpenCVWithFallback(0);
   document.getElementById('scanSoundToggle').checked = safeGetStorage('omr_scan_sound', '1') !== '0';
+  document.getElementById('strictExamCodeToggle').checked = safeGetStorage('omr_strict_exam_code', '1') !== '0';
   const tplSelect = document.getElementById('templateSelect');
   if (tplSelect && ['2026_2P', '2026_3P', '40Q', 'NGANG_CUSTOM'].includes(currentTemplate)) {
     tplSelect.value = currentTemplate;
