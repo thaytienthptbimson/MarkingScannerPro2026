@@ -432,6 +432,7 @@
           <option value="2026_2P">1. Mẫu Lịch Sử / KTPL / Công Nghệ - 2 Phần (P1: 24 câu ABCD + P2: 4 câu Đ/S)</option>
           <option value="2026_3P">2. Mẫu Toán / Lý / Hóa / Sinh / Địa - 3 Phần (P1: 18 câu + P2: 4 câu Đ/S + P3: 6 câu TLN)</option>
           <option value="40Q">3. Mẫu Ngoại Ngữ - 1 Phần (40 câu ABCD)</option>
+          <option value="NGANG_CUSTOM">4. Mẫu Phiếu Chấm Ngang - Tùy Chỉnh Số Câu &amp; Điểm (Mã đề 4 số, SBD 6 số)</option>
         </select>
           <div class="cfg-note">🔒 Chỉ chấm khi nhận diện đủ 4 chấm đen ở 4 góc phiếu.</div>
       <div class="row" style="justify-content: space-between; margin-bottom:0; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
@@ -460,6 +461,26 @@
       </div>
         </div>
       </details>
+
+      <div id="customSheetConfigBar" class="row" style="display:none; background:#eff6ff; border:1.5px solid #93c5fd; padding:9px 12px; border-radius:10px; margin-bottom:10px; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <strong style="color:#1e3a8a; font-size:0.84rem;">📐 Phiếu Ngang (Mã đề 4 số):</strong>
+          <label for="scanCustomQCount">Số câu:</label>
+          <input type="number" id="scanCustomQCount" min="1" max="60" value="40" style="width:68px; font-weight:700; color:#1e40af; text-align:center;" onchange="onCustomQCountChange(this.value)">
+          <label for="scanCustomTotalScore">Tổng điểm:</label>
+          <input type="number" id="scanCustomTotalScore" min="0.5" max="100" step="0.25" value="10" style="width:74px; font-weight:700; color:#dc2626; text-align:center;" onchange="onCustomTotalScoreChange(this.value)">
+          <label for="scanCustomPtPerQ">Điểm/câu:</label>
+          <input type="number" id="scanCustomPtPerQ" min="0.01" max="10" step="0.05" value="0.25" style="width:78px; font-weight:700; color:#15803d; text-align:center;" onchange="onCustomPtPerQChange(this.value)">
+        </div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(10, 10)">10 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(20, 10)">20 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(25, 10)">25 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(30, 10)">30 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(40, 10)">40 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(50, 10)">50 câu</button>
+        </div>
+      </div>
 
       <div class="row row-3btn">
         <button class="btn btn-success" onclick="captureAndGrade()">⚡ Chụp & Chấm Ngay</button>
@@ -568,13 +589,19 @@
       </div>
 
       <div class="row" style="background:#eff6ff; padding:8px 12px; border-radius:8px;">
-        <label>Điểm mỗi câu Phần I:</label>
-        <input type="number" id="ptP1" value="0.25" step="0.05" style="width:75px;">
+        <span id="wrapCustomKeyConfig" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label for="keyCustomQCount">Số câu trắc nghiệm:</label>
+          <input type="number" id="keyCustomQCount" min="1" max="60" value="40" style="width:68px; font-weight:700; color:#1e40af; text-align:center;" onchange="onCustomQCountChange(this.value)">
+          <label for="keyCustomTotalScore">Tổng điểm toàn bài:</label>
+          <input type="number" id="keyCustomTotalScore" min="0.5" max="100" step="0.25" value="10" style="width:74px; font-weight:700; color:#dc2626; text-align:center;" onchange="onCustomTotalScoreChange(this.value)">
+        </span>
+        <label for="ptP1">Điểm mỗi câu Phần I:</label>
+        <input type="number" id="ptP1" value="0.25" step="0.05" style="width:78px; font-weight:700;" onchange="onCustomPtPerQChange(this.value)">
         <span id="wrapPtP3" style="display:none; align-items:center; gap:6px;">
           <label style="margin-left:8px;">Điểm mỗi câu Phần III (TLN):</label>
           <input type="number" id="ptP3" value="0.25" step="0.05" style="width:75px;">
         </span>
-        <span style="font-size:0.8rem; color:#1e40af;">
+        <span id="p2ProgressiveNote" style="font-size:0.8rem; color:#1e40af;">
           (Phần II Đúng/Sai tính điểm lũy tiến: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ)
         </span>
       </div>
@@ -602,6 +629,23 @@
         <div class="row row-1line" style="margin:0;">
           <button class="btn btn-primary" onclick="window.print()">🖨️ In Phiếu (A4 / A5)</button>
           <button class="btn btn-success" onclick="downloadSheetImage()">⬇️ Tải Ảnh Phiếu (.PNG)</button>
+        </div>
+      </div>
+      <div id="printCustomBar" class="row" style="display:none; background:#eff6ff; border:1px solid #93c5fd; padding:8px 12px; border-radius:8px; margin-bottom:10px; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <strong style="color:#1e3a8a; font-size:0.84rem;">⚙️ Tùy chỉnh Phiếu Chấm Ngang:</strong>
+          <label for="printCustomQCount">Số câu (1–60):</label>
+          <input type="number" id="printCustomQCount" min="1" max="60" value="40" style="width:68px; font-weight:700; text-align:center;" onchange="onCustomQCountChange(this.value)">
+          <label for="printCustomTotalScore">Thang điểm:</label>
+          <input type="number" id="printCustomTotalScore" min="0.5" max="100" step="0.25" value="10" style="width:74px; font-weight:700; text-align:center;" onchange="onCustomTotalScoreChange(this.value)">
+          <span id="printCustomSummary" style="font-size:0.8rem; color:#1e40af; font-weight:600;">(0.25 điểm/câu · Mã đề 4 số · SBD 6 số)</span>
+        </div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(15, 10)">15 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(20, 10)">20 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(25, 10)">25 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(30, 10)">30 câu</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(40, 10)">40 câu</button>
         </div>
       </div>
       <div id="printArea" class="canvas-preview-wrap">
@@ -968,8 +1012,8 @@ async function clearAllImagesInDB() {
 /********************************************************************
  * 2. HỆ TỌA ĐỘ CHUẨN HÓA CHO CẢ 3 MẪU PHIẾU (840 x 1180)
  ********************************************************************/
-const WARP_W = 840;
-const WARP_H = 1180;
+let WARP_W = 840;
+let WARP_H = 1180;
 const MARGIN = 40;
 const STAMP_H = 75; // Chiều cao dải đóng dấu kết quả trên đầu ảnh lưu
 
@@ -981,7 +1025,21 @@ let isProcessingFrame = false;
 const EXAM_CODE_LEN = 4;            // Mã đề gồm 4 chữ số
 const DEFAULT_EXAM_CODE = '1001';   // Mã đề mặc định khi chưa có mã nào
 
-let currentTemplate = '2026_2P';
+let currentTemplate = safeGetStorage('omr_template_ult2026', 'NGANG_CUSTOM');
+let customQCount = Math.min(60, Math.max(1, parseInt(safeGetStorage('omr_custom_qcount', '40'), 10) || 40));
+let customTotalScore = Math.min(100, Math.max(0.5, parseFloat(safeGetStorage('omr_custom_total_score', '10')) || 10));
+let customScoreMode = safeGetStorage('omr_custom_score_mode', 'total'); // 'total' | 'perQ'
+
+function syncWarpDimensions(template = currentTemplate) {
+  if (template === 'NGANG_CUSTOM') {
+    WARP_W = 1180;
+    WARP_H = 780;
+  } else {
+    WARP_W = 840;
+    WARP_H = 1180;
+  }
+}
+syncWarpDimensions(currentTemplate);
 let answerKeys = JSON.parse(safeGetStorage('omr_keys_ult2026', '{}'));
 let gradedList = JSON.parse(safeGetStorage('omr_graded_ult2026', '[]'));
 
@@ -992,6 +1050,59 @@ let showBinaryView = false;
 let currentModalRecordId = null;
 
 function getSheetGeometry(template) {
+  if (template === 'NGANG_CUSTOM') {
+    const qCount = Math.min(60, Math.max(1, parseInt(customQCount, 10) || 40));
+    const rowsPerCol = qCount <= 40 ? 10 : Math.ceil(qCount / 4);
+    const rowStep = rowsPerCol <= 10 ? 36 : (324 / Math.max(1, rowsPerCol - 1));
+    const qRadius = rowsPerCol <= 10 ? 11 : (rowsPerCol <= 13 ? 9.5 : 8.5);
+    const geo = {
+      isLandscape: true,
+      bubbleRadius: qRadius,
+      idBubbleRadius: 11,
+      rowsPerCol,
+      rowStep,
+      sbd: [],
+      made: [],
+      p1: [],
+      p2: [],
+      p3: []
+    };
+    // MÃ ĐỀ: 4 cột chữ số (0..9) bên trái như mẫu phiếu ngang
+    for (let col = 0; col < 4; col++) {
+      const colArr = [];
+      const cx = 82 + col * 32;
+      for (let d = 0; d <= 9; d++) {
+        colArr.push({ digit: d.toString(), x: cx, y: 216 + d * 36 });
+      }
+      geo.made.push(colArr);
+    }
+    // SỐ BÁO DANH: 6 cột chữ số (0..9) ở giữa
+    for (let col = 0; col < 6; col++) {
+      const colArr = [];
+      const cx = 270 + col * 32;
+      for (let d = 0; d <= 9; d++) {
+        colArr.push({ digit: d.toString(), x: cx, y: 216 + d * 36 });
+      }
+      geo.sbd.push(colArr);
+    }
+    // ĐÁP ÁN TRẮC NGHIỆM: 4 cột nhóm câu hỏi, điều chỉnh linh hoạt từ 1..60 câu
+    const labels = ['A', 'B', 'C', 'D'];
+    for (let i = 0; i < qCount; i++) {
+      const col = Math.floor(i / rowsPerCol);
+      const row = i % rowsPerCol;
+      const groupX = 472 + col * 170;
+      const y = 216 + row * rowStep;
+      geo.p1.push({
+        q: i + 1,
+        col,
+        row,
+        groupX,
+        opts: labels.map((lbl, idx) => ({ label: lbl, x: groupX + 46 + idx * 32, y }))
+      });
+    }
+    return geo;
+  }
+
   const geo = {
     bubbleRadius: template === '2026_3P' ? 8.5 : 10,
     sbd: [],
@@ -1126,7 +1237,173 @@ function drawPrintSheet(canvas) {
   return 1;
 }
 
+function drawLandscapeCustomSheet(ctx, geo, mockData) {
+  const corners = [[0, 0], [WARP_W, 0], [WARP_W, WARP_H], [0, WARP_H]];
+  ctx.fillStyle = '#000000';
+  corners.forEach(([cx, cy]) => ctx.fillRect(cx - 18, cy - 18, 36, 36));
+
+  // 1. Khung thông tin phía trên: HỌ TÊN | LỚP | ĐIỂM (giống mẫu phiếu ngang trong ảnh)
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(130, 14, 920, 68);
+  ctx.beginPath();
+  ctx.moveTo(650, 14); ctx.lineTo(650, 82);
+  ctx.moveTo(855, 14); ctx.lineTo(855, 82);
+  ctx.stroke();
+
+  ctx.fillStyle = '#000000';
+  ctx.font = '15.5px Arial';
+  ctx.textAlign = 'left';
+  const nameTxt = mockData && mockData.studentName
+    ? 'HỌ TÊN: ' + mockData.studentName
+    : 'HỌ TÊN:.......................................................................................';
+  const classTxt = mockData && mockData.className
+    ? 'LỚP: ' + mockData.className
+    : 'LỚP: ......................';
+  ctx.fillText(nameTxt, 140, 58);
+  ctx.fillText(classTxt, 662, 58);
+  ctx.fillText('ĐIỂM:', 868, 58);
+
+  // 2. Bảng chính: MÃ ĐỀ (4 số) | SỐ BÁO DANH (6 số) | ĐÁP ÁN TRẮC NGHIỆM
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(24, 112, 1132, 528);
+  ctx.beginPath();
+  ctx.moveTo(24, 152); ctx.lineTo(1156, 152);
+  ctx.moveTo(212, 112); ctx.lineTo(212, 640);
+  ctx.moveTo(456, 112); ctx.lineTo(456, 640);
+  ctx.stroke();
+
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#000000';
+  ctx.fillText('MÃ ĐỀ', 118, 138);
+  ctx.fillText('SỐ BÁO DANH', 334, 138);
+  ctx.fillText('ĐÁP ÁN TRẮC NGHIỆM', 806, 138);
+
+  // --- Cột 1: MÃ ĐỀ (4 chữ số) ---
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(38, 168, 22, 22);
+  ctx.fillRect(38, 598, 22, 22);
+  for (let d = 0; d <= 9; d++) {
+    const ry = 216 + d * 36;
+    ctx.fillStyle = '#000000';
+    ctx.font = '15px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(d), 49, ry + 5);
+  }
+  geo.made.forEach((col, cIdx) => {
+    const cx = col[0].x;
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1.3;
+    ctx.strokeRect(cx - 12, 168, 24, 22);
+    if (mockData && mockData.made && mockData.made[cIdx]) {
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(mockData.made[cIdx], cx, 184);
+    }
+    col.forEach(b => {
+      const filled = Boolean(mockData && mockData.made && mockData.made[cIdx] === b.digit);
+      drawBubble(ctx, b.x, b.y, geo.idBubbleRadius, '', filled);
+    });
+  });
+
+  // --- Cột 2: SỐ BÁO DANH (6 chữ số) ---
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(226, 168, 22, 22);
+  ctx.fillRect(226, 598, 22, 22);
+  for (let d = 0; d <= 9; d++) {
+    const ry = 216 + d * 36;
+    ctx.fillStyle = '#000000';
+    ctx.font = '15px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(d), 237, ry + 5);
+  }
+  geo.sbd.forEach((col, cIdx) => {
+    const cx = col[0].x;
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1.3;
+    ctx.strokeRect(cx - 12, 168, 24, 22);
+    if (mockData && mockData.sbd && mockData.sbd[cIdx]) {
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(mockData.sbd[cIdx], cx, 184);
+    }
+    col.forEach(b => {
+      const filled = Boolean(mockData && mockData.sbd && mockData.sbd[cIdx] === b.digit);
+      drawBubble(ctx, b.x, b.y, geo.idBubbleRadius, '', filled);
+    });
+  });
+
+  // --- Cột 3: ĐÁP ÁN TRẮC NGHIỆM (4 nhóm cột, có ô định vị đen trên/dưới như trong ảnh) ---
+  const labels = ['A', 'B', 'C', 'D'];
+  for (let col = 0; col < 4; col++) {
+    const groupX = 472 + col * 170;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(groupX, 168, 22, 22);
+    ctx.fillRect(groupX, 598, 22, 22);
+    ctx.font = '15px Arial';
+    ctx.textAlign = 'center';
+    labels.forEach((lbl, idx) => {
+      ctx.fillText(lbl, groupX + 46 + idx * 32, 186);
+    });
+  }
+
+  geo.p1.forEach(item => {
+    ctx.fillStyle = '#000000';
+    ctx.font = (geo.rowsPerCol <= 10 ? '14.5px' : '12.5px') + ' Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(item.q), item.groupX + 11, item.opts[0].y + 5);
+    item.opts.forEach(opt => {
+      const filled = Boolean(mockData && mockData.p1 && mockData.p1[item.q] === opt.label);
+      drawBubble(ctx, opt.x, opt.y, geo.bubbleRadius, opt.label, filled);
+    });
+  });
+
+  // 3. Phần ghi chú dưới đáy phiếu (giống nguyên mẫu ảnh)
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 16px Arial';
+  ctx.fillText('Thí sinh lưu ý :', 125, 672);
+  ctx.beginPath();
+  ctx.moveTo(125, 676);
+  ctx.lineTo(242, 676);
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  ctx.font = '15.5px Arial';
+  ctx.fillText('- Giữ cho phiếu phẳng, không bôi bẩn, làm rách, không tẩy xóa, để máy chấm.', 125, 700);
+
+  // Dòng 2 có in đậm chữ "kín" và "đậm"
+  let curX = 125;
+  const yLine2 = 725;
+  const segs = [
+    { t: '- Tô ', b: false },
+    { t: 'kín', b: true },
+    { t: ', tô ', b: false },
+    { t: 'đậm', b: true },
+    { t: ' các ô tròn tương ứng với mã Đề thi, Số báo danh và đáp án đúng cho Phần trắc nghiệm.', b: false }
+  ];
+  segs.forEach(s => {
+    ctx.font = (s.b ? 'bold ' : '') + '15.5px Arial';
+    ctx.fillText(s.t, curX, yLine2);
+    curX += ctx.measureText(s.t).width;
+  });
+
+  ctx.font = '15.5px Arial';
+  ctx.fillText('- Không được ghi đè, tô đè lên các ô vuông đen, để máy định vị chính xác', 125, 750);
+
+  // Hiển thị thông tin cấu hình số câu & thang điểm ở góc phải dưới để giáo viên dễ kiểm soát
+  const ptPerQ = +(customTotalScore / geo.p1.length).toFixed(4);
+  ctx.fillStyle = '#475569';
+  ctx.font = 'italic 12.5px Arial';
+  ctx.textAlign = 'right';
+  ctx.fillText(`Cấu hình phiếu: ${geo.p1.length} câu • Thang điểm: ${customTotalScore}đ (${ptPerQ}đ/câu) • Mã đề 4 số`, 1154, 672);
+}
+
 function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
+  syncWarpDimensions(currentTemplate);
   const ctx = targetCanvas.getContext('2d');
   targetCanvas.width = Math.round((WARP_W + MARGIN * 2) * scale);
   targetCanvas.height = Math.round((WARP_H + MARGIN * 2) * scale);
@@ -1140,11 +1417,17 @@ function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
   ctx.scale(scale, scale);
   ctx.translate(MARGIN, MARGIN);
 
+  const geo = getSheetGeometry(currentTemplate);
+  if (currentTemplate === 'NGANG_CUSTOM') {
+    drawLandscapeCustomSheet(ctx, geo, mockData);
+    ctx.restore();
+    return;
+  }
+
   const corners = [[0, 0], [WARP_W, 0], [WARP_W, WARP_H], [0, WARP_H]];
   ctx.fillStyle = '#000000';
   corners.forEach(([cx, cy]) => ctx.fillRect(cx - 18, cy - 18, 36, 36));
 
-  const geo = getSheetGeometry(currentTemplate);
   const R = geo.bubbleRadius;
 
   ctx.strokeStyle = '#000000';
@@ -1340,7 +1623,7 @@ function drawBubble(ctx, x, y, r, text, filled = false) {
 function createDefaultKey() {
   const key = { p1: {}, p2: {}, p3: {} };
   const opts = ['A', 'B', 'C', 'D'];
-  for (let i = 1; i <= 40; i++) key.p1[i] = opts[(i - 1) % 4];
+  for (let i = 1; i <= 60; i++) key.p1[i] = opts[(i - 1) % 4];
   for (let q = 1; q <= 4; q++) key.p2[q] = { a: 'Đ', b: 'S', c: 'Đ', d: 'S' };
   const sampleP3 = ['12,5', '-4,2', '2026', '0,75', '18', '-1,5'];
   for (let q = 1; q <= 6; q++) key.p3[q] = sampleP3[q - 1];
@@ -1384,7 +1667,12 @@ function renderAnswerKeyUI() {
   const secP3 = document.getElementById('keySectionP3');
   const wrapPtP3 = document.getElementById('wrapPtP3');
 
-  if (currentTemplate === '40Q') {
+  const wrapCustomKey = document.getElementById('wrapCustomKeyConfig');
+  const p2Note = document.getElementById('p2ProgressiveNote');
+  if (wrapCustomKey) wrapCustomKey.style.display = currentTemplate === 'NGANG_CUSTOM' ? 'inline-flex' : 'none';
+  if (p2Note) p2Note.style.display = (currentTemplate === '40Q' || currentTemplate === 'NGANG_CUSTOM') ? 'none' : 'inline';
+
+  if (currentTemplate === '40Q' || currentTemplate === 'NGANG_CUSTOM') {
     secP2.style.display = 'none';
     secP3.style.display = 'none';
     wrapPtP3.style.display = 'none';
@@ -1451,7 +1739,7 @@ function createRandomKey() {
   const ds = ['Đ', 'S'];
   const samplePool = ['12,5', '-3,5', '0,25', '104', '-12', '4,8', '205', '0,5', '9,6', '-0,8'];
   const key = { p1: {}, p2: {}, p3: {} };
-  for (let i = 1; i <= 40; i++) key.p1[i] = opts[Math.floor(Math.random() * 4)];
+  for (let i = 1; i <= 60; i++) key.p1[i] = opts[Math.floor(Math.random() * 4)];
   for (let q = 1; q <= 4; q++) {
     key.p2[q] = {
       a: ds[Math.floor(Math.random() * 2)],
@@ -1923,6 +2211,7 @@ function rejectScanNoMarkers(reason) {
 // (Phiếu mẫu hiển thị lúc mở app / đổi mẫu — isInitialPreview — chỉ để xem trước, không tính là quét thật.)
 async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   if (!isInitialPreview && !isLicenseValid()) { openLicenseModal(); return false; }
+  syncWarpDimensions(currentTemplate);
   const thresholdRatio = parseInt(document.getElementById('fillThreshold').value, 10) / 100;
   let rawSheetColor, rawSheetBin;
   let src = null, gray = null, blurred = null, thresh = null;
@@ -2099,7 +2388,9 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       if (rightObj) drawBoth(rightObj.x, rightObj.y, 11, '#eab308', 2.4);
     }
   });
-  const scoreP1 = correctP1 * ptP1;
+  const scoreP1 = (currentTemplate === 'NGANG_CUSTOM' && customScoreMode === 'total')
+    ? +((correctP1 * customTotalScore) / Math.max(1, geo.p1.length)).toFixed(2)
+    : +(correctP1 * ptP1).toFixed(2);
 
   // 4. Chấm Phần II
   let scoreP2 = 0;
@@ -2176,7 +2467,10 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   }
 
   const extraOrP3 = +(scoreP3 + essayScore).toFixed(2);
-  const totalScore = Math.min(10, +(scoreP1 + scoreP2 + extraOrP3).toFixed(2));
+  const maxAllowedScore = currentTemplate === 'NGANG_CUSTOM'
+    ? Math.max(10, +(customTotalScore + essayScore).toFixed(2))
+    : 10;
+  const totalScore = Math.min(maxAllowedScore, +(scoreP1 + scoreP2 + extraOrP3).toFixed(2));
   const recordId = 'OMR_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 
   const record = {
@@ -2464,8 +2758,8 @@ function buildRandomMockSheetData() {
   };
 
   const opts = ['A', 'B', 'C', 'D'];
-  for (let i = 1; i <= 40; i++) {
-    mock.p1[i] = Math.random() < 0.85 ? key.p1[i] : opts[Math.floor(Math.random() * 4)];
+  for (let i = 1; i <= 60; i++) {
+    mock.p1[i] = Math.random() < 0.85 ? (key.p1[i] || opts[(i - 1) % 4]) : opts[Math.floor(Math.random() * 4)];
   }
   for (let q = 1; q <= 4; q++) {
     mock.p2[q] = {};
@@ -2486,6 +2780,10 @@ let camFsByUs = false;
 // Khung hình dùng để quét: luôn là khổ đứng. Nếu luồng camera là hình ngang thì chỉ cắt giữa thành khổ đứng 3:4 (KHÔNG xoay hình).
 function camCropRect(video) {
   const vw = video.videoWidth || 640, vh = video.videoHeight || 850;
+  if (currentTemplate === 'NGANG_CUSTOM') {
+    if (vh > vw) { const sh = Math.round(vw * 0.68); return { sx: 0, sy: Math.round((vh - sh) / 2), sw: vw, sh: sh }; }
+    return { sx: 0, sy: 0, sw: vw, sh: vh };
+  }
   if (vw > vh) { const sw = Math.round(vh * 0.75); return { sx: Math.round((vw - sw) / 2), sy: 0, sw: sw, sh: vh }; }
   return { sx: 0, sy: 0, sw: vw, sh: vh };
 }
@@ -2994,22 +3292,124 @@ function switchTab(tabId, btn) {
   if (tabId === 'tab-results') renderResultsTable();
 }
 
+function syncCustomInputsUI() {
+  const ptPerQ = +(customTotalScore / Math.max(1, customQCount)).toFixed(4);
+  const idsQ = ['scanCustomQCount', 'keyCustomQCount', 'printCustomQCount'];
+  idsQ.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = customQCount;
+  });
+  const idsTot = ['scanCustomTotalScore', 'keyCustomTotalScore', 'printCustomTotalScore'];
+  idsTot.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = customTotalScore;
+  });
+  const scanPt = document.getElementById('scanCustomPtPerQ');
+  if (scanPt) scanPt.value = ptPerQ;
+  if (currentTemplate === 'NGANG_CUSTOM') {
+    const ptP1El = document.getElementById('ptP1');
+    if (ptP1El) ptP1El.value = ptPerQ;
+  }
+  const sumEl = document.getElementById('printCustomSummary');
+  if (sumEl) {
+    sumEl.innerText = `(${ptPerQ} điểm/câu · Mã đề 4 số · SBD 6 số)`;
+  }
+  const cfgCur = document.getElementById('cfgCurrent');
+  if (cfgCur && currentTemplate === 'NGANG_CUSTOM') {
+    cfgCur.innerText = `Mẫu 4 · Phiếu Ngang (${customQCount} câu · ${customTotalScore}đ)`;
+  }
+  const sheetTitle = document.getElementById('sheetTitleDisplay');
+  if (sheetTitle && currentTemplate === 'NGANG_CUSTOM') {
+    sheetTitle.innerText = `Phiếu Trả Lời Trắc Nghiệm Ngang (${customQCount} Câu · Thang Điểm ${customTotalScore} · Mã Đề 4 Số)`;
+  }
+}
+
+function onCustomQCountChange(val) {
+  const n = Math.min(60, Math.max(1, parseInt(val, 10) || 40));
+  customQCount = n;
+  safeSetStorage('omr_custom_qcount', String(customQCount));
+  if (customScoreMode === 'perQ') {
+    const pt = parseFloat(document.getElementById('ptP1').value) || 0.25;
+    customTotalScore = +(customQCount * pt).toFixed(2);
+    safeSetStorage('omr_custom_total_score', String(customTotalScore));
+  }
+  syncCustomInputsUI();
+  renderAnswerKeyUI();
+  drawPrintSheet(document.getElementById('sheetCanvas'));
+  runSimulatedTest(true);
+  showAppToast(`Đã cập nhật phiếu ngang: ${customQCount} câu (Thang điểm ${customTotalScore}đ).`, 'success');
+}
+
+function onCustomTotalScoreChange(val) {
+  const tot = Math.min(100, Math.max(0.5, parseFloat(val) || 10));
+  customTotalScore = +tot.toFixed(2);
+  customScoreMode = 'total';
+  safeSetStorage('omr_custom_total_score', String(customTotalScore));
+  safeSetStorage('omr_custom_score_mode', customScoreMode);
+  syncCustomInputsUI();
+  drawPrintSheet(document.getElementById('sheetCanvas'));
+  runSimulatedTest(true);
+  showAppToast(`Đã đặt tổng điểm: ${customTotalScore}đ (${+(customTotalScore / customQCount).toFixed(4)}đ/câu).`, 'success');
+}
+
+function onCustomPtPerQChange(val) {
+  const pt = Math.min(10, Math.max(0.01, parseFloat(val) || 0.25));
+  const ptP1El = document.getElementById('ptP1');
+  if (ptP1El) ptP1El.value = pt;
+  if (currentTemplate === 'NGANG_CUSTOM') {
+    customScoreMode = 'perQ';
+    customTotalScore = +(customQCount * pt).toFixed(2);
+    safeSetStorage('omr_custom_total_score', String(customTotalScore));
+    safeSetStorage('omr_custom_score_mode', customScoreMode);
+    syncCustomInputsUI();
+    drawPrintSheet(document.getElementById('sheetCanvas'));
+    runSimulatedTest(true);
+    showAppToast(`Đã đặt ${pt}đ/câu (Tổng điểm ${customQCount} câu = ${customTotalScore}đ).`, 'success');
+  }
+}
+
+function applyCustomPreset(qCount, totalPts) {
+  customQCount = qCount;
+  customTotalScore = totalPts;
+  customScoreMode = 'total';
+  safeSetStorage('omr_custom_qcount', String(customQCount));
+  safeSetStorage('omr_custom_total_score', String(customTotalScore));
+  safeSetStorage('omr_custom_score_mode', customScoreMode);
+  syncCustomInputsUI();
+  renderAnswerKeyUI();
+  drawPrintSheet(document.getElementById('sheetCanvas'));
+  runSimulatedTest(true);
+  showAppToast(`Đã chọn mẫu phiếu ngang: ${customQCount} câu - ${customTotalScore} điểm.`, 'success');
+}
+
 function onTemplateChange() {
   currentTemplate = document.getElementById('templateSelect').value;
+  safeSetStorage('omr_template_ult2026', currentTemplate);
+  syncWarpDimensions(currentTemplate);
+
+  const isLandscapeCustom = currentTemplate === 'NGANG_CUSTOM';
+  const scanBar = document.getElementById('customSheetConfigBar');
+  if (scanBar) scanBar.style.display = isLandscapeCustom ? 'flex' : 'none';
+  const printBar = document.getElementById('printCustomBar');
+  if (printBar) printBar.style.display = isLandscapeCustom ? 'flex' : 'none';
+
   const titleMap = {
     '2026_2P': 'Phiếu Trả Lời Trắc Nghiệm 2 Phần (Lịch Sử / KTPL / Công Nghệ)',
     '2026_3P': 'Phiếu Trả Lời Trắc Nghiệm 3 Phần (Toán / Lý / Hóa / Sinh / Địa)',
-    '40Q': 'Phiếu Trả Lời Trắc Nghiệm 40 Câu (Ngoại Ngữ)'
+    '40Q': 'Phiếu Trả Lời Trắc Nghiệm 40 Câu (Ngoại Ngữ)',
+    'NGANG_CUSTOM': `Phiếu Trả Lời Trắc Nghiệm Ngang (${customQCount} Câu · Thang Điểm ${customTotalScore} · Mã Đề 4 Số)`
   };
   document.getElementById('sheetTitleDisplay').innerText = titleMap[currentTemplate];
   const cfgMap = {
     '2026_2P': 'Mẫu 1 · Lịch Sử / KTPL / Công Nghệ (2 phần)',
     '2026_3P': 'Mẫu 2 · Toán / Lý / Hóa / Sinh / Địa (3 phần)',
-    '40Q': 'Mẫu 3 · Ngoại Ngữ (40 câu)'
+    '40Q': 'Mẫu 3 · Ngoại Ngữ (40 câu)',
+    'NGANG_CUSTOM': `Mẫu 4 · Phiếu Ngang (${customQCount} câu · ${customTotalScore}đ)`
   };
   const cfgCur = document.getElementById('cfgCurrent');
   if (cfgCur) cfgCur.innerText = cfgMap[currentTemplate] || '';
   document.getElementById('p3ReadoutBox').innerHTML = '';
+  syncCustomInputsUI();
   renderAnswerKeyUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
   // Luôn hiển thị ngay hình ảnh phiếu đã chấm mẫu trên khung kết quả để không bao giờ bị trắng trang
@@ -3177,6 +3577,10 @@ window.addEventListener('DOMContentLoaded', () => {
   initImageDB();
   loadOpenCVWithFallback(0);
   document.getElementById('scanSoundToggle').checked = safeGetStorage('omr_scan_sound', '1') !== '0';
+  const tplSelect = document.getElementById('templateSelect');
+  if (tplSelect && ['2026_2P', '2026_3P', '40Q', 'NGANG_CUSTOM'].includes(currentTemplate)) {
+    tplSelect.value = currentTemplate;
+  }
   const keyInput = document.getElementById('keyExamCode');
   const savedCodes = getSortedExamCodes();
   if (savedCodes.length && !answerKeys[keyInput.value.trim()]) keyInput.value = savedCodes[0];
