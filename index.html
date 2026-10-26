@@ -1983,56 +1983,23 @@ function meanGrayInRect(grayMat, x, y, w, h) {
   return n ? sum / n : 255;
 }
 
-// Tìm 4 chấm đen ở 4 góc phiếu. Truyền thêm grayMat để xác nhận ô vuông đó thật sự ĐEN đặc.
-// Trả về null nếu chưa thấy đủ 4 chấm đen (khi đó KHÔNG được chấm phiếu).
-function findFourCornerMarkers(threshMat, imgW, imgH, grayMat = null) {
-  let darkLimit = 255;
-  if (grayMat) {
-    const stepG = Math.max(1, Math.floor(Math.sqrt((imgW * imgH) / 20000)));
-    let sumG = 0, nG = 0;
-    for (let py = 0; py < grayMat.rows; py += stepG) {
-      const off = py * grayMat.cols;
-      for (let px = 0; px < grayMat.cols; px += stepG) { sumG += grayMat.data[off + px]; nG++; }
-    }
-    const globalMean = nG ? sumG / nG : 150;
-    darkLimit = Math.min(130, globalMean * 0.65);
+// ====== DÒ 4 CHẤM ĐEN Ở 4 GÓC PHIẾU ======
+// Ngưỡng "đen" cho phần lõi ô vuông: lấy mẫu thưa độ sáng toàn ảnh rồi nhân hệ số.
+function getMarkerDarkLimit(grayMat, imgW, imgH) {
+  if (!grayMat) return 255;
+  const stepG = Math.max(1, Math.floor(Math.sqrt((imgW * imgH) / 20000)));
+  let sumG = 0, nG = 0;
+  for (let py = 0; py < grayMat.rows; py += stepG) {
+    const off = py * grayMat.cols;
+    for (let px = 0; px < grayMat.cols; px += stepG) { sumG += grayMat.data[off + px]; nG++; }
   }
+  const globalMean = nG ? sumG / nG : 150;
+  return Math.min(130, globalMean * 0.65);
+}
 
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
-  cv.findContours(threshMat, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-
-  const candidates = [];
-  const minArea = (imgW * imgH) * 0.00012;
-  const maxArea = (imgW * imgH) * 0.025;
-
-  for (let i = 0; i < contours.size(); i++) {
-    let cnt = contours.get(i);
-    let area = cv.contourArea(cnt);
-    if (area > minArea && area < maxArea) {
-      let peri = cv.arcLength(cnt, true);
-      let approx = new cv.Mat();
-      cv.approxPolyDP(cnt, approx, 0.04 * peri, true);
-      if (approx.rows === 4 && cv.isContourConvex(approx)) {
-        let rect = cv.boundingRect(approx);
-        let aspect = rect.width / rect.height;
-        if (aspect >= 0.65 && aspect <= 1.45) {
-          // Chỉ nhận ô vuông có phần lõi thật sự đen (loại ô trắng/viền mỏng, ô bảng, ô tô)
-          const innerMean = grayMat
-            ? meanGrayInRect(grayMat, rect.x + rect.width * 0.25, rect.y + rect.height * 0.25, rect.width * 0.5, rect.height * 0.5)
-            : 0;
-          if (innerMean <= darkLimit) {
-            candidates.push({ cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2 });
-          }
-        }
-      }
-      approx.delete();
-    }
-    cnt.delete();
-  }
-  contours.delete();
-  hierarchy.delete();
-
+// Từ danh sách ô vuông đen ứng viên, chọn 4 ô gần 4 góc ảnh nhất (TL, TR, BR, BL của ẢNH).
+// Trả về null nếu không đủ điều kiện hình học.
+function selectCornerQuad(candidates, imgW, imgH) {
   if (candidates.length < 4) return null;
 
   const targets = [
@@ -2066,6 +2033,147 @@ function findFourCornerMarkers(threshMat, imgW, imgH, grayMat = null) {
       corners[3].cx > halfW || corners[3].cy < halfH) return null;
 
   return corners;
+}
+
+/* ---- PHIẾU NGANG (Mẫu 4): kiểm tra căn chỉnh bằng 12 ô vuông đen định vị bên trong phiếu ----
+ * Phiếu ngang ngoài 4 chấm góc (36x36) còn có 12 ô vuông đen nhỏ (22x22) phía trên/dưới các khối
+ * MÃ ĐỀ, SỐ BÁO DANH và 4 nhóm đáp án. Nếu 1 chấm góc bị khung hình cắt mất, quy tắc "gần góc ảnh nhất"
+ * sẽ chọn nhầm 1 ô định vị bên trong làm góc → nắn phẳng sai → đọc sai toàn bộ mà không báo lỗi.
+ * Vì vậy: (1) ưu tiên các ô LỚN (chấm góc) và (2) kiểm tra 12 ô định vị có rơi đúng chỗ sau khi nắn phẳng;
+ * đồng thời thử 4 hướng xoay nên chụp phiếu bị xoay 90°/180° vẫn đọc được.
+ * Toạ độ dưới đây phải khớp drawLandscapeCustomSheet() (tâm ô = góc trái-trên + 11). */
+const LANDSCAPE_ANCHORS = [
+  [49, 179], [49, 609],          // MÃ ĐỀ
+  [237, 179], [237, 609]         // SỐ BÁO DANH
+].concat([0, 1, 2, 3].reduce((arr, col) => {
+  const cx = 472 + col * 170 + 11; // 4 nhóm đáp án trắc nghiệm
+  arr.push([cx, 179], [cx, 609]);
+  return arr;
+}, []));
+const LANDSCAPE_BIG_RATIO = 0.45;  // chấm góc có diện tích ≥ 45% ô lớn nhất (ô định vị chỉ ≈ 37% chấm góc)
+const LANDSCAPE_MIN_ANCHORS = 8;   // cho phép tối đa 4/12 ô định vị bị che/mờ (phiếu căn đúng ≈ 12/12, căn sai ≤ 2/12)
+const LANDSCAPE_W = 1180, LANDSCAPE_H = 780; // khung chuẩn của phiếu ngang (khớp syncWarpDimensions)
+
+// Ma trận biến đổi phối cảnh 3x3 (src → dst) từ 4 cặp điểm; trả về mảng 9 phần tử hoặc null
+function solveHomography4(src, dst) {
+  const A = [];
+  for (let i = 0; i < 4; i++) {
+    const x = src[i][0], y = src[i][1], u = dst[i][0], v = dst[i][1];
+    A.push([x, y, 1, 0, 0, 0, -x * u, -y * u, u]);
+    A.push([0, 0, 0, x, y, 1, -x * v, -y * v, v]);
+  }
+  for (let c = 0; c < 8; c++) {
+    let p = c;
+    for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    if (Math.abs(A[p][c]) < 1e-12) return null;
+    const tmp = A[c]; A[c] = A[p]; A[p] = tmp;
+    for (let r = 0; r < 8; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / A[c][c];
+      if (f === 0) continue;
+      for (let k = c; k < 9; k++) A[r][k] -= f * A[c][k];
+    }
+  }
+  const h = [];
+  for (let i = 0; i < 8; i++) h.push(A[i][8] / A[i][i]);
+  h.push(1);
+  return h;
+}
+
+// Đếm số ô định vị thật sự ĐEN tại vị trí dự kiến, giả sử quad4 = [TL, TR, BR, BL] CỦA PHIẾU
+function landscapeAnchorScore(quad4, grayMat, darkLimit) {
+  const H = solveHomography4(
+    [[0, 0], [LANDSCAPE_W, 0], [LANDSCAPE_W, LANDSCAPE_H], [0, LANDSCAPE_H]],
+    quad4.map(c => [c.cx, c.cy])
+  );
+  if (!H) return 0;
+  const W = grayMat.cols, Hh = grayMat.rows, data = grayMat.data;
+  let good = 0;
+  LANDSCAPE_ANCHORS.forEach(([ax, ay]) => {
+    let sum = 0, n = 0;
+    for (let dx = -5; dx <= 5; dx += 5) {
+      for (let dy = -5; dy <= 5; dy += 5) {
+        const sx = ax + dx, sy = ay + dy;
+        const w = H[6] * sx + H[7] * sy + 1;
+        const px = Math.round((H[0] * sx + H[1] * sy + H[2]) / w);
+        const py = Math.round((H[3] * sx + H[4] * sy + H[5]) / w);
+        if (px >= 0 && px < W && py >= 0 && py < Hh) { sum += data[py * W + px]; n++; }
+      }
+    }
+    if (n >= 6 && sum / n <= darkLimit) good++;
+  });
+  return good;
+}
+
+// Chọn 4 góc cho phiếu ngang (theo thứ tự TL, TR, BR, BL CỦA PHIẾU) hoặc null nếu không căn chỉnh được
+function pickLandscapeCorners(candidates, imgW, imgH, grayMat, darkLimit) {
+  if (candidates.length < 4 || !grayMat) return null;
+  let maxA = 0;
+  candidates.forEach(c => { if (c.area > maxA) maxA = c.area; });
+  const big = candidates.filter(c => c.area >= maxA * LANDSCAPE_BIG_RATIO);
+
+  const sets = [];
+  const q1 = selectCornerQuad(big, imgW, imgH);        // ưu tiên chấm góc lớn
+  if (q1) sets.push(q1);
+  const q2 = selectCornerQuad(candidates, imgW, imgH); // dự phòng: mọi ô đen
+  if (q2 && !(q1 && q2.every((c, i) => c === q1[i]))) sets.push(q2);
+
+  let best = null, bestScore = -1;
+  sets.forEach(quad => {
+    for (let k = 0; k < 4; k++) { // thử 4 hướng xoay của phiếu trong ảnh
+      const rot = [quad[k], quad[(k + 1) % 4], quad[(k + 2) % 4], quad[(k + 3) % 4]];
+      const sc = landscapeAnchorScore(rot, grayMat, darkLimit);
+      if (sc > bestScore) { bestScore = sc; best = rot; }
+    }
+  });
+  return (best && bestScore >= LANDSCAPE_MIN_ANCHORS) ? best : null;
+}
+
+// Tìm 4 chấm đen ở 4 góc phiếu. Truyền thêm grayMat để xác nhận ô vuông đó thật sự ĐEN đặc.
+// Trả về 4 góc theo thứ tự TL, TR, BR, BL của PHIẾU; null nếu chưa thấy đủ/chưa căn chỉnh được
+// (khi đó KHÔNG được chấm phiếu).
+function findFourCornerMarkers(threshMat, imgW, imgH, grayMat = null) {
+  const darkLimit = getMarkerDarkLimit(grayMat, imgW, imgH);
+
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(threshMat, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+  const candidates = [];
+  const minArea = (imgW * imgH) * 0.00012;
+  const maxArea = (imgW * imgH) * 0.025;
+
+  for (let i = 0; i < contours.size(); i++) {
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
+    if (area > minArea && area < maxArea) {
+      let peri = cv.arcLength(cnt, true);
+      let approx = new cv.Mat();
+      cv.approxPolyDP(cnt, approx, 0.04 * peri, true);
+      if (approx.rows === 4 && cv.isContourConvex(approx)) {
+        let rect = cv.boundingRect(approx);
+        let aspect = rect.width / rect.height;
+        if (aspect >= 0.65 && aspect <= 1.45) {
+          // Chỉ nhận ô vuông có phần lõi thật sự đen (loại ô trắng/viền mỏng, ô bảng, ô tô)
+          const innerMean = grayMat
+            ? meanGrayInRect(grayMat, rect.x + rect.width * 0.25, rect.y + rect.height * 0.25, rect.width * 0.5, rect.height * 0.5)
+            : 0;
+          if (innerMean <= darkLimit) {
+            candidates.push({ cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2, area: rect.width * rect.height });
+          }
+        }
+      }
+      approx.delete();
+    }
+    cnt.delete();
+  }
+  contours.delete();
+  hierarchy.delete();
+
+  if (currentTemplate === 'NGANG_CUSTOM') {
+    return pickLandscapeCorners(candidates, imgW, imgH, grayMat, darkLimit);
+  }
+  return selectCornerQuad(candidates, imgW, imgH);
 }
 
 function getBubbleFillRatio(threshMat, x, y, r = 6) {
@@ -2197,7 +2305,9 @@ let lastNoMarkerToastAt = 0;
 function rejectScanNoMarkers(reason) {
   const text = reason === 'cv'
     ? '⏳ OpenCV chưa sẵn sàng nên chưa nhận diện được 4 chấm đen — chưa chấm phiếu.'
-    : '❌ Chưa nhận diện đủ 4 chấm đen ở 4 góc phiếu — chưa chấm. Hãy canh/chụp lại cho thấy rõ cả 4 góc.';
+    : (currentTemplate === 'NGANG_CUSTOM'
+        ? '❌ Chưa căn chỉnh được phiếu ngang — chưa chấm. Hãy chụp lại: chừa lề trắng quanh phiếu, thấy rõ cả 4 chấm đen góc (không bị cắt khỏi khung hình) và đúng Mẫu 4 – Phiếu Ngang.'
+        : '❌ Chưa nhận diện đủ 4 chấm đen ở 4 góc phiếu — chưa chấm. Hãy canh/chụp lại cho thấy rõ cả 4 góc.');
   const msgEl = document.getElementById('scanMsg');
   if (msgEl) { msgEl.innerText = text; msgEl.style.color = '#dc2626'; }
   const now = Date.now();
@@ -2285,7 +2395,10 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
         document.getElementById('scanMsg').style.color = '#d97706';
       }
 
-      cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 21, 7);
+      // Cửa sổ lọc 21px nhỏ hơn đường kính ô tô (22px) của phiếu ngang ≤ 40 câu nên lõi ô tô nhạt bị "thủng lỗ"
+      // (nét chì nhạt đọc ra gần như trống). Dùng cửa sổ 31px cho trường hợp đó; các mẫu còn lại giữ 21.
+      const binBlock = (currentTemplate === 'NGANG_CUSTOM' && customQCount <= 40) ? 31 : 21;
+      cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, binBlock, 7);
 
       rawSheetColor = document.createElement('canvas');
       rawSheetColor.width = WARP_W; rawSheetColor.height = WARP_H;
@@ -3039,7 +3152,9 @@ function scanVideoFrameWithOpenCV() {
             ? (document.getElementById('autoScanToggle').checked
                 ? '🟢 Đã thấy đủ 4 chấm đen — giữ yên phiếu để tự chấm...'
                 : '🟢 Đã thấy đủ 4 chấm đen — bấm Chụp & Chấm Ngay')
-            : '🔎 Chưa thấy đủ 4 chấm đen ở 4 góc — canh lại phiếu');
+            : (currentTemplate === 'NGANG_CUSTOM'
+                ? '🔎 Chưa căn chỉnh được phiếu ngang — thấy đủ 4 chấm đen góc, chừa lề trắng quanh phiếu'
+                : '🔎 Chưa thấy đủ 4 chấm đen ở 4 góc — canh lại phiếu'));
     }
 
     if (corners) {
