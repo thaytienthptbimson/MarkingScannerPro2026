@@ -152,6 +152,8 @@
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-outline { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
     .btn-sm { padding: 5px 9px; font-size: 0.76rem; border-radius: 6px; }
+    .name-input { width: 100%; min-width: 160px; text-align: left; font-weight: 600; }
+    .roster-info { font-size: 0.76rem; color: #475569; line-height: 1.5; }
 
     /* Answer Key Grids */
     .key-grid-p1 {
@@ -670,6 +672,31 @@
         </div>
       </div>
 
+      <details class="cfg-panel" id="rosterPanel">
+        <summary class="cfg-summary">
+          👥 Danh sách thí sinh (SBD → Họ tên)
+          <span class="cfg-current" id="rosterCount">Chưa nạp</span>
+          <span class="cfg-hint">Tự điền họ tên vào bảng điểm &amp; file Excel</span>
+        </summary>
+        <div class="cfg-body">
+          <div class="roster-info">
+            Phiếu chỉ ghi Số báo danh (tô tròn) nên tên thí sinh được lấy từ danh sách lớp theo SBD.
+            Nạp file Excel/CSV có 2 cột <b>SBD</b> và <b>Họ và tên</b> (hoặc dán danh sách bên dưới, mỗi dòng 1 thí sinh).
+            Có thể nạp nhiều lớp liên tiếp (danh sách được gộp lại). Cũng có thể gõ/sửa tên trực tiếp từng bài ở cột “Họ và tên” bên dưới.
+          </div>
+          <div class="row" style="margin:0;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('rosterFileInput').click()">📥 Nhập từ Excel / CSV</button>
+            <input type="file" id="rosterFileInput" accept=".xlsx,.xls,.csv,.tsv,.txt" style="display:none" onchange="importRosterFile(this)">
+            <button type="button" class="btn btn-outline btn-sm" onclick="downloadRosterTemplate()">⬇️ Tải file mẫu</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="clearRoster()">🗑️ Xóa danh sách thí sinh</button>
+          </div>
+          <textarea id="rosterPasteBox" class="modal-textarea" style="margin-top:0;" placeholder="Hoặc dán danh sách vào đây (mỗi dòng 1 thí sinh), ví dụ:&#10;000123  Nguyễn Văn An&#10;000124  Trần Thị Bình"></textarea>
+          <div class="row" style="margin:0;">
+            <button type="button" class="btn btn-success btn-sm" onclick="applyRosterPaste()">💾 Lưu danh sách vừa dán</button>
+          </div>
+        </div>
+      </details>
+
       <div class="table-wrap">
         <table>
           <thead>
@@ -677,6 +704,7 @@
               <th>STT</th>
               <th>Ảnh Phiếu</th>
               <th>SBD</th>
+              <th>Họ và tên</th>
               <th>Mã đề</th>
               <th>Điểm P1</th>
               <th>Điểm P2</th>
@@ -2356,7 +2384,8 @@ function createStampedAnnotatedCanvas(warpedSheetCanvas, info) {
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 20px Segoe UI, Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(`SBD: ${info.sbd}  |  Mã đề: ${info.made}`, 22, 30);
+  const _stampName = getRecordName(info);
+  ctx.fillText(`SBD: ${info.sbd}${_stampName ? '  |  ' + _stampName : ''}  |  Mã đề: ${info.made}`, 22, 30, WARP_W - 22 - 190);
 
   // Dòng 2: Điểm chi tiết từng phần & Giờ chấm
   ctx.fillStyle = '#93c5fd';
@@ -2665,7 +2694,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     }
   }
 
-  document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr;
+  document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr + (rosterLookup(sbdStr) ? ' — ' + rosterLookup(sbdStr) : '');
 
   const fallbackCode = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
@@ -2960,7 +2989,7 @@ async function openImageModal(recordId) {
     return;
   }
   currentModalRecordId = recordId;
-  document.getElementById('modalTitle').innerText = `SBD: ${rec.sbd} — ${rec.total.toFixed(2)} điểm`;
+  document.getElementById('modalTitle').innerText = `${getRecordName(rec) ? getRecordName(rec) + ' · ' : ''}SBD: ${rec.sbd} — ${rec.total.toFixed(2)} điểm`;
   document.getElementById('modalSubInfo').innerText = `Mã đề: ${rec.made} | Phần I: ${rec.scoreP1}đ (${rec.correctP1}) | Phần II: ${rec.scoreP2}đ | P.III/TL: ${rec.scoreP3OrEssay}đ`;
   document.getElementById('modalImgEl').src = dataUrl;
   document.getElementById('imgModal').classList.add('open');
@@ -3266,7 +3295,7 @@ function updateCamLastResult(rec) {
   if (!el || !document.body.classList.contains('cam-fs-open')) return;
   el.style.display = 'block';
   el.style.background = ''; el.style.color = ''; el.style.borderTopColor = '';
-  el.innerText = `✅ Vừa chấm: SBD ${rec.sbd} · Mã đề ${rec.made} · ${Number(rec.total).toFixed(2)} điểm — bảng điểm có ${gradedList.length} bài`;
+  el.innerText = `✅ Vừa chấm: ${getRecordName(rec) ? getRecordName(rec) + ' · ' : ''}SBD ${rec.sbd} · Mã đề ${rec.made} · ${Number(rec.total).toFixed(2)} điểm — bảng điểm có ${gradedList.length} bài`;
 }
 
 function drawViewfinderGuide(oCtx, w, h, detectedCorners = null) {
@@ -3408,6 +3437,209 @@ function runSimulatedTest(isInitialPreview = false) {
   processOMRCanvas(simCanvas, isInitialPreview);
 }
 
+
+/********************************************************************
+ * HỌ TÊN THÍ SINH: danh sách lớp (SBD → Họ tên) + sửa tay từng bài
+ ********************************************************************/
+let rosterMap = {};
+try {
+  const _ro = JSON.parse(safeGetStorage('omr_roster_ult2026', '{}'));
+  if (_ro && typeof _ro === 'object' && !Array.isArray(_ro)) rosterMap = _ro;
+} catch (e) { rosterMap = {}; }
+
+function cleanPersonName(s) {
+  return String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+}
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+// '000123' và '123' coi là cùng một SBD
+function normSbdKey(s) {
+  const t = String(s == null ? '' : s).trim();
+  if (/^\d+$/.test(t)) return t.replace(/^0+(?=\d)/, '');
+  return '';
+}
+function rosterLookup(sbd) {
+  const k = normSbdKey(sbd);
+  if (!k || k === '0') return '';
+  return Object.prototype.hasOwnProperty.call(rosterMap, k) ? rosterMap[k] : '';
+}
+// Họ tên của 1 bài chấm: tên gõ tay (nếu có) → nếu không thì tra theo SBD trong danh sách lớp
+function getRecordName(r) {
+  if (!r) return '';
+  return cleanPersonName(r.name) || rosterLookup(r.sbd);
+}
+function stripVN(s) {
+  return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// rows: mảng các dòng, mỗi dòng là mảng ô. allowHeader: có thử nhận dòng tiêu đề (SBD / Họ và tên) hay không
+function parseRosterRows(rows, allowHeader) {
+  rows = rows.map(r => (r || []).map(c => cleanPersonName(c)));
+  let sbdCol = -1, nameCol = -1, hoCol = -1, tenCol = -1, start = 0;
+  if (allowHeader) {
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      const h = rows[i].map(stripVN);
+      const s = h.findIndex(x => /^(sbd|so bao danh|sobaodanh|ma thi sinh|ma hs|ma hoc sinh|ma so)$/.test(x));
+      const n = h.findIndex(x => /^(ho va ten|ho ten|hoten|ho & ten|ten thi sinh|ten hoc sinh|ho va ten thi sinh|ho va ten hoc sinh)$/.test(x));
+      const ho = h.findIndex(x => /^(ho dem|ho lot|ho va ten dem|ho)$/.test(x));
+      const te = h.findIndex(x => /^ten$/.test(x));
+      if (s >= 0 && (n >= 0 || (ho >= 0 && te >= 0))) {
+        sbdCol = s; nameCol = n; hoCol = ho; tenCol = te; start = i + 1;
+        break;
+      }
+    }
+  }
+  const out = [];
+  for (let i = start; i < rows.length; i++) {
+    const row = rows[i];
+    let sbd = '', name = '';
+    if (sbdCol >= 0) {
+      sbd = row[sbdCol] || '';
+      name = nameCol >= 0 ? (row[nameCol] || '') : cleanPersonName((row[hoCol] || '') + ' ' + (row[tenCol] || ''));
+    } else {
+      // Không có tiêu đề: SBD = ô toàn số dài nhất (bỏ qua STT ngắn), họ tên = các ô còn lại có chữ
+      let bi = -1;
+      row.forEach((c, j) => { if (/^\d{1,12}$/.test(c) && (bi < 0 || c.length > row[bi].length)) bi = j; });
+      if (bi < 0) continue;
+      sbd = row[bi];
+      name = cleanPersonName(row.filter((c, j) => j !== bi && /\p{L}/u.test(c)).join(' '));
+    }
+    const key = normSbdKey(sbd);
+    name = cleanPersonName(name);
+    if (!key || key === '0' || !name || !/\p{L}/u.test(name)) continue;
+    out.push({ key, name });
+  }
+  return out;
+}
+
+// Tách 1 dòng CSV theo ký tự phân cách, hiểu ô đặt trong ngoặc kép ("Nguyễn, Văn An")
+function splitDelimitedLine(line, d) {
+  const out = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) {
+      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += ch;
+    } else if (ch === '"' && cur.trim() === '') { q = true; cur = ''; }
+    else if (ch === d) { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+function parseRosterText(text) {
+  const lines = String(text || '').replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+  let usedWs = false;
+  const rows = lines.map(l => {
+    const d = ['\t', ';', '|', ','].find(ch => l.indexOf(ch) >= 0);
+    let cells = d ? splitDelimitedLine(l, d) : [l];
+    if (cells.length < 2) { cells = l.trim().split(/\s+/); usedWs = true; }
+    return cells;
+  });
+  return parseRosterRows(rows, !usedWs);
+}
+
+function mergeRoster(entries) {
+  let added = 0, updated = 0;
+  entries.forEach(e => {
+    if (!Object.prototype.hasOwnProperty.call(rosterMap, e.key)) added++;
+    else if (rosterMap[e.key] !== e.name) updated++;
+    rosterMap[e.key] = e.name;
+  });
+  safeSetStorage('omr_roster_ult2026', JSON.stringify(rosterMap));
+  updateRosterUI();
+  renderResultsTable();
+  return { added, updated };
+}
+
+function updateRosterUI() {
+  const el = document.getElementById('rosterCount');
+  if (!el) return;
+  const n = Object.keys(rosterMap).length;
+  el.innerText = n ? `${n} thí sinh` : 'Chưa nạp';
+}
+
+function reportRosterImport(entries) {
+  if (!entries.length) {
+    showAppToast('Không đọc được thí sinh nào. Cần 2 cột: SBD (chỉ gồm chữ số) và Họ và tên.', 'warn');
+    return;
+  }
+  const r = mergeRoster(entries);
+  const total = Object.keys(rosterMap).length;
+  showAppToast(`Đã nạp ${entries.length} thí sinh (mới: ${r.added}, cập nhật: ${r.updated}). Tổng danh sách: ${total}.`, 'success');
+}
+
+async function importRosterFile(inp) {
+  const f = inp && inp.files && inp.files[0];
+  if (!f) return;
+  try {
+    let entries = [];
+    if (/\.(csv|tsv|txt)$/i.test(f.name)) {
+      entries = parseRosterText(await f.text());
+    } else {
+      if (typeof XLSX === 'undefined') {
+        showAppToast('Thư viện đọc Excel chưa tải xong, vui lòng kiểm tra kết nối mạng!', 'warn');
+        return;
+      }
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      for (const name of wb.SheetNames) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '' });
+        const part = parseRosterRows(rows, true);
+        if (part.length) entries = entries.concat(part);
+      }
+    }
+    reportRosterImport(entries);
+  } catch (e) {
+    showAppToast('Không đọc được file danh sách: ' + (e && e.message ? e.message : e), 'warn');
+  } finally {
+    try { inp.value = ''; } catch (e) {}
+  }
+}
+
+function applyRosterPaste() {
+  const box = document.getElementById('rosterPasteBox');
+  const entries = parseRosterText(box ? box.value : '');
+  reportRosterImport(entries);
+  if (entries.length && box) box.value = '';
+}
+
+function clearRoster() {
+  if (!Object.keys(rosterMap).length) { showAppToast('Danh sách thí sinh đang trống.', 'info'); return; }
+  showAppConfirm('Xóa toàn bộ danh sách thí sinh (SBD → Họ tên)? Tên đã gõ tay trong bảng điểm vẫn được giữ.', () => {
+    rosterMap = {};
+    safeSetStorage('omr_roster_ult2026', '{}');
+    updateRosterUI();
+    renderResultsTable();
+    showAppToast('Đã xóa danh sách thí sinh.', 'success');
+  });
+}
+
+function downloadRosterTemplate() {
+  if (typeof XLSX === 'undefined') {
+    showAppToast('Thư viện Excel chưa tải xong, vui lòng kiểm tra kết nối mạng!', 'warn');
+    return;
+  }
+  const ws = XLSX.utils.aoa_to_sheet([['SBD', 'Họ và tên'], ['000001', 'Nguyễn Văn An'], ['000002', 'Trần Thị Bình']]);
+  ws['!cols'] = [{ wch: 12 }, { wch: 32 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'DanhSach');
+  saveWorkbookCrossPlatform(wb, 'DanhSach_ThiSinh_Mau.xlsx');
+}
+
+// Gõ/sửa tên trực tiếp ở bảng điểm (lưu theo từng bài chấm)
+function setRecordName(id, value) {
+  const r = gradedList.find(x => x.id === id);
+  if (!r) return;
+  const nm = cleanPersonName(value);
+  if (nm && nm !== rosterLookup(r.sbd)) r.name = nm; else delete r.name;
+  safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
+  const inp = document.getElementById('nm_' + id);
+  if (inp) inp.value = getRecordName(r);
+}
+
 /********************************************************************
  * 8. BẢNG ĐIỂM KÈM ẢNH THU NHỎ, XUẤT EXCEL & TIỆN ÍCH
  ********************************************************************/
@@ -3424,6 +3656,10 @@ async function renderResultsTable() {
              onclick="openImageModal('${r.id}')">
       </td>
       <td><strong style="color:#1e40af">${r.sbd}</strong></td>
+      <td><input type="text" id="nm_${r.id}" class="name-input" autocomplete="off" placeholder="Nhập họ tên…"
+                 value="${escAttr(getRecordName(r))}"
+                 onchange="setRecordName('${r.id}', this.value)"
+                 onkeydown="if(event.key==='Enter'){this.blur();}"></td>
       <td>${r.made}</td>
       <td>${r.scoreP1}</td>
       <td>${r.scoreP2}</td>
@@ -3456,6 +3692,7 @@ function exportExcel() {
     'STT': i + 1,
     'Giờ chấm': r.time,
     'Số Báo Danh': r.sbd,
+    'Họ và Tên': getRecordName(r),
     'Mã Đề': r.made,
     'Điểm Phần I (ABCD)': r.scoreP1,
     'Điểm Phần II (Đ/S)': r.scoreP2,
@@ -3464,6 +3701,7 @@ function exportExcel() {
     'Tên File Ảnh Minh Chứng': buildImageFileName(r)
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 13 }, { wch: 30 }, { wch: 9 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 11 }, { wch: 34 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'BangDiemOMR');
   saveWorkbookCrossPlatform(wb, `BangDiem_OMR_HoTen_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -3895,6 +4133,7 @@ window.addEventListener('DOMContentLoaded', () => {
   loadOpenCVWithFallback(0);
   document.getElementById('scanSoundToggle').checked = safeGetStorage('omr_scan_sound', '1') !== '0';
   document.getElementById('strictExamCodeToggle').checked = safeGetStorage('omr_strict_exam_code', '1') !== '0';
+  updateRosterUI();
   const tplSelect = document.getElementById('templateSelect');
   if (tplSelect && ['2026_2P', '2026_3P', '40Q', 'NGANG_CUSTOM'].includes(currentTemplate)) {
     tplSelect.value = currentTemplate;
