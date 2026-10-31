@@ -133,6 +133,16 @@
     }
     .cfg-hint { margin-left: auto; font-weight: 400; font-size: 0.72rem; color: #64748b; }
     .cfg-body { padding: 8px 10px 10px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px; }
+    /* Tùy chọn mẫu phiếu theo số chữ số mã đề (3 số / 4 số) */
+    .exam-len-row {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      background: #fff7ed; border: 1px solid #fdba74; border-radius: 8px;
+      padding: 7px 10px; font-size: 0.84rem; font-weight: 700; color: #9a3412;
+    }
+    .exam-len-select {
+      font-weight: 700; color: #9a3412; padding: 5px 8px; width: auto;
+      border: 1.5px solid #fb923c; border-radius: 6px; background: #fff;
+    }
     .cfg-note { font-size: 0.76rem; color: #b45309; font-weight: 600; }
 
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
@@ -480,8 +490,15 @@
           <option value="2026_2P">1. Mẫu Lịch Sử / KTPL / Công Nghệ - 2 Phần (P1: 24 câu ABCD + P2: 4 câu Đ/S)</option>
           <option value="2026_3P">2. Mẫu Toán / Lý / Hóa / Sinh / Địa - 3 Phần (P1: 18 câu + P2: 4 câu Đ/S + P3: 6 câu TLN)</option>
           <option value="40Q">3. Mẫu Ngoại Ngữ - 1 Phần (40 câu ABCD)</option>
-          <option value="NGANG_CUSTOM">4. Mẫu Phiếu Chấm Ngang - Tùy Chỉnh Số Câu &amp; Điểm (Mã đề 4 số, SBD 6 số)</option>
+          <option value="NGANG_CUSTOM">4. Mẫu Phiếu Chấm Ngang - Tùy Chỉnh Số Câu &amp; Điểm (SBD 6 số, mã đề 3 hoặc 4 số)</option>
         </select>
+          <div class="exam-len-row" title="Chọn mẫu phiếu có mã đề 3 chữ số hoặc 4 chữ số. Phiếu in ra và phiếu quét phải cùng một kiểu.">
+            <span>🔢 Mẫu phiếu theo số chữ số mã đề:</span>
+            <select class="exam-len-select" onchange="onExamCodeLenChange(this.value)">
+              <option value="4">Mã đề 4 số (VD: 1001)</option>
+              <option value="3">Mã đề 3 số (VD: 101)</option>
+            </select>
+          </div>
           <div class="cfg-note">🔒 Chỉ chấm khi nhận diện đủ 4 chấm đen ở 4 góc phiếu.</div>
       <div class="row" style="justify-content: space-between; margin-bottom:0; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
         <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
@@ -516,7 +533,7 @@
 
       <div id="customSheetConfigBar" class="row" style="display:none; background:#eff6ff; border:1.5px solid #93c5fd; padding:9px 12px; border-radius:10px; margin-bottom:10px; justify-content:space-between; align-items:center;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <strong style="color:#1e3a8a; font-size:0.84rem;">📐 Phiếu Ngang (Mã đề 4 số):</strong>
+          <strong style="color:#1e3a8a; font-size:0.84rem;">📐 Phiếu Ngang (Mã đề <span class="exam-len-txt">4</span> số):</strong>
           <label for="scanCustomQCount">Số câu:</label>
           <input type="number" id="scanCustomQCount" min="1" max="60" value="40" style="width:68px; font-weight:700; color:#1e40af; text-align:center;" onchange="onCustomQCountChange(this.value)">
           <label for="scanCustomTotalScore">Tổng điểm:</label>
@@ -621,6 +638,10 @@
       <div class="card-title">
         <span>Thiết Lập Đáp Án & Thang Điểm Theo Mã Đề</span>
         <div class="row" style="margin:0;">
+          <select class="exam-len-select" onchange="onExamCodeLenChange(this.value)" title="Kiểu mã đề của mẫu phiếu: mỗi kiểu có bộ đáp án riêng">
+            <option value="4">Mã đề 4 số</option>
+            <option value="3">Mã đề 3 số</option>
+          </select>
           <label>Mã đề:</label>
           <input type="text" id="keyExamCode" value="1001" maxlength="4" inputmode="numeric" title="Gõ mã đề (4 chữ số) rồi Enter. Mã chưa có sẽ được tạo mới." style="width:85px; font-weight:bold; text-align:center;" onchange="onExamCodeInputChange()">
           <button class="btn btn-outline" onclick="randomFillKey()">🎲 Tạo Đáp Án Mẫu</button>
@@ -683,6 +704,14 @@
           <button class="btn btn-success" onclick="downloadSheetImage()">⬇️ Tải Ảnh Phiếu (.PNG)</button>
         </div>
       </div>
+      <div class="exam-len-row" style="margin-bottom:10px;">
+        <span>🔢 Mẫu phiếu in:</span>
+        <select class="exam-len-select" onchange="onExamCodeLenChange(this.value)">
+          <option value="4">Mã đề 4 số</option>
+          <option value="3">Mã đề 3 số</option>
+        </select>
+        <span style="font-weight:400; font-size:0.78rem; color:#7c2d12;">Đổi ở đây sẽ vẽ lại phiếu bên dưới với 3 hoặc 4 cột mã đề.</span>
+      </div>
       <div id="printCustomBar" class="row" style="display:none; background:#eff6ff; border:1px solid #93c5fd; padding:8px 12px; border-radius:8px; margin-bottom:10px; justify-content:space-between;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <strong style="color:#1e3a8a; font-size:0.84rem;">⚙️ Tùy chỉnh Phiếu Chấm Ngang:</strong>
@@ -690,7 +719,7 @@
           <input type="number" id="printCustomQCount" min="1" max="60" value="40" style="width:68px; font-weight:700; text-align:center;" onchange="onCustomQCountChange(this.value)">
           <label for="printCustomTotalScore">Thang điểm:</label>
           <input type="number" id="printCustomTotalScore" min="0.5" max="100" step="0.25" value="10" style="width:74px; font-weight:700; text-align:center;" onchange="onCustomTotalScoreChange(this.value)">
-          <span id="printCustomSummary" style="font-size:0.8rem; color:#1e40af; font-weight:600;">(0.25 điểm/câu · Mã đề 4 số · SBD 6 số)</span>
+          <span id="printCustomSummary" style="font-size:0.8rem; color:#1e40af; font-weight:600;">(0.25 điểm/câu · Mã đề <span class="exam-len-txt">4</span> số · SBD 6 số)</span>
         </div>
         <div style="display:flex; gap:4px; flex-wrap:wrap;">
           <button type="button" class="btn btn-outline btn-sm" onclick="applyCustomPreset(15, 10)">15 câu</button>
@@ -877,9 +906,9 @@
       <button class="btn btn-danger btn-sm" onclick="closeAddCodesModal()">✕ Đóng</button>
     </div>
     <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
-      <label for="addCodesInput">Nhập các mã đề (mỗi mã gồm 4 chữ số):</label>
+      <label for="addCodesInput" id="addCodesLabel">Nhập các mã đề (mỗi mã gồm 4 chữ số):</label>
       <textarea id="addCodesInput" class="modal-textarea" placeholder="VD: 1001, 1002, 1003, 1004&#10;hoặc nhập dải: 2001-2008" oninput="updateAddCodesPreview()"></textarea>
-      <p style="font-size:0.78rem; color:#64748b; margin:4px 0 8px;">
+      <p id="addCodesHelp" style="font-size:0.78rem; color:#64748b; margin:4px 0 8px;">
         Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">2001-2008</span> = 8 mã đề). Tối đa 100 mã mỗi lần.
       </p>
       <div id="addCodesPreview"></div>
@@ -1138,8 +1167,14 @@ let autoScanTimer = null;
 let stableCornerFrames = 0;
 let isProcessingFrame = false;
 
-const EXAM_CODE_LEN = 4;            // Mã đề gồm 4 chữ số
-const DEFAULT_EXAM_CODE = '1001';   // Mã đề mặc định khi chưa có mã nào
+// Số chữ số mã đề trên phiếu: 3 hoặc 4 (người dùng chọn, được nhớ lại cho lần mở sau)
+let EXAM_CODE_LEN = safeGetStorage('omr_exam_code_len', '4') === '3' ? 3 : 4;
+let DEFAULT_EXAM_CODE = EXAM_CODE_LEN === 3 ? '101' : '1001';   // Mã đề mặc định khi chưa có mã nào
+
+// Mỗi kiểu mã đề có kho đáp án riêng: mã 4 số giữ nguyên kho cũ, mã 3 số dùng kho mới (không lẫn dữ liệu)
+function examKeysStorageName(len = EXAM_CODE_LEN) {
+  return len === 3 ? 'omr_keys_ult2026_m3' : 'omr_keys_ult2026';
+}
 
 let currentTemplate = safeGetStorage('omr_template_ult2026', 'NGANG_CUSTOM');
 let customQCount = Math.min(60, Math.max(1, parseInt(safeGetStorage('omr_custom_qcount', '40'), 10) || 40));
@@ -1156,7 +1191,7 @@ function syncWarpDimensions(template = currentTemplate) {
   }
 }
 syncWarpDimensions(currentTemplate);
-let answerKeys = JSON.parse(safeGetStorage('omr_keys_ult2026', '{}'));
+let answerKeys = JSON.parse(safeGetStorage(examKeysStorageName(), '{}'));
 let gradedList = JSON.parse(safeGetStorage('omr_graded_ult2026', '[]'));
 
 let lastColorCanvas = null;
@@ -1183,10 +1218,11 @@ function getSheetGeometry(template) {
       p2: [],
       p3: []
     };
-    // MÃ ĐỀ: 4 cột chữ số (0..9) bên trái như mẫu phiếu ngang
-    for (let col = 0; col < 4; col++) {
+    // MÃ ĐỀ: 3 hoặc 4 cột chữ số (0..9) bên trái; mã 3 số được căn giữa trong cùng khung với mã 4 số
+    const madeStartX = 82 + (4 - EXAM_CODE_LEN) * 16;
+    for (let col = 0; col < EXAM_CODE_LEN; col++) {
       const colArr = [];
-      const cx = 82 + col * 32;
+      const cx = madeStartX + col * 32;
       for (let d = 0; d <= 9; d++) {
         colArr.push({ digit: d.toString(), x: cx, y: 216 + d * 36 });
       }
@@ -1236,10 +1272,12 @@ function getSheetGeometry(template) {
     geo.sbd.push(colArr);
   }
 
-  for (let col = 0; col < 4; col++) {
+  // MÃ ĐỀ: 3 hoặc 4 cột; mã 3 số được căn giữa trong cùng khung với mã 4 số
+  const madeStartXp = 708 + (4 - EXAM_CODE_LEN) * 13;
+  for (let col = 0; col < EXAM_CODE_LEN; col++) {
     const colArr = [];
     for (let d = 0; d <= 9; d++) {
-      colArr.push({ digit: d.toString(), x: 708 + col * 26, y: 58 + d * 19.5 });
+      colArr.push({ digit: d.toString(), x: madeStartXp + col * 26, y: 58 + d * 19.5 });
     }
     geo.made.push(colArr);
   }
@@ -1380,7 +1418,7 @@ function drawLandscapeCustomSheet(ctx, geo, mockData) {
   ctx.fillText(classTxt, 662, 58);
   ctx.fillText('ĐIỂM:', 868, 58);
 
-  // 2. Bảng chính: MÃ ĐỀ (4 số) | SỐ BÁO DANH (6 số) | ĐÁP ÁN TRẮC NGHIỆM
+  // 2. Bảng chính: MÃ ĐỀ (3 hoặc 4 số) | SỐ BÁO DANH (6 số) | ĐÁP ÁN TRẮC NGHIỆM
   ctx.lineWidth = 1.5;
   ctx.strokeRect(24, 112, 1132, 528);
   ctx.beginPath();
@@ -1396,7 +1434,7 @@ function drawLandscapeCustomSheet(ctx, geo, mockData) {
   ctx.fillText('SỐ BÁO DANH', 334, 138);
   ctx.fillText('ĐÁP ÁN TRẮC NGHIỆM', 806, 138);
 
-  // --- Cột 1: MÃ ĐỀ (4 chữ số) ---
+  // --- Cột 1: MÃ ĐỀ (3 hoặc 4 chữ số) ---
   ctx.fillStyle = '#000000';
   ctx.fillRect(38, 168, 22, 22);
   ctx.fillRect(38, 598, 22, 22);
@@ -1515,7 +1553,7 @@ function drawLandscapeCustomSheet(ctx, geo, mockData) {
   ctx.fillStyle = '#475569';
   ctx.font = 'italic 12.5px Arial';
   ctx.textAlign = 'right';
-  ctx.fillText(`Cấu hình phiếu: ${geo.p1.length} câu • Thang điểm: ${customTotalScore}đ (${ptPerQ}đ/câu) • Mã đề 4 số`, 1154, 672);
+  ctx.fillText(`Cấu hình phiếu: ${geo.p1.length} câu • Thang điểm: ${customTotalScore}đ (${ptPerQ}đ/câu) • Mã đề ${geo.made.length} số`, 1154, 672);
 }
 
 function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
@@ -1890,7 +1928,7 @@ function randomFillKey() {
 }
 
 function persistKeys() {
-  safeSetStorage('omr_keys_ult2026', JSON.stringify(answerKeys));
+  safeSetStorage(examKeysStorageName(), JSON.stringify(answerKeys));
 }
 
 function saveCurrentKey() {
@@ -1901,16 +1939,18 @@ function saveCurrentKey() {
 /********************************************************************
  * 4b. QUẢN LÝ NHIỀU MÃ ĐỀ (THÊM HÀNG LOẠT / CHUYỂN / XÓA)
  ********************************************************************/
-// Mã đề trên phiếu luôn là 4 chữ số (VD: "7" -> "0007", "101" -> "0101") nên chuẩn hóa để tra đáp án khớp với mã quét được
+// Mã đề trên phiếu luôn đủ EXAM_CODE_LEN chữ số (3 số: "7" -> "007"; 4 số: "7" -> "0007") nên chuẩn hóa để tra đáp án khớp với mã quét được
 function normalizeExamCode(raw) {
   const digits = String(raw || '').replace(/\D/g, '').slice(0, EXAM_CODE_LEN);
   return digits ? digits.padStart(EXAM_CODE_LEN, '0') : '';
 }
 
-// Chuyển các mã đề cũ đã lưu không đủ 4 chữ số (VD: mã 3 số "101" -> "0101") về dạng chuẩn
-(function migrateAnswerKeyCodes() {
+// Chuyển các mã đề đã lưu không đủ chữ số (VD: kiểu 4 số có mã "101" -> "0101") về dạng chuẩn.
+// Chỉ bù thêm số 0 ở đầu; mã dài hơn quy định được giữ nguyên (không cắt) để không mất dữ liệu.
+function migrateAnswerKeyCodes() {
   let changed = false;
   Object.keys(answerKeys).forEach(k => {
+    if (String(k).length >= EXAM_CODE_LEN) return;
     const nk = normalizeExamCode(k);
     if (nk && nk !== k) {
       if (!answerKeys[nk]) answerKeys[nk] = answerKeys[k];
@@ -1918,8 +1958,56 @@ function normalizeExamCode(raw) {
       changed = true;
     }
   });
-  if (changed) safeSetStorage('omr_keys_ult2026', JSON.stringify(answerKeys));
-})();
+  if (changed) persistKeys();
+}
+migrateAnswerKeyCodes();
+
+// Cập nhật mọi nơi hiển thị theo kiểu mã đề đang chọn (ô chọn ở tab 1/2/3, nhãn, ô nhập mã đề, hộp "Thêm nhiều mã đề")
+function syncExamLenUI() {
+  document.querySelectorAll('.exam-len-select').forEach(el => { el.value = String(EXAM_CODE_LEN); });
+  document.querySelectorAll('.exam-len-txt').forEach(el => { el.textContent = String(EXAM_CODE_LEN); });
+  const inp = document.getElementById('keyExamCode');
+  if (inp) {
+    inp.maxLength = EXAM_CODE_LEN;
+    inp.title = `Gõ mã đề (${EXAM_CODE_LEN} chữ số) rồi Enter. Mã chưa có sẽ được tạo mới.`;
+  }
+  const three = EXAM_CODE_LEN === 3;
+  const lbl = document.getElementById('addCodesLabel');
+  if (lbl) lbl.textContent = `Nhập các mã đề (mỗi mã gồm ${EXAM_CODE_LEN} chữ số):`;
+  const ta = document.getElementById('addCodesInput');
+  if (ta) ta.placeholder = three
+    ? 'VD: 101, 102, 103, 104\nhoặc nhập dải: 201-208'
+    : 'VD: 1001, 1002, 1003, 1004\nhoặc nhập dải: 2001-2008';
+  const help = document.getElementById('addCodesHelp');
+  if (help) help.innerHTML = `Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">${three ? '201-208' : '2001-2008'}</span> = 8 mã đề). Tối đa 100 mã mỗi lần.`;
+}
+
+// Đổi kiểu mẫu phiếu: mã đề 3 số <-> 4 số. Mỗi kiểu có kho đáp án riêng nên không bị lẫn hay mất.
+function onExamCodeLenChange(val) {
+  const len = parseInt(val, 10) === 3 ? 3 : 4;
+  if (len === EXAM_CODE_LEN) { syncExamLenUI(); return; }
+
+  persistKeys(); // lưu bộ đáp án của kiểu cũ trước khi chuyển
+  EXAM_CODE_LEN = len;
+  DEFAULT_EXAM_CODE = len === 3 ? '101' : '1001';
+  safeSetStorage('omr_exam_code_len', String(len));
+  try {
+    answerKeys = JSON.parse(safeGetStorage(examKeysStorageName(), '{}')) || {};
+  } catch (e) {
+    answerKeys = {};
+  }
+  migrateAnswerKeyCodes();
+
+  const input = document.getElementById('keyExamCode');
+  input.value = getSortedExamCodes()[0] || DEFAULT_EXAM_CODE;
+  if (!answerKeys[input.value]) {
+    answerKeys[input.value] = createDefaultKey();
+    persistKeys();
+  }
+  syncExamLenUI();
+  onTemplateChange(); // vẽ lại phiếu, bảng đáp án và khung chấm thử theo số cột mã đề mới
+  showAppToast(`Đã chọn mẫu phiếu mã đề ${len} số. Đáp án của kiểu mã đề ${len} số được lưu riêng.`, 'success');
+}
 
 function getSortedExamCodes() {
   return Object.keys(answerKeys).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -1951,13 +2039,13 @@ function selectExamCode(code) {
   renderAnswerKeyUI();
 }
 
-// Gõ trực tiếp vào ô "Mã đề": chuẩn hóa 4 chữ số, mã chưa có thì tạo mới
+// Gõ trực tiếp vào ô "Mã đề": chuẩn hóa đủ số chữ số đang chọn (3 hoặc 4), mã chưa có thì tạo mới
 function onExamCodeInputChange() {
   const input = document.getElementById('keyExamCode');
   const code = normalizeExamCode(input.value);
   if (!code) {
     input.value = getSortedExamCodes()[0] || DEFAULT_EXAM_CODE;
-    showAppToast('Mã đề chỉ gồm chữ số (VD: 1001).', 'warn');
+    showAppToast(`Mã đề chỉ gồm chữ số (VD: ${DEFAULT_EXAM_CODE}).`, 'warn');
   } else {
     input.value = code;
     if (!answerKeys[code]) {
@@ -1974,9 +2062,12 @@ function parseExamCodeList(text) {
   const result = { codes: [], invalid: [] };
   const seen = new Set();
   const cleaned = String(text || '').replace(/\s*[-–—]\s*/g, '-');
+  const L = EXAM_CODE_LEN;
+  const reRange = new RegExp('^(\\d{1,' + L + '})-(\\d{1,' + L + '})$');
+  const reNum = new RegExp('^\\d{1,' + L + '}$');
   cleaned.split(/[\s,;]+/).filter(Boolean).forEach(tok => {
     let nums;
-    const range = tok.match(/^(\d{1,4})-(\d{1,4})$/);
+    const range = tok.match(reRange);
     if (range) {
       const a = parseInt(range[1], 10), b = parseInt(range[2], 10);
       const lo = Math.min(a, b), hi = Math.max(a, b);
@@ -1986,7 +2077,7 @@ function parseExamCodeList(text) {
       }
       nums = [];
       for (let n = lo; n <= hi; n++) nums.push(n);
-    } else if (/^\d{1,4}$/.test(tok)) {
+    } else if (reNum.test(tok)) {
       nums = [parseInt(tok, 10)];
     } else {
       result.invalid.push(tok);
@@ -4349,15 +4440,15 @@ function syncCustomInputsUI() {
   }
   const sumEl = document.getElementById('printCustomSummary');
   if (sumEl) {
-    sumEl.innerText = `(${ptPerQ} điểm/câu · Mã đề 4 số · SBD 6 số)`;
+    sumEl.innerText = `(${ptPerQ} điểm/câu · Mã đề ${EXAM_CODE_LEN} số · SBD 6 số)`;
   }
   const cfgCur = document.getElementById('cfgCurrent');
   if (cfgCur && currentTemplate === 'NGANG_CUSTOM') {
-    cfgCur.innerText = `Mẫu 4 · Phiếu Ngang (${customQCount} câu · ${customTotalScore}đ)`;
+    cfgCur.innerText = `Mẫu 4 · Phiếu Ngang (${customQCount} câu · ${customTotalScore}đ · Mã đề ${EXAM_CODE_LEN} số)`;
   }
   const sheetTitle = document.getElementById('sheetTitleDisplay');
   if (sheetTitle && currentTemplate === 'NGANG_CUSTOM') {
-    sheetTitle.innerText = `Phiếu Trả Lời Trắc Nghiệm Ngang (${customQCount} Câu · Thang Điểm ${customTotalScore} · Mã Đề 4 Số)`;
+    sheetTitle.innerText = `Phiếu Trả Lời Trắc Nghiệm Ngang (${customQCount} Câu · Thang Điểm ${customTotalScore} · Mã Đề ${EXAM_CODE_LEN} Số)`;
   }
 }
 
@@ -4434,7 +4525,7 @@ function onTemplateChange() {
     '2026_2P': 'Phiếu Trả Lời Trắc Nghiệm 2 Phần (Lịch Sử / KTPL / Công Nghệ)',
     '2026_3P': 'Phiếu Trả Lời Trắc Nghiệm 3 Phần (Toán / Lý / Hóa / Sinh / Địa)',
     '40Q': 'Phiếu Trả Lời Trắc Nghiệm 40 Câu (Ngoại Ngữ)',
-    'NGANG_CUSTOM': `Phiếu Trả Lời Trắc Nghiệm Ngang (${customQCount} Câu · Thang Điểm ${customTotalScore} · Mã Đề 4 Số)`
+    'NGANG_CUSTOM': `Phiếu Trả Lời Trắc Nghiệm Ngang (${customQCount} Câu · Thang Điểm ${customTotalScore} · Mã Đề ${EXAM_CODE_LEN} Số)`
   };
   document.getElementById('sheetTitleDisplay').innerText = titleMap[currentTemplate];
   const cfgMap = {
@@ -4444,7 +4535,7 @@ function onTemplateChange() {
     'NGANG_CUSTOM': `Mẫu 4 · Phiếu Ngang (${customQCount} câu · ${customTotalScore}đ)`
   };
   const cfgCur = document.getElementById('cfgCurrent');
-  if (cfgCur) cfgCur.innerText = cfgMap[currentTemplate] || '';
+  if (cfgCur) cfgCur.innerText = (cfgMap[currentTemplate] || '') + ` · Mã đề ${EXAM_CODE_LEN} số`;
   document.getElementById('p3ReadoutBox').innerHTML = '';
   syncCustomInputsUI();
   renderAnswerKeyUI();
@@ -4622,7 +4713,12 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   const keyInput = document.getElementById('keyExamCode');
   const savedCodes = getSortedExamCodes();
-  if (savedCodes.length && !answerKeys[keyInput.value.trim()]) keyInput.value = savedCodes[0];
+  if (savedCodes.length) {
+    if (!answerKeys[keyInput.value.trim()]) keyInput.value = savedCodes[0];
+  } else {
+    keyInput.value = DEFAULT_EXAM_CODE; // kho đáp án trống (VD: mới chuyển sang mã đề 3 số)
+  }
+  syncExamLenUI();
   onTemplateChange();
   renderResultsTable();
 });
