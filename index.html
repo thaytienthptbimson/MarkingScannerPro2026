@@ -1924,6 +1924,7 @@ function setP2Key(q, sub, val) {
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   fillMissingP2(answerKeys[code]);
   answerKeys[code].p2[q][sub] = val;
+  persistKeys();            // tự lưu ngay: không cần bấm "Lưu Đáp Án" mới có hiệu lực khi chấm
   renderAnswerKeyUI();
 }
 
@@ -3114,6 +3115,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
 
   // 4. Chấm Phần II
   let scoreP2 = 0;
+  const p2Report = [];   // mỗi câu: máy đọc được gì, đáp án đang dùng là gì, được mấy ý
   const progScale = [0, 0.1, 0.25, 0.5, 1.0];
   if (currentTemplate === '2026_2P' || currentTemplate === '2026_3P') {
     geo.p2.forEach(item => {
@@ -3140,6 +3142,13 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
         }
       });
       scoreP2 += progScale[clusterRight];
+      p2Report.push({
+        q: item.q,
+        read: choices.map(c => c || '–').join(' '),
+        key: item.statements.map(st => normalizeP2Val(activeKey.p2 && activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : '') || 'Đ').join(' '),
+        right: clusterRight,
+        pts: progScale[clusterRight]
+      });
     });
   }
 
@@ -3149,6 +3158,13 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   const ptP3 = parseFloat(document.getElementById('ptP3').value) || 0.25;
   const readoutBox = document.getElementById('p3ReadoutBox');
   readoutBox.innerHTML = '';
+
+  p2Report.forEach(r => {
+    const chip = document.createElement('div');
+    chip.className = 'p3-chip ' + (r.right === 4 ? 'ok' : 'err');
+    chip.innerHTML = `<strong>P.II Câu ${r.q}:</strong> ${r.read}<br><small>Đ/A: ${r.key} · ${r.right}/4 ý = ${r.pts}đ</small>`;
+    readoutBox.appendChild(chip);
+  });
 
   if (currentTemplate === '2026_3P') {
     geo.p3.forEach(item => {
