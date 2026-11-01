@@ -420,6 +420,30 @@
     }
     .code-chip:hover { border-color: var(--primary); }
     .code-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    /* Thư mục đề thi */
+    .folder-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1; }
+    .folder-tab {
+      padding: 5px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff;
+      color: #334155; font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: 0.15s;
+    }
+    .folder-tab:hover { border-color: #f59e0b; }
+    .folder-tab.active { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+    .folder-tab .ft-count { margin-left: 6px; font-weight: 700; opacity: 0.7; font-size: 0.76rem; }
+    .folder-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+    .folder-assign { display: none; align-items: center; gap: 6px; font-size: 0.8rem; color: #475569; margin-left: 4px; }
+    .folder-assign select { padding: 4px 8px; font-weight: 700; border: 1px solid #cbd5e1; border-radius: 6px; max-width: 200px; }
+    .folder-hint, .folder-empty { font-size: 0.8rem; color: #64748b; padding: 4px 2px; }
+    .modal-input {
+      width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px;
+      font-size: 0.95rem; outline: none; margin-top: 6px;
+    }
+    .move-code-grid { display: flex; flex-wrap: wrap; gap: 6px; max-height: 250px; overflow: auto; padding: 4px 0; }
+    .move-code-item {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid #94a3b8;
+      border-radius: 18px; background: #fff; font-weight: 700; font-size: 0.84rem; cursor: pointer; user-select: none;
+    }
+    .move-code-item.checked { background: #dbeafe; border-color: var(--primary); color: var(--primary); }
+    .move-code-item small { font-weight: 500; color: #64748b; font-size: 0.7rem; }
     .modal-textarea {
       width: 100%; min-height: 84px; padding: 8px 10px; border: 1px solid #cbd5e1;
       border-radius: 8px; font-size: 0.9rem; resize: vertical; outline: none; margin-top: 6px;
@@ -658,6 +682,18 @@
             <button class="btn btn-danger btn-sm" onclick="deleteCurrentCode()">🗑️ Xóa mã đề đang chọn</button>
           </div>
         </div>
+        <!-- THƯ MỤC ĐỀ THI -->
+        <div id="folderBar" class="folder-bar"></div>
+        <div class="folder-actions">
+          <button type="button" class="btn btn-outline btn-sm" onclick="openFolderNameModal('create')">📁 Tạo thư mục</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btnRenameFolder" style="display:none;" onclick="openFolderNameModal('rename')">✏️ Đổi tên</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btnDeleteFolder" style="display:none;" onclick="deleteActiveFolder()">🗑️ Xóa thư mục</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="openMoveCodesModal()">📥 Chuyển mã đề vào thư mục</button>
+          <label class="folder-assign" id="folderAssignWrap">Thư mục của mã đề đang chọn:
+            <select id="curCodeFolderSel" onchange="onCurrentCodeFolderChange(this.value)"></select>
+          </label>
+        </div>
+        <div id="folderHint" class="folder-hint" style="display:none;">Chưa có thư mục nào — bấm <b>📁 Tạo thư mục</b> để nhóm các mã đề theo kỳ thi, môn học hoặc lớp.</div>
         <div id="examCodeChips" class="code-chips"></div>
       </div>
 
@@ -905,6 +941,52 @@
   </div>
 </div>
 
+<!-- MODAL TẠO / ĐỔI TÊN THƯ MỤC ĐỀ THI -->
+<div id="folderNameModal" class="modal-backdrop" onclick="if(event.target===this) closeFolderNameModal()">
+  <div class="modal-card" style="max-width: 440px;">
+    <div class="modal-header">
+      <strong id="folderNameTitle">📁 Tạo thư mục mới</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeFolderNameModal()">✕ Đóng</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
+      <label for="folderNameInput">Tên thư mục (tối đa 40 ký tự):</label>
+      <input type="text" id="folderNameInput" class="modal-input" maxlength="40" placeholder="VD: Giữa kỳ 1 - Lịch sử 12"
+             onkeydown="if(event.key==='Enter'){ event.preventDefault(); confirmFolderName(); }">
+      <p style="font-size:0.78rem; color:#64748b; margin:8px 0 0;">Thư mục chỉ dùng để sắp xếp các mã đề cho gọn, không ảnh hưởng đến việc quét và chấm.</p>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeFolderNameModal()">Hủy bỏ</button>
+      <button class="btn btn-success" onclick="confirmFolderName()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHUYỂN NHIỀU MÃ ĐỀ VÀO THƯ MỤC -->
+<div id="moveCodesModal" class="modal-backdrop" onclick="if(event.target===this) closeMoveCodesModal()">
+  <div class="modal-card" style="max-width: 540px;">
+    <div class="modal-header">
+      <strong>📥 Chuyển mã đề vào thư mục</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeMoveCodesModal()">✕ Đóng</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+        <label style="margin:0;">Tích chọn các mã đề cần chuyển (<span id="moveCodesCount">0</span> đã chọn):</label>
+        <span style="display:flex; gap:4px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="moveCodesSelectAll(true)">Chọn tất cả</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="moveCodesSelectAll(false)">Bỏ chọn</button>
+        </span>
+      </div>
+      <div id="moveCodesGrid" class="move-code-grid"></div>
+      <label for="moveCodesTarget" style="display:block; margin:12px 0 6px;">Chuyển vào:</label>
+      <select id="moveCodesTarget" style="padding:7px 10px; font-weight:700; width:100%; border:1px solid #cbd5e1; border-radius:8px;"></select>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeMoveCodesModal()">Hủy bỏ</button>
+      <button class="btn btn-success" onclick="confirmMoveCodes()">📥 Chuyển</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL THÊM NHIỀU MÃ ĐỀ CÙNG LÚC -->
 <div id="addCodesModal" class="modal-backdrop" onclick="if(event.target===this) closeAddCodesModal()">
   <div class="modal-card" style="max-width: 520px;">
@@ -919,6 +1001,11 @@
         Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">2001-2008</span> = 8 mã đề). Tối đa 100 mã mỗi lần.
       </p>
       <div id="addCodesPreview"></div>
+
+      <div id="addCodesFolderWrap">
+        <label for="addCodesFolder" style="display:block; margin:12px 0 6px;">📁 Lưu vào thư mục:</label>
+        <select id="addCodesFolder" style="padding:7px 10px; font-weight:700; width:100%; border:1px solid #cbd5e1; border-radius:8px;"></select>
+      </div>
 
       <label style="display:block; margin:12px 0 6px;">Khởi tạo đáp án cho các mã đề mới:</label>
       <label class="add-code-opt">
@@ -1199,6 +1286,9 @@ function syncWarpDimensions(template = currentTemplate) {
 }
 syncWarpDimensions(currentTemplate);
 let answerKeys = JSON.parse(safeGetStorage(examKeysStorageName(), '{}'));
+// Thư mục đề thi: mỗi kiểu mã đề (3 số / 4 số) có bộ thư mục riêng, giống như kho đáp án
+let examFolders = loadExamFolders();   // { folders: [{id, name}], assign: { "1001": "<id thư mục>" } }
+let activeFolderView = 'all';          // 'all' = tất cả | 'none' = chưa phân loại | <id thư mục>
 let gradedList = JSON.parse(safeGetStorage('omr_graded_ult2026', '[]'));
 
 let lastColorCanvas = null;
@@ -1996,6 +2086,7 @@ function migrateAnswerKeyCodes() {
     if (nk && nk !== k) {
       if (!answerKeys[nk]) answerKeys[nk] = answerKeys[k];
       delete answerKeys[k];
+      moveFolderAssignment(k, nk);
       changed = true;
     }
   });
@@ -2037,6 +2128,8 @@ function onExamCodeLenChange(val) {
   } catch (e) {
     answerKeys = {};
   }
+  examFolders = loadExamFolders();   // thư mục của kiểu mã đề mới
+  activeFolderView = 'all';
   migrateAnswerKeyCodes();
 
   const input = document.getElementById('keyExamCode');
@@ -2062,14 +2155,26 @@ function renderExamCodeChips() {
   const wrap = document.getElementById('examCodeChips');
   if (!wrap) return;
   const current = document.getElementById('keyExamCode').value.trim();
-  const codes = getSortedExamCodes();
-  document.getElementById('countExamCodes').innerText = codes.length;
+  document.getElementById('countExamCodes').innerText = getSortedExamCodes().length;
+  renderFolderUI();
+  const shown = codesInView();
   wrap.innerHTML = '';
-  codes.forEach(code => {
+  if (!shown.length) {
+    const d = document.createElement('div');
+    d.className = 'folder-empty';
+    d.textContent = activeFolderView === 'none'
+      ? 'Tất cả mã đề đã được xếp vào thư mục.'
+      : 'Thư mục này chưa có mã đề. Dùng "📥 Chuyển mã đề vào thư mục" hoặc "➕ Thêm nhiều mã đề" để thêm.';
+    wrap.appendChild(d);
+    return;
+  }
+  shown.forEach(code => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'code-chip' + (code === current ? ' active' : '');
     btn.innerText = code;
+    const fol = folderOfCode(code);
+    if (fol) btn.title = '📁 ' + fol.name;
     btn.onclick = () => selectExamCode(code);
     wrap.appendChild(btn);
   });
@@ -2092,6 +2197,7 @@ function onExamCodeInputChange() {
     if (!answerKeys[code]) {
       answerKeys[code] = createDefaultKey();
       persistKeys();
+      if (examFolders.folders.some(f => f.id === activeFolderView)) setCodesFolder([code], activeFolderView);
       showAppToast(`Đã tạo mã đề ${code}.`, 'success');
     }
   }
@@ -2163,6 +2269,9 @@ function openAddCodesModal() {
   document.getElementById('addCodesInput').value = '';
   document.getElementById('addCodesPreview').innerHTML = '';
   document.querySelector('input[name="addCodesInit"][value="copy"]').checked = true;
+  const folderSel = document.getElementById('addCodesFolder');
+  document.getElementById('addCodesFolderWrap').style.display = examFolders.folders.length ? '' : 'none';
+  fillFolderSelect(folderSel, examFolders.folders.some(f => f.id === activeFolderView) ? activeFolderView : '');
   document.getElementById('addCodesModal').classList.add('open');
   setTimeout(() => document.getElementById('addCodesInput').focus(), 50);
 }
@@ -2191,6 +2300,12 @@ function confirmAddCodes() {
     else answerKeys[code] = createDefaultKey();
   });
   persistKeys();
+  const folderSel = document.getElementById('addCodesFolder');
+  const targetFolder = folderSel && examFolders.folders.length ? folderSel.value : '';
+  if (targetFolder) {
+    setCodesFolder(fresh, targetFolder);
+    activeFolderView = targetFolder;   // chuyển sang xem thư mục vừa thêm mã đề vào
+  }
   closeAddCodesModal();
   selectExamCode(fresh[0]);
   playBeep(880, 80);
@@ -2208,10 +2323,268 @@ function deleteCurrentCode() {
     const idx = codes.indexOf(code);
     delete answerKeys[code];
     persistKeys();
+    removeCodeFromFolders(code);
     const rest = getSortedExamCodes();
     selectExamCode(rest[Math.max(0, Math.min(idx, rest.length - 1))]);
     showAppToast(`Đã xóa mã đề ${code}.`, 'info');
   });
+}
+
+/********************************************************************
+ * 4c. THƯ MỤC ĐỀ THI (NHÓM CÁC MÃ ĐỀ THEO KỲ THI / MÔN HỌC / LỚP)
+ *  • Thư mục chỉ để sắp xếp & lọc danh sách mã đề; không ảnh hưởng việc quét, chấm điểm hay đáp án.
+ *  • Lưu riêng cho từng kiểu mã đề (3 số / 4 số), cùng cách tách kho đáp án.
+ ********************************************************************/
+function examFoldersStorageName(len = EXAM_CODE_LEN) {
+  return len === 3 ? 'omr_folders_ult2026_m3' : 'omr_folders_ult2026';
+}
+
+function loadExamFolders() {
+  let data = null;
+  try { data = JSON.parse(safeGetStorage(examFoldersStorageName(), 'null')); } catch (e) { data = null; }
+  const out = { folders: [], assign: {} };
+  if (data && Array.isArray(data.folders)) {
+    data.folders.forEach(f => {
+      if (f && typeof f.id === 'string' && typeof f.name === 'string' && f.name.trim()) {
+        out.folders.push({ id: f.id, name: f.name.trim().slice(0, 40) });
+      }
+    });
+  }
+  if (data && data.assign && typeof data.assign === 'object') {
+    Object.keys(data.assign).forEach(code => {
+      if (out.folders.some(f => f.id === data.assign[code])) out.assign[code] = data.assign[code];
+    });
+  }
+  return out;
+}
+
+function persistFolders() {
+  safeSetStorage(examFoldersStorageName(), JSON.stringify(examFolders));
+}
+
+function folderById(id) { return examFolders.folders.find(f => f.id === id) || null; }
+function folderOfCode(code) { return folderById(examFolders.assign[code]); }
+function isRealFolderView() { return !!folderById(activeFolderView); }
+
+function codesInView(view = activeFolderView) {
+  const all = getSortedExamCodes();
+  if (view === 'all') return all;
+  if (view === 'none') return all.filter(c => !folderOfCode(c));
+  return all.filter(c => examFolders.assign[c] === view);
+}
+
+function setCodesFolder(codes, folderId) {
+  codes.forEach(c => {
+    if (folderId && folderById(folderId)) examFolders.assign[c] = folderId;
+    else delete examFolders.assign[c];
+  });
+  persistFolders();
+}
+
+function removeCodeFromFolders(code) {
+  if (examFolders.assign[code]) { delete examFolders.assign[code]; persistFolders(); }
+}
+
+function moveFolderAssignment(oldCode, newCode) {
+  if (!examFolders.assign[oldCode]) return;
+  if (!examFolders.assign[newCode]) examFolders.assign[newCode] = examFolders.assign[oldCode];
+  delete examFolders.assign[oldCode];
+  persistFolders();
+}
+
+function newFolderId() {
+  return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// Đổ danh sách thư mục vào một ô <select>: giá trị rỗng = "Chưa phân loại"
+function fillFolderSelect(sel, value) {
+  if (!sel) return;
+  sel.innerHTML = '';
+  sel.appendChild(new Option('🗂️ Chưa phân loại', ''));
+  examFolders.folders.forEach(f => sel.appendChild(new Option('📁 ' + f.name, f.id)));
+  sel.value = folderById(value) ? value : '';
+}
+
+function renderFolderUI() {
+  const bar = document.getElementById('folderBar');
+  if (!bar) return;
+  // dọn dữ liệu: mã đề đã bị xóa thì gỡ khỏi thư mục
+  let dirty = false;
+  Object.keys(examFolders.assign).forEach(c => { if (!answerKeys[c]) { delete examFolders.assign[c]; dirty = true; } });
+  if (dirty) persistFolders();
+  if (activeFolderView !== 'all' && activeFolderView !== 'none' && !folderById(activeFolderView)) activeFolderView = 'all';
+  if (activeFolderView === 'none' && !examFolders.folders.length) activeFolderView = 'all';
+
+  const all = getSortedExamCodes();
+  const hasFolders = examFolders.folders.length > 0;
+  bar.innerHTML = '';
+  bar.style.display = hasFolders ? '' : 'none';
+  const addTab = (view, label, count) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'folder-tab' + (activeFolderView === view ? ' active' : '');
+    const t = document.createElement('span');
+    t.textContent = label;
+    const c = document.createElement('span');
+    c.className = 'ft-count';
+    c.textContent = count;
+    b.appendChild(t);
+    b.appendChild(c);
+    b.onclick = () => setFolderView(view);
+    bar.appendChild(b);
+  };
+  addTab('all', '📂 Tất cả', all.length);
+  examFolders.folders.forEach(f => addTab(f.id, '📁 ' + f.name, all.filter(c => examFolders.assign[c] === f.id).length));
+  if (hasFolders) addTab('none', '🗂️ Chưa phân loại', all.filter(c => !folderOfCode(c)).length);
+
+  const real = isRealFolderView();
+  document.getElementById('btnRenameFolder').style.display = real ? '' : 'none';
+  document.getElementById('btnDeleteFolder').style.display = real ? '' : 'none';
+  document.getElementById('folderHint').style.display = hasFolders ? 'none' : '';
+  const assignWrap = document.getElementById('folderAssignWrap');
+  assignWrap.style.display = hasFolders ? 'flex' : 'none';
+  const cur = document.getElementById('keyExamCode').value.trim();
+  fillFolderSelect(document.getElementById('curCodeFolderSel'), examFolders.assign[cur] || '');
+}
+
+function setFolderView(view) {
+  activeFolderView = view;
+  const list = codesInView();
+  const cur = document.getElementById('keyExamCode').value.trim();
+  if (list.length && !list.includes(cur)) selectExamCode(list[0]);   // mở luôn mã đề đầu tiên của thư mục
+  else renderExamCodeChips();
+}
+
+// Đổi thư mục của mã đề đang chọn (ô chọn nhanh)
+function onCurrentCodeFolderChange(folderId) {
+  const code = document.getElementById('keyExamCode').value.trim();
+  if (!code || !answerKeys[code]) return;
+  setCodesFolder([code], folderId || null);
+  if (activeFolderView !== 'all') activeFolderView = folderId || 'none';   // đi theo mã đề sang thư mục mới
+  renderExamCodeChips();
+  const f = folderById(folderId);
+  showAppToast(f ? `Đã chuyển mã đề ${code} vào thư mục "${f.name}".` : `Đã đưa mã đề ${code} về "Chưa phân loại".`, 'success');
+}
+
+/* ---------- Tạo / đổi tên / xóa thư mục ---------- */
+let folderNameMode = 'create';
+
+function openFolderNameModal(mode) {
+  folderNameMode = mode === 'rename' ? 'rename' : 'create';
+  const inp = document.getElementById('folderNameInput');
+  if (folderNameMode === 'rename') {
+    const f = folderById(activeFolderView);
+    if (!f) return;
+    inp.value = f.name;
+    document.getElementById('folderNameTitle').innerText = '✏️ Đổi tên thư mục';
+  } else {
+    inp.value = '';
+    document.getElementById('folderNameTitle').innerText = '📁 Tạo thư mục mới';
+  }
+  document.getElementById('folderNameModal').classList.add('open');
+  setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) {} }, 60);
+}
+
+function closeFolderNameModal() {
+  document.getElementById('folderNameModal').classList.remove('open');
+}
+
+function confirmFolderName() {
+  const name = document.getElementById('folderNameInput').value.replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (!name) { showAppToast('Hãy nhập tên thư mục.', 'warn'); return; }
+  const editing = folderNameMode === 'rename' ? folderById(activeFolderView) : null;
+  const dup = examFolders.folders.some(f => f.name.toLowerCase() === name.toLowerCase() && (!editing || f.id !== editing.id));
+  if (dup) { showAppToast('Đã có thư mục trùng tên này.', 'warn'); return; }
+  if (editing) {
+    editing.name = name;
+    persistFolders();
+    closeFolderNameModal();
+    renderExamCodeChips();
+    showAppToast(`Đã đổi tên thư mục thành "${name}".`, 'success');
+    return;
+  }
+  if (examFolders.folders.length >= 50) { showAppToast('Tối đa 50 thư mục.', 'warn'); return; }
+  const f = { id: newFolderId(), name };
+  examFolders.folders.push(f);
+  persistFolders();
+  activeFolderView = f.id;
+  closeFolderNameModal();
+  renderExamCodeChips();
+  showAppToast(`Đã tạo thư mục "${name}". Bấm "📥 Chuyển mã đề vào thư mục" để đưa mã đề vào.`, 'success');
+}
+
+function deleteActiveFolder() {
+  const f = folderById(activeFolderView);
+  if (!f) return;
+  const n = codesInView().length;
+  showAppConfirm(`Xóa thư mục "${f.name}"? ${n ? `${n} mã đề trong thư mục` : 'Các mã đề'} KHÔNG bị xóa, chỉ chuyển về "Chưa phân loại".`, () => {
+    examFolders.folders = examFolders.folders.filter(x => x.id !== f.id);
+    Object.keys(examFolders.assign).forEach(c => { if (examFolders.assign[c] === f.id) delete examFolders.assign[c]; });
+    persistFolders();
+    activeFolderView = 'all';
+    renderExamCodeChips();
+    showAppToast(`Đã xóa thư mục "${f.name}".`, 'info');
+  });
+}
+
+/* ---------- Chuyển nhiều mã đề vào thư mục ---------- */
+function updateMoveCodesCount() {
+  const grid = document.getElementById('moveCodesGrid');
+  grid.querySelectorAll('.move-code-item').forEach(l => l.classList.toggle('checked', l.querySelector('input').checked));
+  document.getElementById('moveCodesCount').textContent = grid.querySelectorAll('input:checked').length;
+}
+
+function openMoveCodesModal() {
+  if (!examFolders.folders.length) {
+    showAppToast('Hãy tạo thư mục trước.', 'info');
+    openFolderNameModal('create');
+    return;
+  }
+  const grid = document.getElementById('moveCodesGrid');
+  grid.innerHTML = '';
+  getSortedExamCodes().forEach(code => {
+    const lab = document.createElement('label');
+    lab.className = 'move-code-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = code;
+    cb.onchange = updateMoveCodesCount;
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(code));
+    const fol = folderOfCode(code);
+    if (fol) {
+      const sm = document.createElement('small');
+      sm.textContent = '📁 ' + fol.name;
+      lab.appendChild(sm);
+    }
+    grid.appendChild(lab);
+  });
+  fillFolderSelect(document.getElementById('moveCodesTarget'), isRealFolderView() ? activeFolderView : examFolders.folders[0].id);
+  updateMoveCodesCount();
+  document.getElementById('moveCodesModal').classList.add('open');
+}
+
+function closeMoveCodesModal() {
+  document.getElementById('moveCodesModal').classList.remove('open');
+}
+
+function moveCodesSelectAll(flag) {
+  document.querySelectorAll('#moveCodesGrid input').forEach(cb => { cb.checked = flag; });
+  updateMoveCodesCount();
+}
+
+function confirmMoveCodes() {
+  const codes = Array.from(document.querySelectorAll('#moveCodesGrid input:checked')).map(cb => cb.value);
+  if (!codes.length) { showAppToast('Hãy tích chọn ít nhất 1 mã đề.', 'warn'); return; }
+  const target = document.getElementById('moveCodesTarget').value;
+  setCodesFolder(codes, target || null);
+  const f = folderById(target);
+  if (activeFolderView !== 'all') activeFolderView = target || 'none';   // đi theo các mã đề sang thư mục mới
+  closeMoveCodesModal();
+  const first = codes.find(c => codesInView().includes(c));
+  if (first) selectExamCode(first); else renderExamCodeChips();
+  playBeep(880, 80);
+  showAppToast(f ? `Đã chuyển ${codes.length} mã đề vào thư mục "${f.name}".` : `Đã đưa ${codes.length} mã đề về "Chưa phân loại".`, 'success');
 }
 
 function isShortAnswerMatch(studentRaw, keyRaw) {
