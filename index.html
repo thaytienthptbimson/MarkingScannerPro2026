@@ -1796,11 +1796,41 @@ function fillMissingP1(key, maxQ = 60) {
   return added;
 }
 
+// Phần II: chuẩn hóa mọi dạng ghi đáp án cũ (Đ/đ/D/T/True/Đúng… → 'Đ'; S/s/F/False/Sai… → 'S'); không nhận ra → ''
+function normalizeP2Val(v) {
+  if (v === true) return 'Đ';
+  if (v === false) return 'S';
+  const t = String(v == null ? '' : v).trim().toUpperCase();
+  if (!t) return '';
+  if (['Đ', 'D', 'T', 'TRUE', 'ĐÚNG', 'DUNG', 'ĐUNG', '1'].includes(t)) return 'Đ';
+  if (['S', 'F', 'FALSE', 'SAI', '0'].includes(t)) return 'S';
+  return '';
+}
+
+// Đáp án cũ có thể thiếu Phần II hoặc thiếu một số ý a-d (giao diện hiện sẵn "Đ" nhưng lúc chấm giá trị trống → câu nào cũng sai,
+// điểm Phần II = 0). Hàm này chuẩn hóa và ghi sẵn đúng cái giao diện đang hiển thị. Trả về số ý đã được bổ sung/sửa.
+function fillMissingP2(key) {
+  if (!key.p2 || typeof key.p2 !== 'object') key.p2 = {};
+  const def = { a: 'Đ', b: 'S', c: 'Đ', d: 'S' };
+  let fixed = 0;
+  for (let q = 1; q <= 4; q++) {
+    if (!key.p2[q] || typeof key.p2[q] !== 'object') { key.p2[q] = {}; }
+    ['a', 'b', 'c', 'd'].forEach(sub => {
+      const raw = key.p2[q][sub];
+      const nv = normalizeP2Val(raw);
+      const want = nv || 'Đ';                       // khớp với giao diện: chưa có thì hiện (và ghi) 'Đ'
+      if (raw !== want) { key.p2[q][sub] = want; fixed++; }
+    });
+  }
+  return fixed;
+}
+
 function renderAnswerKeyUI() {
   const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
   const currentKey = answerKeys[code];
-  if (fillMissingP1(currentKey) > 0) persistKeys();
+  const _fixedP1 = fillMissingP1(currentKey), _fixedP2 = fillMissingP2(currentKey);
+  if (_fixedP1 > 0 || _fixedP2 > 0) persistKeys();
   const geo = getSheetGeometry(currentTemplate);
   renderExamCodeChips();
 
@@ -1891,6 +1921,8 @@ function renderAnswerKeyUI() {
 
 function setP2Key(q, sub, val) {
   const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
+  if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
+  fillMissingP2(answerKeys[code]);
   answerKeys[code].p2[q][sub] = val;
   renderAnswerKeyUI();
 }
@@ -3042,7 +3074,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   const fallbackCode = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
   const keyGapsInRange = geo.p1.filter(it => !['A', 'B', 'C', 'D'].includes(activeKey.p1 && activeKey.p1[it.q])).length;
-  if (fillMissingP1(activeKey) > 0) persistKeys();
+  const _gapP1 = fillMissingP1(activeKey), _gapP2 = fillMissingP2(activeKey);
+  if (_gapP1 > 0 || _gapP2 > 0) persistKeys();
   if (keyGapsInRange > 0 && !isInitialPreview) {
     showAppToast(`⚠️ Đáp án mã đề ${answerKeys[maDeStr] ? maDeStr : fallbackCode} còn thiếu ${keyGapsInRange} câu — đã tạm ghi "A". Hãy mở tab Đáp án, kiểm tra rồi bấm Lưu.`, 'warn');
   }
@@ -3095,7 +3128,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
         const choice = choices[si];
         const chosenPos = choice === 'Đ' ? st.trueOpt : (choice === 'S' ? st.falseOpt : null);
 
-        const rightSub = activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : 'Đ';
+        const rightSub = normalizeP2Val(activeKey.p2 && activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : '') || 'Đ';
         const rightPos = rightSub === 'Đ' ? st.trueOpt : st.falseOpt;
 
         if (choice === rightSub) {
