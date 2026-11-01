@@ -472,7 +472,7 @@
 <div class="container">
 
   <div class="status-row">
-    <span id="licBadge" class="cv-badge lic-badge trial" onclick="openLicenseModal()" title="Bấm để xem / nhập mật khẩu kích hoạt">🕒 Dùng thử</span>
+    <span id="licBadge" class="cv-badge lic-badge trial" onclick="openLicenseModal()" title="Bấm để xem Mã máy / nhập mã kích hoạt">🕒 Dùng thử</span>
     <span id="cvStatus" class="cv-badge">⏳ Đang nạp OpenCV.js...</span>
   </div>
 
@@ -858,7 +858,7 @@
 <!-- TOAST THÔNG BÁO CHUẨN ANDROID (THAY THẾ ALERT) -->
 <div id="appToastContainer"></div>
 
-<!-- MODAL BẢN QUYỀN: DÙNG THỬ 10 NGÀY / KÍCH HOẠT 365 NGÀY -->
+<!-- MODAL BẢN QUYỀN: DÙNG THỬ 10 NGÀY / KÍCH HOẠT THEO MÃ MÁY -->
 <div id="licenseModal" class="modal-backdrop" style="z-index:3000;" onclick="if(event.target===this && isLicenseValid()) closeLicenseModal()">
   <div class="modal-card" style="max-width: 420px;">
     <div class="modal-header">
@@ -867,16 +867,23 @@
     </div>
     <div class="modal-body" style="background:#fff; padding:16px; text-align:left; font-size:0.9rem; color:#1e293b;">
       <p id="licStatusText" style="margin-bottom:12px; line-height:1.5;"></p>
-      <label for="licPassInput" style="display:block; margin-bottom:5px;">Mật khẩu kích hoạt</label>
-      <input type="password" id="licPassInput" autocomplete="off" placeholder="Nhập mật khẩu..."
-             style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.95rem; outline:none;"
-             onkeydown="if(event.key==='Enter') submitLicensePassword()">
+      <div style="margin-bottom:12px; padding:10px 12px; background:#f1f5f9; border:1px dashed #94a3b8; border-radius:8px;">
+        <div style="font-size:0.76rem; color:#64748b;">Mã máy của bạn (gửi cho người cấp phép để nhận mã kích hoạt):</div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
+          <strong id="licDeviceId" style="font-family:ui-monospace,Consolas,monospace; font-size:1.15rem; letter-spacing:1px; user-select:all;"></strong>
+          <button type="button" class="btn btn-outline btn-sm" onclick="copyLicenseDeviceId()">📋 Sao chép</button>
+        </div>
+      </div>
+      <label for="licPassInput" style="display:block; margin-bottom:5px;">Mã kích hoạt</label>
+      <textarea id="licPassInput" rows="3" autocomplete="off" spellcheck="false" placeholder="Dán mã kích hoạt vào đây..."
+             style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem; font-family:ui-monospace,Consolas,monospace; outline:none; resize:vertical;"
+             onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); submitLicensePassword(); }"></textarea>
       <p id="licError" style="color:#dc2626; font-size:0.8rem; font-weight:600; min-height:1.1em; margin-top:6px;"></p>
-      <p style="font-size:0.76rem; color:#64748b; margin-top:4px;">Nhập đúng mật khẩu để sử dụng thêm 365 ngày.</p>
+      <p style="font-size:0.76rem; color:#64748b; margin-top:4px;">Mỗi mã chỉ dùng được trên đúng máy có Mã máy ở trên. Đổi trình duyệt hoặc xóa dữ liệu trình duyệt sẽ đổi Mã máy.</p>
     </div>
     <div class="modal-footer" style="justify-content:flex-end;">
       <button id="licLaterBtn" class="btn btn-outline" onclick="closeLicenseModal()">Để sau</button>
-      <button class="btn btn-primary" onclick="submitLicensePassword()">🔓 Kích hoạt 365 ngày</button>
+      <button class="btn btn-primary" onclick="submitLicensePassword()">🔓 Kích hoạt</button>
     </div>
   </div>
 </div>
@@ -4800,27 +4807,89 @@ function downloadSheetImage() {
 
 
 /********************************************************************
- * BẢN QUYỀN: DÙNG THỬ 10 NGÀY → NHẬP MẬT KHẨU ĐỂ DÙNG 365 NGÀY
+ * BẢN QUYỀN: DÙNG THỬ 10 NGÀY → NHẬP MÃ KÍCH HOẠT (MỖI MÁY MỘT MÃ RIÊNG)
+ *  • Mỗi máy có một "Mã máy" riêng (tạo ngẫu nhiên, lưu trong trình duyệt).
+ *  • Người cấp phép dùng file tao_ma_kich_hoat_RIENG_TU.html (giữ trên máy mình, KHÔNG đưa lên GitHub)
+ *    để ký "Mã máy + ngày hết hạn" bằng khóa bí mật → ra "Mã kích hoạt".
+ *  • Trong app chỉ có KHÓA CÔNG KHAI (chỉ dùng để kiểm tra chữ ký) → không ai tự tạo được mã mới,
+ *    và mã của máy này đưa sang máy khác sẽ bị báo sai.
  ********************************************************************/
 const LIC_TRIAL_DAYS = 10;
-const LIC_ACTIVE_DAYS = 365;
 const LIC_DAY_MS = 86400000;
-const LIC_SALT = 'OMR-PRO-2026|';
-const LIC_PASS_HASH = 'ky96u4h57y'; // mã băm của mật khẩu kích hoạt (không lưu mật khẩu dạng chữ)
+const LIC_VN_OFFSET_MS = 7 * 3600000;   // ngày hết hạn tính theo giờ Việt Nam (UTC+7)
+const LIC_SALT = 'OMR-PRO-2026|';       // phải trùng với file tạo mã
+const LIC_PUBLIC_JWK = {"kty":"EC","crv":"P-256","x":"KyXQn44IYU-YPFWRCZwAFU9UZBxIwI7NHtxHZxJgS9A","y":"p4xcSL0U3mjJx4Kq4BRaOJk-fL5Hvf7IAka-V2RvILs"};
 const LIC_KEY_START = 'omr_lic_trial_start';
-const LIC_KEY_UNTIL = 'omr_lic_unlock_until';
+const LIC_KEY_CODE = 'omr_lic_code';
 const LIC_KEY_SEEN = 'omr_lic_last_seen';
+const LIC_KEY_DEVICE = 'omr_device_id';
+const LIC_ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // bỏ I, O, 0, 1 cho khỏi nhầm khi đọc
+let licActiveUntil = 0;          // hạn của mã kích hoạt đã kiểm tra chữ ký (0 = chưa có mã hợp lệ)
+let licPublicKeyPromise = null;
 
-function licHash(str) {
-  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
-  for (let i = 0, ch; i < str.length; i++) {
-    ch = str.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761);
-    h2 = Math.imul(h2 ^ ch, 1597334677);
+function licNormalizeDeviceId(raw) { return String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function licFormatDeviceId(id) { return id.replace(/(.{4})(?=.)/g, '$1-'); }
+
+// Mã máy: 12 ký tự, lưu ở localStorage và cookie dự phòng (mất một nơi vẫn khôi phục được từ nơi còn lại)
+function licGetDeviceId() {
+  const valid = (s) => s.length === 12 && [...s].every(ch => LIC_ID_CHARS.includes(ch));
+  let id = licNormalizeDeviceId(safeGetStorage(LIC_KEY_DEVICE, ''));
+  if (!valid(id)) {
+    try {
+      const m = document.cookie.match(/(?:^|;\s*)omr_did=([A-Z0-9]{12})/);
+      id = m ? m[1] : '';
+    } catch (e) { id = ''; }
   }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+  if (!valid(id)) {
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    id = '';
+    for (let i = 0; i < 12; i++) id += LIC_ID_CHARS[bytes[i] & 31];
+  }
+  safeSetStorage(LIC_KEY_DEVICE, id);
+  try { document.cookie = 'omr_did=' + id + '; max-age=315360000; path=/; SameSite=Lax'; } catch (e) {}
+  return id;
+}
+
+function licB64uToBytes(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+// Kiểm tra mã kích hoạt cho máy deviceId.
+// Trả về { sig: true/false, until, reason } — sig=true nghĩa là chữ ký đúng & đúng máy này (until = thời điểm hết hạn, ms)
+async function licVerifyCode(rawCode, deviceId) {
+  const code = String(rawCode || '').replace(/\s+/g, '');
+  const m = /^([0-9a-z]{1,8})\.([A-Za-z0-9_-]{86})$/.exec(code);
+  if (!m) return { sig: false, reason: 'format' };
+  if (!(window.crypto && crypto.subtle)) return { sig: false, reason: 'nocrypto' };
+  try {
+    if (!licPublicKeyPromise) {
+      licPublicKeyPromise = crypto.subtle.importKey('jwk', LIC_PUBLIC_JWK, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+    }
+    const key = await licPublicKeyPromise;
+    const msg = new TextEncoder().encode(LIC_SALT + deviceId + '|' + m[1]);
+    const good = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, licB64uToBytes(m[2]), msg);
+    if (!good) return { sig: false, reason: 'sig' };
+    const until = (parseInt(m[1], 36) + 1) * LIC_DAY_MS - LIC_VN_OFFSET_MS;   // hết hạn vào cuối ngày đó (giờ VN)
+    return { sig: true, until, code };
+  } catch (e) {
+    return { sig: false, reason: 'error' };
+  }
+}
+
+// Đọc mã đã lưu và kiểm tra lại chữ ký mỗi lần mở app (sửa tay localStorage cũng không qua được)
+async function licLoadStoredCode() {
+  licActiveUntil = 0;
+  try { localStorage.removeItem('omr_lic_unlock_until'); } catch (e) {}   // bỏ dấu kích hoạt kiểu cũ (mật khẩu chung)
+  const code = safeGetStorage(LIC_KEY_CODE, '');
+  if (!code) return;
+  const r = await licVerifyCode(code, licGetDeviceId());
+  if (r.sig) licActiveUntil = r.until;
 }
 
 // Thời gian "hiện tại" có chống lùi đồng hồ: không bao giờ nhỏ hơn mốc đã từng ghi nhận
@@ -4831,7 +4900,7 @@ function licNow() {
   return now;
 }
 
-// mode: 'active' (đã kích hoạt) | 'trial' (đang dùng thử) | 'expired' (hết hạn, cần mật khẩu)
+// mode: 'active' (đã kích hoạt) | 'trial' (đang dùng thử) | 'expired' (hết hạn, cần mã kích hoạt)
 function getLicenseState() {
   const now = licNow();
   let start = parseInt(safeGetStorage(LIC_KEY_START, '0'), 10) || 0;
@@ -4839,7 +4908,7 @@ function getLicenseState() {
     start = now;
     safeSetStorage(LIC_KEY_START, String(start));
   }
-  const until = parseInt(safeGetStorage(LIC_KEY_UNTIL, '0'), 10) || 0;
+  const until = licActiveUntil;
   if (until > now) {
     return { mode: 'active', daysLeft: Math.ceil((until - now) / LIC_DAY_MS), until };
   }
@@ -4879,14 +4948,16 @@ function openLicenseModal() {
   const locked = st.mode === 'expired';
   const title = document.getElementById('licTitle');
   const text = document.getElementById('licStatusText');
-  if (title) title.innerText = locked ? '🔒 Đã hết hạn dùng thử' : '🔑 Kích hoạt bản quyền';
+  if (title) title.innerText = locked ? '🔒 Cần kích hoạt để tiếp tục' : '🔑 Kích hoạt bản quyền';
   if (text) {
     text.innerText = locked
-      ? `Thời gian dùng thử ${LIC_TRIAL_DAYS} ngày đã kết thúc. Vui lòng nhập mật khẩu để tiếp tục sử dụng trong ${LIC_ACTIVE_DAYS} ngày.`
+      ? `Thời gian dùng thử ${LIC_TRIAL_DAYS} ngày (hoặc mã kích hoạt cũ) đã hết hạn. Hãy gửi "Mã máy" bên dưới cho người cấp phép để nhận mã kích hoạt dành riêng cho máy này.`
       : (st.mode === 'active'
-          ? `Bản quyền đang hoạt động — còn ${st.daysLeft} ngày (đến ${formatLicDate(st.until)}). Nhập lại mật khẩu để gia hạn thêm ${LIC_ACTIVE_DAYS} ngày kể từ hôm nay.`
-          : `Đang dùng thử — còn ${st.daysLeft} ngày (đến ${formatLicDate(st.until)}). Có thể nhập mật khẩu ngay để dùng ${LIC_ACTIVE_DAYS} ngày.`);
+          ? `Bản quyền đang hoạt động — còn ${st.daysLeft} ngày (đến ${formatLicDate(st.until - 1)}). Khi cần gia hạn, nhập mã kích hoạt mới.`
+          : `Đang dùng thử — còn ${st.daysLeft} ngày (đến ${formatLicDate(st.until)}). Có thể nhập mã kích hoạt ngay nếu đã có.`);
   }
+  const idEl = document.getElementById('licDeviceId');
+  if (idEl) { try { idEl.innerText = licFormatDeviceId(licGetDeviceId()); } catch (e) {} }
   const closeBtn = document.getElementById('licCloseBtn');
   const laterBtn = document.getElementById('licLaterBtn');
   if (closeBtn) closeBtn.style.display = locked ? 'none' : '';
@@ -4904,26 +4975,53 @@ function closeLicenseModal() {
   document.getElementById('licenseModal').classList.remove('open');
 }
 
-function submitLicensePassword() {
+function copyLicenseDeviceId() {
+  const text = licFormatDeviceId(licGetDeviceId());
+  const done = () => showAppToast('Đã sao chép Mã máy: ' + text, 'success');
+  const fallback = () => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    } catch (e) { showAppToast('Hãy bấm giữ vào Mã máy để sao chép: ' + text, 'info'); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
+}
+
+async function submitLicensePassword() {
   const input = document.getElementById('licPassInput');
   const err = document.getElementById('licError');
   const val = (input ? input.value : '').trim();
-  if (licHash(LIC_SALT + val) === LIC_PASS_HASH) {
-    const now = licNow();
-    safeSetStorage(LIC_KEY_UNTIL, String(now + LIC_ACTIVE_DAYS * LIC_DAY_MS));
-    document.getElementById('licenseModal').classList.remove('open');
-    const st = updateLicenseUI();
-    showAppToast(`✅ Kích hoạt thành công! Sử dụng đến ${formatLicDate(st.until)} (${st.daysLeft} ngày).`, 'success');
-  } else {
-    if (err) err.innerText = '❌ Mật khẩu không đúng. Vui lòng thử lại.';
+  const fail = (msg) => {
+    if (err) err.innerText = msg;
     if (input) {
-      input.value = '';
       input.classList.remove('lic-shake');
       void input.offsetWidth;
       input.classList.add('lic-shake');
       input.focus();
     }
+  };
+  if (!val) { fail('❌ Hãy dán mã kích hoạt vào ô trên.'); return; }
+  const r = await licVerifyCode(val, licGetDeviceId());
+  if (!r.sig) {
+    fail(r.reason === 'format' ? '❌ Mã sai định dạng — hãy dán nguyên văn mã, không thiếu ký tự.'
+      : r.reason === 'nocrypto' ? '❌ Trình duyệt này không kiểm tra được mã (cần mở bằng https hoặc Chrome/Safari/Edge bản mới).'
+      : '❌ Mã không đúng hoặc không dành cho máy này. Hãy kiểm tra lại Mã máy đã gửi.');
+    return;
   }
+  if (r.until <= licNow()) { fail(`❌ Mã này đã hết hạn từ ngày ${formatLicDate(r.until - 1)}. Hãy xin mã mới.`); return; }
+  safeSetStorage(LIC_KEY_CODE, r.code);
+  licActiveUntil = r.until;
+  document.getElementById('licenseModal').classList.remove('open');
+  const st = updateLicenseUI();
+  showAppToast(`✅ Kích hoạt thành công! Sử dụng đến ${formatLicDate(st.until - 1)} (${st.daysLeft} ngày).`, 'success');
 }
 
 function syncHeaderHeight() {
@@ -4932,7 +5030,8 @@ function syncHeaderHeight() {
 }
 
 function initLicense() {
-  updateLicenseUI();
+  try { licGetDeviceId(); } catch (e) {}
+  licLoadStoredCode().catch(() => {}).then(() => updateLicenseUI());
   setInterval(updateLicenseUI, 60000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) updateLicenseUI(); });
 }
