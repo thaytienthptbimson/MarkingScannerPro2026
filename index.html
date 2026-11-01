@@ -1204,12 +1204,13 @@ function getSheetGeometry(template) {
   if (template === 'NGANG_CUSTOM') {
     const qCount = Math.min(60, Math.max(1, parseInt(customQCount, 10) || 40));
     const rowsPerCol = qCount <= 40 ? 10 : Math.ceil(qCount / 4);
-    const rowStep = rowsPerCol <= 10 ? 36 : (324 / Math.max(1, rowsPerCol - 1));
-    const qRadius = rowsPerCol <= 10 ? 11 : (rowsPerCol <= 13 ? 9.5 : 8.5);
+    const rowStep = rowsPerCol <= 10 ? 36 : (354 / Math.max(1, rowsPerCol - 1));   // 41–60 câu: dàn đều xuống sát ô định vị dưới (trước: 324)
+    // Ô tô to hơn (trước: 11 / 9.5 / 8.5): ≤40 câu = 13.5, 41–52 câu = 12, 53–60 câu = 10.5; luôn còn ≥ 4 px trống giữa hai vòng tròn.
+    const qRadius = rowsPerCol <= 10 ? 13.5 : (rowsPerCol <= 13 ? 12 : 10.5);
     const geo = {
       isLandscape: true,
       bubbleRadius: qRadius,
-      idBubbleRadius: 11,
+      idBubbleRadius: 13.5,
       rowsPerCol,
       rowStep,
       sbd: [],
@@ -1249,7 +1250,7 @@ function getSheetGeometry(template) {
         col,
         row,
         groupX,
-        opts: labels.map((lbl, idx) => ({ label: lbl, x: groupX + 46 + idx * 32, y }))
+        opts: labels.map((lbl, idx) => ({ label: lbl, x: groupX + 46 + idx * 34, y }))
       });
     }
     return geo;
@@ -1441,9 +1442,9 @@ function drawLandscapeCustomSheet(ctx, geo, mockData) {
   for (let d = 0; d <= 9; d++) {
     const ry = 216 + d * 36;
     ctx.fillStyle = '#000000';
-    ctx.font = '15px Arial';
+    ctx.font = '17px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(String(d), 49, ry + 5);
+    ctx.fillText(String(d), 49, ry + 6);
   }
   geo.made.forEach((col, cIdx) => {
     const cx = col[0].x;
@@ -1469,9 +1470,9 @@ function drawLandscapeCustomSheet(ctx, geo, mockData) {
   for (let d = 0; d <= 9; d++) {
     const ry = 216 + d * 36;
     ctx.fillStyle = '#000000';
-    ctx.font = '15px Arial';
+    ctx.font = '17px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(String(d), 237, ry + 5);
+    ctx.fillText(String(d), 237, ry + 6);
   }
   geo.sbd.forEach((col, cIdx) => {
     const cx = col[0].x;
@@ -1497,18 +1498,18 @@ function drawLandscapeCustomSheet(ctx, geo, mockData) {
     ctx.fillStyle = '#000000';
     ctx.fillRect(groupX, 168, 22, 22);
     ctx.fillRect(groupX, 598, 22, 22);
-    ctx.font = '15px Arial';
+    ctx.font = 'bold 17px Arial';
     ctx.textAlign = 'center';
     labels.forEach((lbl, idx) => {
-      ctx.fillText(lbl, groupX + 46 + idx * 32, 186);
+      ctx.fillText(lbl, groupX + 46 + idx * 34, 187);
     });
   }
 
   geo.p1.forEach(item => {
     ctx.fillStyle = '#000000';
-    ctx.font = (geo.rowsPerCol <= 10 ? '14.5px' : '12.5px') + ' Arial';
+    ctx.font = (geo.rowsPerCol <= 10 ? 'bold 16px' : '12.5px') + ' Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(String(item.q), item.groupX + 11, item.opts[0].y + 5);
+    ctx.fillText(String(item.q), item.groupX + 11, item.opts[0].y + (geo.rowsPerCol <= 10 ? 6 : 5));
     item.opts.forEach(opt => {
       const filled = Boolean(mockData && mockData.p1 && mockData.p1[item.q] === opt.label);
       drawBubble(ctx, opt.x, opt.y, geo.bubbleRadius, opt.label, filled);
@@ -1762,12 +1763,12 @@ function drawBubble(ctx, x, y, r, text, filled = false) {
     ctx.fill();
   } else {
     ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 1.1;
+    ctx.lineWidth = r >= 13 ? 1.5 : 1.1;
     ctx.stroke();
     ctx.fillStyle = '#475569';
-    ctx.font = (r >= 9.5 ? '10.5px' : '9.5px') + ' Arial';
+    ctx.font = (r >= 13 ? '13px' : (r >= 9.5 ? '10.5px' : '9.5px')) + ' Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(text, x, y + 3.4);
+    ctx.fillText(text, x, y + (r >= 13 ? 4.5 : 3.4));
   }
 }
 
@@ -2920,7 +2921,8 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
 
       // Cửa sổ lọc 21px nhỏ hơn đường kính ô tô (22px) của phiếu ngang ≤ 40 câu nên lõi ô tô nhạt bị "thủng lỗ"
       // (nét chì nhạt đọc ra gần như trống). Dùng cửa sổ 31px cho trường hợp đó; các mẫu còn lại giữ 21.
-      const binBlock = (currentTemplate === 'NGANG_CUSTOM' && customQCount <= 40) ? 31 : 21;
+      const _landR = currentTemplate === 'NGANG_CUSTOM' ? getSheetGeometry(currentTemplate).bubbleRadius : 0;
+      const binBlock = _landR >= 13 ? 41 : (_landR >= 10 ? 31 : 21);   // cửa sổ lọc phải lớn hơn đường kính ô tô
       cv.adaptiveThreshold(warpedGray, warpedThresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, binBlock, 7);
 
       rawSheetColor = document.createElement('canvas');
@@ -2981,10 +2983,13 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   const inkModel = useInk ? inkSheetModel(geo, inkMeasure) : null;   // đo mọi ô một lần + nền chuẩn từng ký tự
   const readIdCol = col => useInk
     ? inkAnalyzeId(inkModel, col, thresholdRatio)
-    : analyzeIdColumn(col.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+    : analyzeIdColumn(col.map(b => measureBubble(b.x, b.y, currentTemplate === 'NGANG_CUSTOM' ? 8 : 6)), thresholdRatio);
   // Phiếu ngang > 52 câu có ô tô nhỏ (bán kính 8.5): thu vùng đo lại để không chạm viền vòng tròn
   const scanR = currentTemplate === '2026_3P' ? 6
-    : (currentTemplate === 'NGANG_CUSTOM' && geo.bubbleRadius < 9 ? 6 : 7);
+    : (currentTemplate === 'NGANG_CUSTOM' ? (geo.bubbleRadius >= 13 ? 9 : (geo.bubbleRadius < 9 ? 6 : 7)) : 7);
+  // Vòng đánh dấu kết quả vẽ ra ngoài mép ô tô khi ô tô to hơn (phiếu cũ: bán kính 11)
+  const ovAdj = currentTemplate === 'NGANG_CUSTOM' ? Math.max(0, geo.bubbleRadius - 11) : 0;
+  const ovAdjId = currentTemplate === 'NGANG_CUSTOM' ? Math.max(0, (geo.idBubbleRadius || 11) - 11) : 0;
 
   const drawBoth = (x, y, r, color, lw) => {
     const [dx, dy] = shiftXY(x, y);
@@ -2998,7 +3003,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     const a = readIdCol(col);
     const bestPos = a.idx >= 0 ? col[a.idx] : null;
     sbdStr += bestPos ? bestPos.digit : '0';
-    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
+    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10 + ovAdjId, '#3b82f6', 2.4);
   });
 
   // 2. Đọc Mã đề — mỗi cột phải có ĐÚNG 1 ô được tô ('?' = cột bỏ trống, '*' = cột tô 2 ô trở lên)
@@ -3012,7 +3017,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     if (a.state === 'blank') { maDeShown += '?'; maDeBad.push(`cột ${cIdx + 1} bỏ trống (hoặc tô quá mờ)`); }
     else if (a.state === 'multi') { maDeShown += '*'; maDeBad.push(`cột ${cIdx + 1} tô nhiều ô`); }
     else maDeShown += bestD;
-    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10, '#3b82f6', 2.4);
+    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10 + ovAdjId, '#3b82f6', 2.4);
   });
 
   // Tô sai mã đề (cột bỏ trống / tô 2 ô / mã không có trong danh sách đáp án) → không chấm, không lưu vào bảng điểm
@@ -3057,17 +3062,17 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     if (filled.length === 0) {
       blankP1++;
       const fi = useInk ? inkFaintCandidate(inkModel, item.opts, thresholdRatio) : -1;
-      if (fi >= 0) { faintP1++; drawBoth(item.opts[fi].x, item.opts[fi].y, 12.5, '#06b6d4', 2.4); }
+      if (fi >= 0) { faintP1++; drawBoth(item.opts[fi].x, item.opts[fi].y, 12.5 + ovAdj, '#06b6d4', 2.4); }
     } else if (filled.length > 1) multiP1++;
     const rightAns = activeKey.p1[item.q];
     const rightObj = item.opts.find(o => o.label === rightAns);
 
     if (filled.length === 1 && filled[0].label === rightAns) {
       correctP1++;
-      drawBoth(filled[0].x, filled[0].y, 11, '#22c55e', 3);
+      drawBoth(filled[0].x, filled[0].y, 11 + ovAdj, '#22c55e', 3);
     } else {
-      filled.forEach(fo => drawBoth(fo.x, fo.y, 11, '#ef4444', 3));
-      if (rightObj) drawBoth(rightObj.x, rightObj.y, 11, '#eab308', 2.4);
+      filled.forEach(fo => drawBoth(fo.x, fo.y, 11 + ovAdj, '#ef4444', 3));
+      if (rightObj) drawBoth(rightObj.x, rightObj.y, 11 + ovAdj, '#eab308', 2.4);
     }
   });
   const scoreP1 = (currentTemplate === 'NGANG_CUSTOM' && customScoreMode === 'total')
