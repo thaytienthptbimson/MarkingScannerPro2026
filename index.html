@@ -3231,6 +3231,9 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     total: totalScore
   };
 
+  // Báo kết quả bằng âm thanh ngay khi đã có điểm (không chờ bước lưu ảnh bên dưới)
+  if (!isInitialPreview) playScanResultSound(answerKeys[maDeStr] ? 'ok' : 'warn');
+
   // Tạo ảnh đóng dấu kết quả (Stamped Canvas) và lưu vào IndexedDB
   lastColorCanvas = createStampedAnnotatedCanvas(rawSheetColor, record);
   lastBinaryCanvas = createStampedAnnotatedCanvas(rawSheetBin, record);
@@ -3255,7 +3258,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
     renderResultsTable();
     updateCamLastResult(record);
-    playScanResultSound(answerKeys[maDeStr] ? 'ok' : 'warn');
 
     // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
     if (document.getElementById('autoDownloadImgToggle').checked) {
@@ -3628,6 +3630,7 @@ async function startCamera() {
     if (!stream) throw lastErr || new Error('Không tìm thấy thiết bị Camera');
 
     videoStream = stream;
+    unlockAudio();   // camera vừa bật có thể làm iPhone ngắt phiên âm thanh → mở khóa lại
     video.setAttribute('playsinline', 'true');
     video.setAttribute('webkit-playsinline', 'true');
     video.muted = true;
@@ -4345,29 +4348,168 @@ function clearResults() {
 }
 
 /********************************************************************
- * ÂM THANH ĐẶC TRƯNG KHI QUÉT PHIẾU (Web Audio API - không cần file âm thanh)
- *  • "Tạch-tạch": tiếng màn trập máy ảnh ngay khi bắt đầu quét
- *  • "Ting-ting-tinh": 3 nốt Đô-Mi-Sol đi lên khi chấm xong
+ * ÂM THANH KHI QUÉT PHIẾU (Web Audio API - không cần file âm thanh)
+ *  • "Ka-chak": tiếng màn trập máy ảnh DSLR (gương lật + màn trập mở rồi đóng) khi bắt đầu chấm
+ *  • "Ting-ting-ting-tinh": chuông 4 nốt đi lên, có vang nhẹ, khi chấm xong
  *  • "Bù-bùm": 2 nốt đi xuống khi mã đề quét được chưa có đáp án
+ *
+ * Cách khắc phục lỗi "lúc có lúc không":
+ *  1) Khi bật camera, iPhone/Safari chuyển AudioContext sang "interrupted" (bản cũ chỉ kiểm tra "suspended"
+ *     nên không bao giờ gọi resume lại) → nay kiểm tra mọi trạng thái khác "running".
+ *  2) Bản cũ phát ngay lúc bộ âm thanh chưa chạy → tiếng mất hoặc trễ. Nay chờ resume() xong rồi mới phát;
+ *     nếu trình duyệt vẫn chặn thì giữ tiếng lại và phát ngay ở lần chạm màn hình kế tiếp.
+ *  3) playBeep cũ tạo AudioContext mới ở mỗi lần gọi (bị chặn khi không có thao tác chạm, và vượt giới hạn số
+ *     context) → nay dùng chung 1 AudioContext duy nhất.
+ *  4) Công tắc "Im lặng" của iPhone tắt Web Audio → chuyển phiên âm thanh sang chế độ "playback".
  ********************************************************************/
 let sharedAudioCtx = null;
+let audioOut = null;        // { dry, reverb }: nơi nối các âm thanh vào
+let noiseBuf = null;        // bộ đệm nhiễu trắng dùng chung cho tiếng cạch
+let pendingSound = null;    // tiếng đang chờ bộ âm thanh chạy lại
+let audioPrimed = false;
+let silentKeepAliveEl = null;
+const IS_IOS_DEVICE = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function buildAudioGraph(ctx) {
+  // Bộ nén để tiếng luôn to rõ, không bị rè khi nhiều lớp âm chồng lên nhau
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16;
+  comp.knee.value = 18;
+  comp.ratio.value = 5;
+  comp.attack.value = 0.002;
+  comp.release.value = 0.18;
+  const master = ctx.createGain();
+  master.gain.value = 0.95;
+  master.connect(comp);
+  comp.connect(ctx.destination);
+
+  // Tiếng vang nhẹ (hồi âm tạo từ nhiễu tắt dần) cho chuông nghe "sang" hơn
+  const conv = ctx.createConvolver();
+  const irLen = Math.floor(ctx.sampleRate * 0.9);
+  const ir = ctx.createBuffer(2, irLen, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLen, 3.2);
+  }
+  conv.buffer = ir;
+  const wet = ctx.createGain();
+  wet.gain.value = 0.24;
+  conv.connect(wet);
+  wet.connect(comp);
+
+  // 1 giây nhiễu trắng để cắt ra làm tiếng cạch
+  noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+  audioOut = { dry: master, reverb: conv };
+}
 
 function getAudioCtx() {
   try {
+    if (sharedAudioCtx && sharedAudioCtx.state === 'closed') { sharedAudioCtx = null; audioOut = null; audioPrimed = false; }
     if (!sharedAudioCtx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
-      sharedAudioCtx = new AC();
+      try { sharedAudioCtx = new AC({ latencyHint: 'interactive' }); } catch (e) { sharedAudioCtx = new AC(); }
+      buildAudioGraph(sharedAudioCtx);
+      sharedAudioCtx.onstatechange = () => { if (sharedAudioCtx && sharedAudioCtx.state !== 'running') audioPrimed = false; };
     }
-    if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
     return sharedAudioCtx;
   } catch (e) {
     return null;
   }
 }
 
-// Trình duyệt (nhất là iPhone) chỉ cho phát tiếng sau khi người dùng chạm vào trang ít nhất một lần
-['click', 'touchend', 'keydown'].forEach(ev => window.addEventListener(ev, () => getAudioCtx(), { passive: true }));
+// Gọi resume() và chờ tối đa ~0,9 giây; trả về ctx nếu đã chạy, null nếu trình duyệt vẫn chặn
+function resumeAudio() {
+  const ctx = getAudioCtx();
+  if (!ctx) return Promise.resolve(null);
+  if (ctx.state === 'running') return Promise.resolve(ctx);
+  let p;
+  try { p = ctx.resume(); } catch (e) { return Promise.resolve(null); }
+  return Promise.race([
+    Promise.resolve(p).then(() => (ctx.state === 'running' ? ctx : null), () => null),
+    new Promise(res => setTimeout(() => res(ctx.state === 'running' ? ctx : null), 900))
+  ]);
+}
+
+function flushPendingSound(ctx) {
+  if (!pendingSound) return;
+  const p = pendingSound;
+  pendingSound = null;
+  if (Date.now() - p.at < 6000) { try { p.fn(ctx); } catch (e) {} }   // quá 6 giây thì bỏ, tránh tiếng phát lạc nhịp
+}
+
+// Phát khi bộ âm thanh đã chạy; nếu chưa thì resume rồi phát, không được thì giữ lại chờ lần chạm sau
+function playWhenReady(fn) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === 'running') { try { fn(ctx); } catch (e) {} return; }
+  pendingSound = { fn, at: Date.now() };
+  resumeAudio().then(c => { if (c) flushPendingSound(c); });
+}
+
+// iPhone đời cũ chưa có navigator.audioSession: phát 1 đoạn WAV im lặng lặp lại để Web Audio vẫn kêu khi gạt công tắc Im lặng
+function startSilentKeepAlive() {
+  if (!IS_IOS_DEVICE || navigator.audioSession || silentKeepAliveEl) return;
+  try {
+    const n = 2000;
+    const bytes = new Uint8Array(44 + n);
+    const dv = new DataView(bytes.buffer);
+    const wr = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+    wr(0, 'RIFF'); dv.setUint32(4, 36 + n, true); wr(8, 'WAVE'); wr(12, 'fmt ');
+    dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+    dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true);
+    wr(36, 'data'); dv.setUint32(40, n, true);
+    bytes.fill(128, 44);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const a = document.createElement('audio');
+    a.src = 'data:audio/wav;base64,' + btoa(bin);
+    a.loop = true;
+    a.setAttribute('playsinline', '');
+    silentKeepAliveEl = a;
+    const pr = a.play();
+    if (pr && pr.catch) pr.catch(() => { silentKeepAliveEl = null; });
+  } catch (e) { silentKeepAliveEl = null; }
+}
+
+// "Mở khóa" âm thanh: gọi trong lúc người dùng chạm màn hình (và sau khi bật camera)
+function unlockAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    // 1 mẫu im lặng để iOS mở hẳn đường ra loa
+    const s = ctx.createBufferSource();
+    s.buffer = ctx.createBuffer(1, 1, 22050);
+    s.connect(ctx.destination);
+    s.start(0);
+  } catch (e) {}
+  startSilentKeepAlive();
+  resumeAudio().then(c => {
+    if (!c) return;
+    audioPrimed = true;
+    flushPendingSound(c);
+  });
+}
+
+function onAudioUserGesture() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (audioPrimed && ctx.state === 'running') return;
+  unlockAudio();
+}
+['pointerdown', 'touchstart', 'touchend', 'click', 'keydown'].forEach(ev =>
+  window.addEventListener(ev, onAudioUserGesture, { passive: true, capture: true }));
+
+// Quay lại tab / mở lại màn hình khóa: nếu bộ âm thanh bị tạm dừng thì bật lại
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  const c = sharedAudioCtx;
+  if (c && c.state !== 'running' && c.state !== 'closed') { try { c.resume().catch(() => {}); } catch (e) {} }
+});
 
 function isScanSoundEnabled() {
   const el = document.getElementById('scanSoundToggle');
@@ -4384,85 +4526,135 @@ function onStrictExamCodeToggle(el) {
 function onScanSoundToggle(el) {
   safeSetStorage('omr_scan_sound', el.checked ? '1' : '0');
   if (el.checked) {
+    unlockAudio();
     playShutterClick();
-    setTimeout(() => playScanResultSound('ok'), 220);
+    setTimeout(() => playScanResultSound('ok'), 330);
   }
 }
 
-// Một tiếng "tạch": nhiễu trắng ngắn qua bộ lọc dải thông
-function scheduleClick(ctx, when, peak, freq) {
-  const len = Math.floor(ctx.sampleRate * 0.05);
-  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+/* ---------- Các "viên gạch" tạo âm ---------- */
+
+// Một cú cạch/xì ngắn: nhiễu trắng qua bộ lọc, tắt rất nhanh
+function scheduleNoise(ctx, when, dur, type, freq, q, peak) {
   const src = ctx.createBufferSource();
-  src.buffer = buf;
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.frequency.value = freq;
-  bp.Q.value = 1.1;
+  src.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter();
+  f.type = type;
+  f.frequency.value = freq;
+  f.Q.value = q;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(peak, when + 0.003);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
-  src.connect(bp);
-  bp.connect(g);
-  g.connect(ctx.destination);
-  src.start(when);
-  src.stop(when + 0.06);
+  g.gain.exponentialRampToValueAtTime(peak, when + 0.0008);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  src.connect(f);
+  f.connect(g);
+  g.connect(audioOut.dry);
+  src.start(when, Math.random() * 0.6, dur + 0.02);
 }
 
-// Một nốt nhạc ngắn, tắt dần
-function scheduleTone(ctx, when, freq, dur, peak, type = 'sine') {
+// Một cú "thịch" trầm: sóng sin tụt tần số rất nhanh (tiếng gương lật / lò xo màn trập)
+function scheduleThump(ctx, when, f0, f1, dur, peak) {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(f0, when);
+  osc.frequency.exponentialRampToValueAtTime(f1, when + dur * 0.8);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(peak, when + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  osc.connect(g);
+  g.connect(audioOut.dry);
+  osc.start(when);
+  osc.stop(when + dur + 0.02);
+}
+
+// Một nốt nhạc ngắn, tắt dần (có thể gửi một phần sang tiếng vang)
+function scheduleTone(ctx, when, freq, dur, peak, type = 'sine', reverbSend = 0) {
   const osc = ctx.createOscillator();
   osc.type = type;
   osc.frequency.setValueAtTime(freq, when);
   const g = ctx.createGain();
   g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(peak, when + 0.012);
+  g.gain.exponentialRampToValueAtTime(peak, when + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
   osc.connect(g);
-  g.connect(ctx.destination);
+  g.connect(audioOut.dry);
+  if (reverbSend > 0) {
+    const s = ctx.createGain();
+    s.gain.value = reverbSend;
+    g.connect(s);
+    s.connect(audioOut.reverb);
+  }
   osc.start(when);
   osc.stop(when + dur + 0.02);
 }
 
-// "Tạch-tạch": màn trập mở (to, sáng) rồi đóng (nhỏ, trầm)
-function playShutterClick() {
-  if (!isScanSoundEnabled()) return;
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  const t = ctx.currentTime + 0.01;
-  scheduleClick(ctx, t, 0.5, 3200);
-  scheduleClick(ctx, t + 0.075, 0.3, 1800);
-}
-
-// kind = 'ok': chuông 3 nốt đi lên | 'warn': 2 nốt đi xuống
-function playScanResultSound(kind = 'ok') {
-  if (!isScanSoundEnabled()) return;
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  const t = ctx.currentTime + 0.02;
-  if (kind === 'warn') {
-    scheduleTone(ctx, t, 392, 0.16, 0.22, 'triangle');          // Sol4
-    scheduleTone(ctx, t + 0.15, 294, 0.32, 0.22, 'triangle');   // Re4
-    return;
-  }
-  [[1046.5, 0, 0.16], [1318.5, 0.09, 0.16], [1568, 0.18, 0.45]].forEach(([freq, dt, dur]) => {
-    scheduleTone(ctx, t + dt, freq, dur, 0.22, 'sine');          // Đô6 - Mi6 - Sol6
-    scheduleTone(ctx, t + dt, freq * 2, dur * 0.7, 0.05, 'sine'); // âm bồi quãng tám cho "lấp lánh"
+// Nốt chuông: nốt gốc + các họa âm lệch (2.0 / 2.76 / 5.4) tắt dần với tốc độ khác nhau → nghe như chuông thủy tinh
+function scheduleBell(ctx, when, freq, dur, peak) {
+  [[1, 1, 1], [2, 0.34, 0.7], [2.76, 0.26, 0.5], [5.4, 0.1, 0.25]].forEach(([mul, amp, durMul]) => {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq * mul, when);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(peak * amp, when + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + dur * durMul);
+    osc.connect(g);
+    g.connect(audioOut.dry);
+    const s = ctx.createGain();
+    s.gain.value = 0.7;
+    g.connect(s);
+    s.connect(audioOut.reverb);
+    osc.start(when);
+    osc.stop(when + dur * durMul + 0.02);
   });
 }
 
+/* ---------- Các âm thanh chính ---------- */
+
+// "Ka-chak" kiểu máy ảnh DSLR: gương lật + màn trập mở (ka), rồi màn trập đóng (chak)
+function playShutterClick() {
+  if (!isScanSoundEnabled()) return;
+  playWhenReady(ctx => {
+    const t = ctx.currentTime + 0.005;
+    // "Ka": cạch sắc + tiếng kim loại + cú thịch của gương lật
+    scheduleNoise(ctx, t, 0.014, 'highpass', 2500, 0.7, 0.9);
+    scheduleNoise(ctx, t, 0.055, 'bandpass', 4200, 1.4, 0.45);
+    scheduleThump(ctx, t, 220, 55, 0.12, 0.95);
+    scheduleNoise(ctx, t + 0.002, 0.07, 'lowpass', 900, 0.7, 0.5);
+    // "Chak": màn trập đóng — nhỏ hơn, gọn hơn
+    const t2 = t + 0.095;
+    scheduleNoise(ctx, t2, 0.011, 'highpass', 3000, 0.7, 0.65);
+    scheduleNoise(ctx, t2, 0.045, 'bandpass', 5200, 1.8, 0.35);
+    scheduleThump(ctx, t2, 160, 70, 0.08, 0.55);
+    // Tiếng lò xo rung nhẹ sau cùng
+    scheduleNoise(ctx, t2 + 0.02, 0.1, 'bandpass', 7000, 3, 0.08);
+  });
+}
+
+// kind = 'ok': chuông 4 nốt đi lên | 'warn': 2 nốt đi xuống
+function playScanResultSound(kind = 'ok') {
+  if (!isScanSoundEnabled()) return;
+  playWhenReady(ctx => {
+    const t = ctx.currentTime + 0.01;
+    if (kind === 'warn') {
+      scheduleTone(ctx, t, 392, 0.2, 0.3, 'triangle', 0.3);          // Sol4
+      scheduleTone(ctx, t + 0.15, 294, 0.42, 0.3, 'triangle', 0.3);  // Re4
+      return;
+    }
+    scheduleTone(ctx, t, 523.25, 0.55, 0.12, 'sine', 0.2);           // Đô5 nền cho đầy tiếng
+    [[1046.5, 0, 0.5], [1318.5, 0.085, 0.5], [1568, 0.17, 0.5], [2093, 0.255, 1.0]].forEach(([freq, dt, dur]) => {
+      scheduleBell(ctx, t + dt, freq, dur, 0.26);                    // Đô6 - Mi6 - Sol6 - Đô7
+    });
+  });
+}
+
+// Tiếng "tít" ngắn khi lưu đáp án (dùng chung AudioContext, không tạo mới mỗi lần)
 function playBeep(freq = 900, duration = 100) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    osc.frequency.value = freq;
-    osc.connect(ctx.destination);
-    osc.start();
-    setTimeout(() => { osc.stop(); ctx.close(); }, duration);
-  } catch (e) {}
+  playWhenReady(ctx => {
+    const t = ctx.currentTime + 0.005;
+    scheduleTone(ctx, t, freq, Math.max(0.05, duration / 1000), 0.2, 'sine', 0.15);
+  });
 }
 
 function switchTab(tabId, btn) {
