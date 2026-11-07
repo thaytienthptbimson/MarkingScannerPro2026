@@ -144,6 +144,41 @@
       border: 1.5px solid #fb923c; border-radius: 6px; background: #fff;
     }
     .cfg-note { font-size: 0.76rem; color: #b45309; font-weight: 600; }
+    /* Khung điều chỉnh số câu & thang điểm các phần I, II, III */
+    .parts-cfg-box {
+      background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 10px;
+    }
+    .parts-cfg-head {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+    }
+    .parts-cfg-head strong { color: #1e3a8a; font-size: 0.86rem; }
+    .parts-cfg-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px;
+    }
+    .part-cfg-card {
+      background: #ffffff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .part-cfg-card h5 {
+      font-size: 0.82rem; color: #1e40af; font-weight: 800; display: flex; justify-content: space-between; align-items: center;
+    }
+    .part-cfg-row {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.78rem;
+    }
+    .part-cfg-row input[type="number"], .part-cfg-row select {
+      padding: 4px 6px; font-size: 0.8rem; font-weight: 700; border-radius: 6px;
+    }
+    .p2-prog-inputs {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%;
+    }
+    .p2-prog-inputs div {
+      background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 4px; text-align: center; font-size: 0.72rem;
+    }
+    .p2-prog-inputs input {
+      width: 100%; text-align: center; padding: 2px 3px !important; font-size: 0.76rem !important; margin-top: 2px;
+    }
 
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
     label { font-size: 0.83rem; font-weight: 600; color: #334155; }
@@ -555,6 +590,66 @@
         </div>
       </details>
 
+      <div id="multiPartsConfigBar" class="parts-cfg-box" style="display:none;">
+        <div class="parts-cfg-head">
+          <strong>📐 Điều chỉnh Số câu &amp; Thang điểm Phần I, II, III (<span id="mpTotalSummary">Tổng: 10.00 điểm</span>)</strong>
+          <div style="display:flex; gap:5px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="resetPartsConfigDefault()" title="Khôi phục số câu và thang điểm chuẩn mặc định của mẫu này">🔄 Mặc định chuẩn</button>
+          </div>
+        </div>
+        <div class="parts-cfg-grid">
+          <!-- PHẦN I -->
+          <div class="part-cfg-card">
+            <h5><span>PHẦN I (ABCD)</span><span id="scanP1MaxBadge" style="color:#15803d;">6.00đ</span></h5>
+            <div class="part-cfg-row">
+              <label for="scanP1Count">Số câu (1–<span id="scanP1LimitTxt">24</span>):</label>
+              <input type="number" id="scanP1Count" min="1" max="40" value="24" style="width:58px; text-align:center; color:#1e40af;" onchange="onPartConfigChange('p1Count', this.value)">
+              <label for="scanP1Pt">Điểm/câu:</label>
+              <input type="number" id="scanP1Pt" min="0.01" max="10" step="0.05" value="0.25" style="width:66px; text-align:center; color:#15803d;" onchange="onPartConfigChange('p1Pt', this.value)">
+              <label for="scanP1Total">Tổng P.I:</label>
+              <input type="number" id="scanP1Total" min="0.1" max="100" step="0.25" value="6" style="width:64px; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p1Total', this.value)">
+            </div>
+          </div>
+          <!-- PHẦN II -->
+          <div class="part-cfg-card" id="scanCardP2">
+            <h5><span>PHẦN II (Đúng/Sai)</span><span id="scanP2MaxBadge" style="color:#15803d;">4.00đ</span></h5>
+            <div class="part-cfg-row">
+              <label for="scanP2Count">Số câu (0–4):</label>
+              <input type="number" id="scanP2Count" min="0" max="4" value="4" style="width:52px; text-align:center; color:#1e40af;" onchange="onPartConfigChange('p2Count', this.value)">
+              <label for="scanP2Mode">Cách tính:</label>
+              <select id="scanP2Mode" onchange="onPartConfigChange('p2Mode', this.value)" style="color:#1e3a8a;">
+                <option value="prog">Lũy tiến (1–4 ý)</option>
+                <option value="equal">Chia đều mỗi ý</option>
+              </select>
+              <label for="scanP2Total">Tổng P.II:</label>
+              <input type="number" id="scanP2Total" min="0" max="100" step="0.25" value="4" style="width:62px; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p2Total', this.value)">
+            </div>
+            <div class="p2-prog-inputs" id="scanP2ProgBox">
+              <div>1 ý đúng<input type="number" id="scanP2S1" step="0.05" min="0" value="0.1" onchange="onPartConfigChange('p2Scale', 1, this.value)"></div>
+              <div>2 ý đúng<input type="number" id="scanP2S2" step="0.05" min="0" value="0.25" onchange="onPartConfigChange('p2Scale', 2, this.value)"></div>
+              <div>3 ý đúng<input type="number" id="scanP2S3" step="0.05" min="0" value="0.5" onchange="onPartConfigChange('p2Scale', 3, this.value)"></div>
+              <div>4 ý đúng<input type="number" id="scanP2S4" step="0.05" min="0" value="1.0" onchange="onPartConfigChange('p2Scale', 4, this.value)"></div>
+            </div>
+            <div class="part-cfg-row" id="scanP2EqualBox" style="display:none;">
+              <label for="scanP2EqualPt">Điểm mỗi ý đúng (a, b, c, d):</label>
+              <input type="number" id="scanP2EqualPt" step="0.05" min="0.01" value="0.25" style="width:68px; text-align:center; color:#15803d;" onchange="onPartConfigChange('p2EqualPt', this.value)">
+            </div>
+          </div>
+          <!-- PHẦN III -->
+          <div class="part-cfg-card" id="scanCardP3">
+            <h5><span>PHẦN III (Trả lời ngắn)</span><span id="scanP3MaxBadge" style="color:#15803d;">1.50đ</span></h5>
+            <div class="part-cfg-row">
+              <label for="scanP3Count">Số câu (0–6):</label>
+              <input type="number" id="scanP3Count" min="0" max="6" value="6" style="width:54px; text-align:center; color:#1e40af;" onchange="onPartConfigChange('p3Count', this.value)">
+              <label for="scanP3Pt">Điểm/câu:</label>
+              <input type="number" id="scanP3Pt" min="0.01" max="10" step="0.05" value="0.25" style="width:66px; text-align:center; color:#15803d;" onchange="onPartConfigChange('p3Pt', this.value)">
+              <label for="scanP3Total">Tổng P.III:</label>
+              <input type="number" id="scanP3Total" min="0" max="100" step="0.25" value="1.5" style="width:64px; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p3Total', this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="customSheetConfigBar" class="row" style="display:none; background:#eff6ff; border:1.5px solid #93c5fd; padding:9px 12px; border-radius:10px; margin-bottom:10px; justify-content:space-between; align-items:center;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <strong style="color:#1e3a8a; font-size:0.84rem;">📐 Phiếu Ngang (Mã đề <span class="exam-len-txt">4</span> số):</strong>
@@ -697,22 +792,70 @@
         <div id="examCodeChips" class="code-chips"></div>
       </div>
 
-      <div class="row" style="background:#eff6ff; padding:8px 12px; border-radius:8px;">
-        <span id="wrapCustomKeyConfig" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
-          <label for="keyCustomQCount">Số câu trắc nghiệm:</label>
+      <div class="parts-cfg-box">
+        <div class="parts-cfg-head">
+          <strong>⚖️ Cấu hình Số câu &amp; Thang điểm Phần I, II, III (<span id="keyTotalSummary">Tổng: 10.00 điểm</span>)</strong>
+          <button type="button" class="btn btn-outline btn-sm" onclick="resetPartsConfigDefault()">🔄 Khôi phục mặc định</button>
+        </div>
+        <!-- Thanh cho Mẫu 4 (Phiếu Ngang) -->
+        <div id="wrapCustomKeyConfig" class="row" style="display:none; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+          <label for="keyCustomQCount">Số câu trắc nghiệm (1–60):</label>
           <input type="number" id="keyCustomQCount" min="1" max="60" value="40" style="width:68px; font-weight:700; color:#1e40af; text-align:center;" onchange="onCustomQCountChange(this.value)">
           <label for="keyCustomTotalScore">Tổng điểm toàn bài:</label>
           <input type="number" id="keyCustomTotalScore" min="0.5" max="100" step="0.25" value="10" style="width:74px; font-weight:700; color:#dc2626; text-align:center;" onchange="onCustomTotalScoreChange(this.value)">
-        </span>
-        <label for="ptP1">Điểm mỗi câu Phần I:</label>
-        <input type="number" id="ptP1" value="0.25" step="0.05" style="width:78px; font-weight:700;" onchange="onCustomPtPerQChange(this.value)">
-        <span id="wrapPtP3" style="display:none; align-items:center; gap:6px;">
-          <label style="margin-left:8px;">Điểm mỗi câu Phần III (TLN):</label>
-          <input type="number" id="ptP3" value="0.25" step="0.05" style="width:75px;">
-        </span>
-        <span id="p2ProgressiveNote" style="font-size:0.8rem; color:#1e40af;">
-          (Phần II Đúng/Sai tính điểm lũy tiến: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ)
-        </span>
+        </div>
+        <!-- Bảng chi tiết 3 phần cho Mẫu 1, 2, 3 -->
+        <div id="keyMultiPartsGrid" class="parts-cfg-grid">
+          <div class="part-cfg-card">
+            <h5><span>PHẦN I: Trắc nghiệm ABCD</span><span id="keyP1MaxBadge" style="color:#15803d;">6.00đ</span></h5>
+            <div class="part-cfg-row">
+              <label for="keyP1Count">Số câu:</label>
+              <input type="number" id="keyP1Count" min="1" max="40" value="24" style="width:58px; text-align:center; color:#1e40af;" onchange="onPartConfigChange('p1Count', this.value)">
+              <label for="ptP1">Điểm/câu:</label>
+              <input type="number" id="ptP1" value="0.25" step="0.05" min="0.01" style="width:68px; text-align:center; color:#15803d; font-weight:700;" onchange="onPartConfigChange('p1Pt', this.value)">
+              <label for="keyP1Total">Thang điểm P.I:</label>
+              <input type="number" id="keyP1Total" value="6" step="0.25" min="0.1" style="width:64px; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p1Total', this.value)">
+            </div>
+          </div>
+          <div class="part-cfg-card" id="keyCardP2">
+            <h5><span>PHẦN II: Đúng / Sai (a, b, c, d)</span><span id="keyP2MaxBadge" style="color:#15803d;">4.00đ</span></h5>
+            <div class="part-cfg-row">
+              <label for="keyP2Count">Số câu (0–4):</label>
+              <input type="number" id="keyP2Count" min="0" max="4" value="4" style="width:52px; text-align:center; color:#1e40af;" onchange="onPartConfigChange('p2Count', this.value)">
+              <label for="keyP2Mode">Cách tính:</label>
+              <select id="keyP2Mode" onchange="onPartConfigChange('p2Mode', this.value)" style="color:#1e3a8a;">
+                <option value="prog">Lũy tiến (1–4 ý)</option>
+                <option value="equal">Chia đều mỗi ý</option>
+              </select>
+              <label for="keyP2Total">Thang điểm P.II:</label>
+              <input type="number" id="keyP2Total" min="0" max="100" step="0.25" value="4" style="width:62px; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p2Total', this.value)">
+            </div>
+            <div class="p2-prog-inputs" id="keyP2ProgBox">
+              <div>1 ý đúng<input type="number" id="keyP2S1" step="0.05" min="0" value="0.1" onchange="onPartConfigChange('p2Scale', 1, this.value)"></div>
+              <div>2 ý đúng<input type="number" id="keyP2S2" step="0.05" min="0" value="0.25" onchange="onPartConfigChange('p2Scale', 2, this.value)"></div>
+              <div>3 ý đúng<input type="number" id="keyP2S3" step="0.05" min="0" value="0.5" onchange="onPartConfigChange('p2Scale', 3, this.value)"></div>
+              <div>4 ý đúng<input type="number" id="keyP2S4" step="0.05" min="0" value="1.0" onchange="onPartConfigChange('p2Scale', 4, this.value)"></div>
+            </div>
+            <div class="part-cfg-row" id="keyP2EqualBox" style="display:none;">
+              <label for="keyP2EqualPt">Điểm mỗi ý đúng (a, b, c, d):</label>
+              <input type="number" id="keyP2EqualPt" step="0.05" min="0.01" value="0.25" style="width:68px; text-align:center; color:#15803d;" onchange="onPartConfigChange('p2EqualPt', this.value)">
+            </div>
+          </div>
+          <div class="part-cfg-card" id="wrapPtP3" style="display:none;">
+            <h5><span>PHẦN III: Trả lời ngắn</span><span id="keyP3MaxBadge" style="color:#15803d;">1.50đ</span></h5>
+            <div class="part-cfg-row">
+              <label for="keyP3Count">Số câu (0–6):</label>
+              <input type="number" id="keyP3Count" min="0" max="6" value="6" style="width:54px; text-align:center; color:#1e40af;" onchange="onPartConfigChange('p3Count', this.value)">
+              <label for="ptP3">Điểm/câu:</label>
+              <input type="number" id="ptP3" value="0.25" step="0.05" min="0.01" style="width:68px; text-align:center; color:#15803d;" onchange="onPartConfigChange('p3Pt', this.value)">
+              <label for="keyP3Total">Thang điểm P.III:</label>
+              <input type="number" id="keyP3Total" value="1.5" step="0.25" min="0" style="width:64px; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p3Total', this.value)">
+            </div>
+          </div>
+        </div>
+        <div id="p2ProgressiveNote" style="font-size:0.78rem; color:#1e40af; margin-top:6px;">
+          💡 Có thể chỉnh trực tiếp <b>Số câu</b>, <b>Điểm mỗi câu</b> hoặc <b>Thang điểm từng phần (I, II, III)</b> — phiếu in, bảng đáp án và bộ chấm sẽ tự động cập nhật đồng bộ.
+        </div>
       </div>
 
       <h4 id="titleP1Key" style="margin: 10px 0 6px; color:#1e293b;">PHẦN I: Trắc nghiệm 4 lựa chọn (24 câu: A, B, C, D)</h4>
@@ -747,6 +890,28 @@
           <option value="3">Mã đề 3 số</option>
         </select>
         <span style="font-weight:400; font-size:0.78rem; color:#7c2d12;">Đổi ở đây sẽ vẽ lại phiếu bên dưới với 3 hoặc 4 cột mã đề.</span>
+      </div>
+      <div id="printMultiPartsBar" class="row" style="display:none; background:#eff6ff; border:1px solid #93c5fd; padding:8px 12px; border-radius:8px; margin-bottom:10px; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <strong style="color:#1e3a8a; font-size:0.84rem;">⚙️ Tùy chỉnh Số câu &amp; Thang điểm trên phiếu in:</strong>
+          <label for="printP1Count">Phần I (câu):</label>
+          <input type="number" id="printP1Count" min="1" max="40" value="24" style="width:58px; font-weight:700; text-align:center;" onchange="onPartConfigChange('p1Count', this.value)">
+          <label for="printP1Total">Điểm P.I:</label>
+          <input type="number" id="printP1Total" min="0.1" max="100" step="0.25" value="6" style="width:62px; font-weight:700; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p1Total', this.value)">
+          <span id="printWrapP2" style="display:inline-flex; align-items:center; gap:6px;">
+            <label for="printP2Count">Phần II (câu):</label>
+            <input type="number" id="printP2Count" min="0" max="4" value="4" style="width:52px; font-weight:700; text-align:center;" onchange="onPartConfigChange('p2Count', this.value)">
+            <label for="printP2Total">Điểm P.II:</label>
+            <input type="number" id="printP2Total" min="0" max="100" step="0.25" value="4" style="width:62px; font-weight:700; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p2Total', this.value)">
+          </span>
+          <span id="printWrapP3" style="display:none; align-items:center; gap:6px;">
+            <label for="printP3Count">Phần III (câu):</label>
+            <input type="number" id="printP3Count" min="0" max="6" value="6" style="width:52px; font-weight:700; text-align:center;" onchange="onPartConfigChange('p3Count', this.value)">
+            <label for="printP3Total">Điểm P.III:</label>
+            <input type="number" id="printP3Total" min="0" max="100" step="0.25" value="1.5" style="width:62px; font-weight:700; text-align:center; color:#dc2626;" onchange="onPartConfigChange('p3Total', this.value)">
+          </span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="resetPartsConfigDefault()">🔄 Mặc định</button>
       </div>
       <div id="printCustomBar" class="row" style="display:none; background:#eff6ff; border:1px solid #93c5fd; padding:8px 12px; border-radius:8px; margin-bottom:10px; justify-content:space-between;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -1275,6 +1440,68 @@ let customQCount = Math.min(60, Math.max(1, parseInt(safeGetStorage('omr_custom_
 let customTotalScore = Math.min(100, Math.max(0.5, parseFloat(safeGetStorage('omr_custom_total_score', '10')) || 10));
 let customScoreMode = safeGetStorage('omr_custom_score_mode', 'total'); // 'total' | 'perQ'
 
+// Cấu hình số câu & thang điểm tùy chỉnh cho các Phần I, II, III theo từng mẫu phiếu
+const DEFAULT_PARTS_CONFIG = {
+  '2026_2P': {
+    maxP1: 24, maxP2: 4, maxP3: 0,
+    p1Count: 24, p1Pt: 0.25, p1Total: 6.0, p1Mode: 'perQ',
+    p2Count: 4, p2Mode: 'prog', p2Prog: [0.1, 0.25, 0.5, 1.0], p2EqualPt: 0.25, p2Total: 4.0,
+    p3Count: 0, p3Pt: 0.25, p3Total: 0, p3Mode: 'perQ'
+  },
+  '2026_3P': {
+    maxP1: 18, maxP2: 4, maxP3: 6,
+    p1Count: 18, p1Pt: 0.25, p1Total: 4.5, p1Mode: 'perQ',
+    p2Count: 4, p2Mode: 'prog', p2Prog: [0.1, 0.25, 0.5, 1.0], p2EqualPt: 0.25, p2Total: 4.0,
+    p3Count: 6, p3Pt: 0.25, p3Total: 1.5, p3Mode: 'perQ'
+  },
+  '40Q': {
+    maxP1: 40, maxP2: 0, maxP3: 0,
+    p1Count: 40, p1Pt: 0.25, p1Total: 10.0, p1Mode: 'perQ',
+    p2Count: 0, p2Mode: 'prog', p2Prog: [0.1, 0.25, 0.5, 1.0], p2EqualPt: 0.25, p2Total: 0,
+    p3Count: 0, p3Pt: 0.25, p3Total: 0, p3Mode: 'perQ'
+  }
+};
+
+function loadPartsConfigMap() {
+  let saved = {};
+  try { saved = JSON.parse(safeGetStorage('omr_parts_cfg_ult2026', '{}')) || {}; } catch (e) { saved = {}; }
+  const out = {};
+  Object.keys(DEFAULT_PARTS_CONFIG).forEach(tpl => {
+    const def = DEFAULT_PARTS_CONFIG[tpl];
+    const s = saved[tpl] && typeof saved[tpl] === 'object' ? saved[tpl] : {};
+    const prog = Array.isArray(s.p2Prog) && s.p2Prog.length === 4
+      ? s.p2Prog.map((v, idx) => Math.max(0, parseFloat(v) ?? def.p2Prog[idx]))
+      : def.p2Prog.slice();
+    out[tpl] = {
+      maxP1: def.maxP1,
+      maxP2: def.maxP2,
+      maxP3: def.maxP3,
+      p1Count: Math.min(def.maxP1, Math.max(1, parseInt(s.p1Count ?? def.p1Count, 10) || def.p1Count)),
+      p1Pt: Math.max(0.01, parseFloat(s.p1Pt ?? def.p1Pt) || def.p1Pt),
+      p1Total: Math.max(0.1, parseFloat(s.p1Total ?? def.p1Total) || def.p1Total),
+      p1Mode: s.p1Mode === 'total' ? 'total' : 'perQ',
+      p2Count: def.maxP2 > 0 ? Math.min(def.maxP2, Math.max(0, parseInt(s.p2Count ?? def.p2Count, 10))) : 0,
+      p2Mode: s.p2Mode === 'equal' ? 'equal' : 'prog',
+      p2Prog: prog,
+      p2EqualPt: Math.max(0.01, parseFloat(s.p2EqualPt ?? def.p2EqualPt) || def.p2EqualPt),
+      p2Total: Math.max(0, parseFloat(s.p2Total ?? def.p2Total) || def.p2Total),
+      p3Count: def.maxP3 > 0 ? Math.min(def.maxP3, Math.max(0, parseInt(s.p3Count ?? def.p3Count, 10))) : 0,
+      p3Pt: Math.max(0.01, parseFloat(s.p3Pt ?? def.p3Pt) || def.p3Pt),
+      p3Total: Math.max(0, parseFloat(s.p3Total ?? def.p3Total) || def.p3Total),
+      p3Mode: s.p3Mode === 'total' ? 'total' : 'perQ'
+    };
+  });
+  return out;
+}
+
+let partsConfigMap = loadPartsConfigMap();
+function savePartsConfigMap() {
+  safeSetStorage('omr_parts_cfg_ult2026', JSON.stringify(partsConfigMap));
+}
+function getActivePartsConfig(tpl = currentTemplate) {
+  return partsConfigMap[tpl] || DEFAULT_PARTS_CONFIG['2026_2P'];
+}
+
 function syncWarpDimensions(template = currentTemplate) {
   if (template === 'NGANG_CUSTOM') {
     WARP_W = 1180;
@@ -1383,8 +1610,11 @@ function getSheetGeometry(template) {
   const labels = ['A', 'B', 'C', 'D'];
   const subs = ['a', 'b', 'c', 'd'];
 
+  const pCfg = getActivePartsConfig(template);
+
   if (template === '40Q') {
-    for (let i = 0; i < 40; i++) {
+    const n1 = Math.min(40, Math.max(1, pCfg.p1Count || 40));
+    for (let i = 0; i < n1; i++) {
       const col = Math.floor(i / 10);
       const row = i % 10;
       const baseX = 80 + col * 190;
@@ -1398,7 +1628,8 @@ function getSheetGeometry(template) {
   }
 
   if (template === '2026_2P') {
-    for (let i = 0; i < 24; i++) {
+    const n1 = Math.min(24, Math.max(1, pCfg.p1Count || 24));
+    for (let i = 0; i < n1; i++) {
       const col = Math.floor(i / 6);
       const row = i % 6;
       const baseX = 82 + col * 190;
@@ -1409,7 +1640,8 @@ function getSheetGeometry(template) {
       });
     }
 
-    for (let qIdx = 0; qIdx < 4; qIdx++) {
+    const n2 = Math.min(4, Math.max(0, pCfg.p2Count ?? 4));
+    for (let qIdx = 0; qIdx < n2; qIdx++) {
       const baseX = 88 + qIdx * 192;
       const statements = subs.map((sub, sIdx) => {
         const y = 710 + sIdx * 50;
@@ -1424,7 +1656,8 @@ function getSheetGeometry(template) {
     return geo;
   }
 
-  for (let i = 0; i < 18; i++) {
+  const n1 = Math.min(18, Math.max(1, pCfg.p1Count || 18));
+  for (let i = 0; i < n1; i++) {
     const col = Math.floor(i / 6);
     const row = i % 6;
     const baseX = 95 + col * 255;
@@ -1435,7 +1668,8 @@ function getSheetGeometry(template) {
     });
   }
 
-  for (let qIdx = 0; qIdx < 4; qIdx++) {
+  const n2 = Math.min(4, Math.max(0, pCfg.p2Count ?? 4));
+  for (let qIdx = 0; qIdx < n2; qIdx++) {
     const baseX = 88 + qIdx * 192;
     const statements = subs.map((sub, sIdx) => {
       const y = 582 + sIdx * 32;
@@ -1449,7 +1683,8 @@ function getSheetGeometry(template) {
   }
 
   const rowChars = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-  for (let qIdx = 0; qIdx < 6; qIdx++) {
+  const n3 = Math.min(6, Math.max(0, pCfg.p3Count ?? 6));
+  for (let qIdx = 0; qIdx < n3; qIdx++) {
     const boxLeft = 36 + qIdx * 130;
     const cols = [];
     for (let c = 0; c < 4; c++) {
@@ -1715,10 +1950,11 @@ function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
     col.forEach(b => drawBubble(ctx, b.x, b.y, 8.5, b.digit, mockData && mockData.made[cIdx] === b.digit));
   });
 
+  const pCfgSheet = getActivePartsConfig(currentTemplate);
   ctx.textAlign = 'left';
   ctx.font = 'bold 14px Arial';
   ctx.fillStyle = '#000';
-  ctx.fillText(`PHẦN I: TRẮC NGHIỆM NHIỀU LỰA CHỌN (${geo.p1.length} câu - Tô 1 phương án A, B, C hoặc D)`, 28, 275);
+  ctx.fillText(`PHẦN I: TRẮC NGHIỆM NHIỀU LỰA CHỌN (${geo.p1.length} câu • ${+(pCfgSheet.p1Total || 0).toFixed(2)} điểm - Chọn A, B, C hoặc D)`, 28, 275);
 
   const p1BoxHeight = currentTemplate === '40Q' ? 840 : (currentTemplate === '2026_2P' ? 320 : 230);
   ctx.strokeRect(28, 285, 784, p1BoxHeight);
@@ -1738,7 +1974,7 @@ function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
     ctx.textAlign = 'left';
     ctx.font = 'bold 14px Arial';
     ctx.fillStyle = '#000';
-    ctx.fillText('PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (4 câu - Trong mỗi ý a, b, c, d chọn Đúng hoặc Sai)', 28, 635);
+    ctx.fillText(`PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (${geo.p2.length} câu • ${+(pCfgSheet.p2Total || 0).toFixed(2)} điểm - Trong mỗi ý a, b, c, d chọn Đúng hoặc Sai)`, 28, 635);
     ctx.strokeRect(28, 645, 784, 255);
 
     geo.p2.forEach(item => {
@@ -1778,7 +2014,7 @@ function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
     ctx.textAlign = 'left';
     ctx.font = 'bold 13.5px Arial';
     ctx.fillStyle = '#000';
-    ctx.fillText('PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (Trong mỗi ý a, b, c, d ở mỗi câu, chọn Đúng hoặc Sai)', 28, 535);
+    ctx.fillText(`PHẦN II: TRẮC NGHIỆM ĐÚNG / SAI (${geo.p2.length} câu • ${+(pCfgSheet.p2Total || 0).toFixed(2)} điểm - Mỗi ý a, b, c, d chọn Đúng hoặc Sai)`, 28, 535);
     ctx.strokeRect(28, 542, 784, 166);
 
     geo.p2.forEach(item => {
@@ -1806,7 +2042,7 @@ function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
     ctx.textAlign = 'left';
     ctx.font = 'bold 13.5px Arial';
     ctx.fillStyle = '#000';
-    ctx.fillText('PHẦN III: TRẢ LỜI NGẮN (Viết kết quả vào 4 ô vuông đầu câu và tô tròn tương ứng theo từng cột)', 28, 730);
+    ctx.fillText(`PHẦN III: TRẢ LỜI NGẮN (${geo.p3.length} câu • ${+(pCfgSheet.p3Total || 0).toFixed(2)} điểm - Viết kết quả và tô tròn tương ứng)`, 28, 730);
     ctx.strokeRect(28, 738, 784, 405);
 
     const rowLabels = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -1931,8 +2167,10 @@ function renderAnswerKeyUI() {
   const geo = getSheetGeometry(currentTemplate);
   renderExamCodeChips();
 
+  const pCfgKey = getActivePartsConfig(currentTemplate);
+  const p1MaxScoreDisp = currentTemplate === 'NGANG_CUSTOM' ? customTotalScore : +(pCfgKey.p1Total || 0).toFixed(2);
   document.getElementById('titleP1Key').innerText =
-    `PHẦN I: Trắc nghiệm 4 lựa chọn (${geo.p1.length} câu: A, B, C, D)`;
+    `PHẦN I: Trắc nghiệm 4 lựa chọn (${geo.p1.length} câu: A, B, C, D — Thang điểm: ${p1MaxScoreDisp}đ)`;
 
   const gridP1 = document.getElementById('keyGridP1');
   gridP1.innerHTML = '';
@@ -1966,19 +2204,32 @@ function renderAnswerKeyUI() {
   if (wrapCustomKey) wrapCustomKey.style.display = currentTemplate === 'NGANG_CUSTOM' ? 'inline-flex' : 'none';
   if (p2Note) p2Note.style.display = (currentTemplate === '40Q' || currentTemplate === 'NGANG_CUSTOM') ? 'none' : 'inline';
 
+  const keyMultiGrid = document.getElementById('keyMultiPartsGrid');
+  if (keyMultiGrid) keyMultiGrid.style.display = currentTemplate === 'NGANG_CUSTOM' ? 'none' : 'grid';
+
   if (currentTemplate === '40Q' || currentTemplate === 'NGANG_CUSTOM') {
     secP2.style.display = 'none';
     secP3.style.display = 'none';
     wrapPtP3.style.display = 'none';
   } else {
-    secP2.style.display = 'block';
+    secP2.style.display = geo.p2.length > 0 ? 'block' : 'none';
+    const p2HeaderEl = secP2.querySelector('h4');
+    const p2Desc = pCfgKey.p2Mode === 'equal'
+      ? `Chia đều ${pCfgKey.p2EqualPt}đ/ý • Tổng ${+(pCfgKey.p2Total || 0).toFixed(2)}đ`
+      : `Lũy tiến ${pCfgKey.p2Prog.join(' → ')}đ/câu • Tổng ${+(pCfgKey.p2Total || 0).toFixed(2)}đ`;
+    if (p2HeaderEl) {
+      p2HeaderEl.innerText = `PHẦN II: Trắc nghiệm Đúng / Sai (${geo.p2.length} câu x 4 ý a, b, c, d — ${p2Desc})`;
+    }
     const gridP2 = document.getElementById('keyGridP2');
     gridP2.innerHTML = '';
     geo.p2.forEach(item => {
       if (!currentKey.p2[item.q]) currentKey.p2[item.q] = { a: 'Đ', b: 'S', c: 'Đ', d: 'S' };
       const card = document.createElement('div');
       card.className = 'p2-card';
-      let html = `<div style="font-weight:700; margin-bottom:6px; color:#1e40af;">Câu ${item.q} (Đúng/Sai lũy tiến 0.1 → 1.0đ)</div><div class="row" style="margin:0; justify-content:space-around;">`;
+      const subRule = pCfgKey.p2Mode === 'equal'
+        ? `${pCfgKey.p2EqualPt}đ / ý đúng`
+        : `Lũy tiến: ${pCfgKey.p2Prog[0]} → ${pCfgKey.p2Prog[1]} → ${pCfgKey.p2Prog[2]} → ${pCfgKey.p2Prog[3]}đ`;
+      let html = `<div style="font-weight:700; margin-bottom:6px; color:#1e40af;">Câu ${item.q} (${subRule})</div><div class="row" style="margin:0; justify-content:space-around;">`;
       ['a', 'b', 'c', 'd'].forEach(sub => {
         const val = currentKey.p2[item.q][sub] || 'Đ';
         html += `
@@ -1994,8 +2245,12 @@ function renderAnswerKeyUI() {
     });
 
     if (currentTemplate === '2026_3P') {
-      secP3.style.display = 'block';
-      wrapPtP3.style.display = 'inline-flex';
+      secP3.style.display = geo.p3.length > 0 ? 'block' : 'none';
+      wrapPtP3.style.display = 'flex';
+      const p3HeaderEl = secP3.querySelector('h4');
+      if (p3HeaderEl) {
+        p3HeaderEl.innerText = `PHẦN III: Trả lời ngắn (${geo.p3.length} câu • ${pCfgKey.p3Pt}đ/câu • Thang điểm: ${+(pCfgKey.p3Total || 0).toFixed(2)}đ)`;
+      }
       const gridP3 = document.getElementById('keyGridP3');
       gridP3.innerHTML = '';
       geo.p3.forEach(item => {
@@ -2003,7 +2258,7 @@ function renderAnswerKeyUI() {
         const box = document.createElement('div');
         box.className = 'p3-item';
         box.innerHTML = `
-          <label>Câu ${item.q} (Tối đa 4 ký tự):</label>
+          <label>Câu ${item.q} (${pCfgKey.p3Pt}đ):</label>
           <input type="text" maxlength="4" value="${val}" placeholder="VD: 12,5"
             oninput="updateP3Key(${item.q}, this.value)">
         `;
@@ -3464,9 +3719,13 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     showAppToast(`⚠️ Mã đề ${maDeStr} chưa có đáp án! Đang chấm tạm theo đáp án mã đề ${fallbackCode}.`, 'warn');
   }
 
+  const pCfg = getActivePartsConfig(currentTemplate);
+
   // 3. Chấm Phần I
   let correctP1 = 0;
-  const ptP1 = parseFloat(document.getElementById('ptP1').value) || 0.25;
+  const ptP1 = currentTemplate === 'NGANG_CUSTOM'
+    ? (parseFloat(document.getElementById('ptP1').value) || 0.25)
+    : (pCfg.p1Pt || 0.25);
   let blankP1 = 0, multiP1 = 0, faintP1 = 0;
   geo.p1.forEach(item => {
     const filledIdx = useInk
@@ -3489,15 +3748,24 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       if (rightObj) drawBoth(rightObj.x, rightObj.y, 11 + ovAdj, '#eab308', 2.4);
     }
   });
-  const scoreP1 = (currentTemplate === 'NGANG_CUSTOM' && customScoreMode === 'total')
-    ? +((correctP1 * customTotalScore) / Math.max(1, geo.p1.length)).toFixed(2)
-    : +(correctP1 * ptP1).toFixed(2);
+  let scoreP1 = 0;
+  if (currentTemplate === 'NGANG_CUSTOM') {
+    scoreP1 = customScoreMode === 'total'
+      ? +((correctP1 * customTotalScore) / Math.max(1, geo.p1.length)).toFixed(2)
+      : +(correctP1 * ptP1).toFixed(2);
+  } else {
+    scoreP1 = pCfg.p1Mode === 'total'
+      ? +((correctP1 * pCfg.p1Total) / Math.max(1, geo.p1.length)).toFixed(2)
+      : +(correctP1 * ptP1).toFixed(2);
+  }
 
   // 4. Chấm Phần II
   let scoreP2 = 0;
   const p2Report = [];   // mỗi câu: máy đọc được gì, đáp án đang dùng là gì, được mấy ý
-  const progScale = [0, 0.1, 0.25, 0.5, 1.0];
-  if (currentTemplate === '2026_2P' || currentTemplate === '2026_3P') {
+  const progScale = pCfg.p2Mode === 'equal'
+    ? [0, +(pCfg.p2EqualPt * 1).toFixed(4), +(pCfg.p2EqualPt * 2).toFixed(4), +(pCfg.p2EqualPt * 3).toFixed(4), +(pCfg.p2EqualPt * 4).toFixed(4)]
+    : [0, pCfg.p2Prog[0], pCfg.p2Prog[1], pCfg.p2Prog[2], pCfg.p2Prog[3]];
+  if ((currentTemplate === '2026_2P' || currentTemplate === '2026_3P') && geo.p2.length > 0) {
     geo.p2.forEach(item => {
       let clusterRight = 0;
       const choices = useInk
@@ -3521,21 +3789,24 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
           drawBoth(rightPos.x, rightPos.y, 11, '#eab308', 2.4);
         }
       });
-      scoreP2 += progScale[clusterRight];
+      const qPts = +(progScale[clusterRight] || 0).toFixed(2);
+      scoreP2 += qPts;
       p2Report.push({
         q: item.q,
         read: choices.map(c => c || '–').join(' '),
         key: item.statements.map(st => normalizeP2Val(activeKey.p2 && activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : '') || 'Đ').join(' '),
         right: clusterRight,
-        pts: progScale[clusterRight]
+        pts: qPts
       });
     });
   }
+  scoreP2 = +scoreP2.toFixed(2);
 
   // 5. Chấm Phần III
   let scoreP3 = 0;
+  let correctP3 = 0;
   const essayScore = parseFloat(document.getElementById('manualEssay').value) || 0;
-  const ptP3 = parseFloat(document.getElementById('ptP3').value) || 0.25;
+  const ptP3 = pCfg.p3Pt || parseFloat(document.getElementById('ptP3').value) || 0.25;
   const readoutBox = document.getElementById('p3ReadoutBox');
   readoutBox.innerHTML = '';
 
@@ -3546,7 +3817,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     readoutBox.appendChild(chip);
   });
 
-  if (currentTemplate === '2026_3P') {
+  if (currentTemplate === '2026_3P' && geo.p3.length > 0) {
     geo.p3.forEach(item => {
       let studentStr = '';
       const chosenBubbles = [];
@@ -3563,7 +3834,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       const isOk = isShortAnswerMatch(studentStr, expectedStr);
 
       if (isOk) {
-        scoreP3 += ptP3;
+        correctP3++;
         chosenBubbles.forEach(b => drawBoth(b.x, b.y, 10, '#22c55e', 2.8));
       } else {
         chosenBubbles.forEach(b => drawBoth(b.x, b.y, 10, '#ef4444', 2.8));
@@ -3582,6 +3853,9 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       chip.innerHTML = `<strong>Câu ${item.q}:</strong> ${studentStr || '(Trống)'}<br><small>Đ/A: ${expectedStr}</small>`;
       readoutBox.appendChild(chip);
     });
+    scoreP3 = pCfg.p3Mode === 'total'
+      ? +((correctP3 * pCfg.p3Total) / Math.max(1, geo.p3.length)).toFixed(2)
+      : +(correctP3 * ptP3).toFixed(2);
   }
 
   if (!isInitialPreview && (blankP1 || multiP1)) {
@@ -3593,9 +3867,10 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   }
 
   const extraOrP3 = +(scoreP3 + essayScore).toFixed(2);
-  const maxAllowedScore = currentTemplate === 'NGANG_CUSTOM'
-    ? Math.max(10, +(customTotalScore + essayScore).toFixed(2))
-    : 10;
+  const configuredExamMax = currentTemplate === 'NGANG_CUSTOM'
+    ? +(customTotalScore + essayScore).toFixed(2)
+    : +((pCfg.p1Total || 0) + (pCfg.p2Total || 0) + (pCfg.p3Total || 0) + essayScore).toFixed(2);
+  const maxAllowedScore = Math.max(10, configuredExamMax);
   const totalScore = Math.min(maxAllowedScore, +(scoreP1 + scoreP2 + extraOrP3).toFixed(2));
   const recordId = 'OMR_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 
@@ -5088,6 +5363,7 @@ function onCustomQCountChange(val) {
     safeSetStorage('omr_custom_total_score', String(customTotalScore));
   }
   syncCustomInputsUI();
+  syncPartsConfigUI();
   renderAnswerKeyUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
   runSimulatedTest(true);
@@ -5134,6 +5410,213 @@ function applyCustomPreset(qCount, totalPts) {
   drawPrintSheet(document.getElementById('sheetCanvas'));
   runSimulatedTest(true);
   showAppToast(`Đã chọn mẫu phiếu ngang: ${customQCount} câu - ${customTotalScore} điểm.`, 'success');
+}
+
+function syncPartsConfigUI() {
+  const isCustomLandscape = currentTemplate === 'NGANG_CUSTOM';
+  const multiScanBar = document.getElementById('multiPartsConfigBar');
+  if (multiScanBar) multiScanBar.style.display = isCustomLandscape ? 'none' : 'block';
+  const printMultiBar = document.getElementById('printMultiPartsBar');
+  if (printMultiBar) printMultiBar.style.display = isCustomLandscape ? 'none' : 'flex';
+
+  if (isCustomLandscape) return;
+
+  const cfg = getActivePartsConfig(currentTemplate);
+  const hasP2 = cfg.maxP2 > 0;
+  const hasP3 = cfg.maxP3 > 0;
+
+  // Giới hạn câu hỏi tối đa của Phần I theo mẫu phiếu
+  const limEl = document.getElementById('scanP1LimitTxt');
+  if (limEl) limEl.innerText = String(cfg.maxP1);
+  ['scanP1Count', 'keyP1Count', 'printP1Count'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.max = String(cfg.maxP1); el.value = cfg.p1Count; }
+  });
+  ['scanP1Pt', 'ptP1'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = +cfg.p1Pt.toFixed(4);
+  });
+  ['scanP1Total', 'keyP1Total', 'printP1Total'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = +cfg.p1Total.toFixed(2);
+  });
+  ['scanP1MaxBadge', 'keyP1MaxBadge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = `${cfg.p1Count} câu • ${cfg.p1Total.toFixed(2)}đ`;
+  });
+
+  // Phần II
+  ['scanCardP2', 'keyCardP2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = hasP2 ? 'flex' : 'none';
+  });
+  const printWrapP2 = document.getElementById('printWrapP2');
+  if (printWrapP2) printWrapP2.style.display = hasP2 ? 'inline-flex' : 'none';
+
+  if (hasP2) {
+    ['scanP2Count', 'keyP2Count', 'printP2Count'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = cfg.p2Count;
+    });
+    ['scanP2Mode', 'keyP2Mode'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = cfg.p2Mode;
+    });
+    ['scanP2Total', 'keyP2Total', 'printP2Total'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = +cfg.p2Total.toFixed(2);
+    });
+    ['scanP2ProgBox', 'keyP2ProgBox'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = cfg.p2Mode === 'prog' ? 'grid' : 'none';
+    });
+    ['scanP2EqualBox', 'keyP2EqualBox'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = cfg.p2Mode === 'equal' ? 'flex' : 'none';
+    });
+    for (let k = 1; k <= 4; k++) {
+      ['scanP2S' + k, 'keyP2S' + k].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = +cfg.p2Prog[k - 1].toFixed(4);
+      });
+    }
+    ['scanP2EqualPt', 'keyP2EqualPt'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = +cfg.p2EqualPt.toFixed(4);
+    });
+    ['scanP2MaxBadge', 'keyP2MaxBadge'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerText = `${cfg.p2Count} câu • ${cfg.p2Total.toFixed(2)}đ`;
+    });
+  }
+
+  // Phần III
+  const scanCardP3 = document.getElementById('scanCardP3');
+  if (scanCardP3) scanCardP3.style.display = hasP3 ? 'flex' : 'none';
+  const wrapPtP3 = document.getElementById('wrapPtP3');
+  if (wrapPtP3) wrapPtP3.style.display = hasP3 ? 'flex' : 'none';
+  const printWrapP3 = document.getElementById('printWrapP3');
+  if (printWrapP3) printWrapP3.style.display = hasP3 ? 'inline-flex' : 'none';
+
+  if (hasP3) {
+    ['scanP3Count', 'keyP3Count', 'printP3Count'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = cfg.p3Count;
+    });
+    ['scanP3Pt', 'ptP3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = +cfg.p3Pt.toFixed(4);
+    });
+    ['scanP3Total', 'keyP3Total', 'printP3Total'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = +cfg.p3Total.toFixed(2);
+    });
+    ['scanP3MaxBadge', 'keyP3MaxBadge'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerText = `${cfg.p3Count} câu • ${cfg.p3Total.toFixed(2)}đ`;
+    });
+  }
+
+  const totalAll = +((cfg.p1Total || 0) + (hasP2 ? (cfg.p2Total || 0) : 0) + (hasP3 ? (cfg.p3Total || 0) : 0)).toFixed(2);
+  ['mpTotalSummary', 'keyTotalSummary'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = `Tổng thang điểm: ${totalAll} điểm`;
+  });
+
+  const cfgCur = document.getElementById('cfgCurrent');
+  if (cfgCur) {
+    const partsDesc = [`P1: ${cfg.p1Count}c (${cfg.p1Total}đ)`];
+    if (hasP2) partsDesc.push(`P2: ${cfg.p2Count}c (${cfg.p2Total}đ)`);
+    if (hasP3) partsDesc.push(`P3: ${cfg.p3Count}c (${cfg.p3Total}đ)`);
+    cfgCur.innerText = `${partsDesc.join(' + ')} = ${totalAll}đ · Mã đề ${EXAM_CODE_LEN} số`;
+  }
+}
+
+function onPartConfigChange(field, val, subVal) {
+  if (currentTemplate === 'NGANG_CUSTOM') {
+    if (field === 'p1Pt') onCustomPtPerQChange(val);
+    return;
+  }
+  const cfg = getActivePartsConfig(currentTemplate);
+  if (field === 'p1Count') {
+    cfg.p1Count = Math.min(cfg.maxP1, Math.max(1, parseInt(val, 10) || cfg.maxP1));
+    if (cfg.p1Mode === 'total') {
+      cfg.p1Pt = +(cfg.p1Total / Math.max(1, cfg.p1Count)).toFixed(4);
+    } else {
+      cfg.p1Total = +(cfg.p1Count * cfg.p1Pt).toFixed(2);
+    }
+  } else if (field === 'p1Pt') {
+    cfg.p1Pt = Math.min(20, Math.max(0.01, parseFloat(val) || 0.25));
+    cfg.p1Mode = 'perQ';
+    cfg.p1Total = +(cfg.p1Count * cfg.p1Pt).toFixed(2);
+  } else if (field === 'p1Total') {
+    cfg.p1Total = Math.min(100, Math.max(0.1, parseFloat(val) || 6));
+    cfg.p1Mode = 'total';
+    cfg.p1Pt = +(cfg.p1Total / Math.max(1, cfg.p1Count)).toFixed(4);
+  } else if (field === 'p2Count' && cfg.maxP2 > 0) {
+    cfg.p2Count = Math.min(cfg.maxP2, Math.max(0, parseInt(val, 10) || 0));
+    const perQMax = cfg.p2Mode === 'equal' ? (cfg.p2EqualPt * 4) : cfg.p2Prog[3];
+    cfg.p2Total = +(cfg.p2Count * perQMax).toFixed(2);
+  } else if (field === 'p2Mode' && cfg.maxP2 > 0) {
+    cfg.p2Mode = val === 'equal' ? 'equal' : 'prog';
+    const perQMax = cfg.p2Mode === 'equal' ? (cfg.p2EqualPt * 4) : cfg.p2Prog[3];
+    cfg.p2Total = +(cfg.p2Count * perQMax).toFixed(2);
+  } else if (field === 'p2Scale' && cfg.maxP2 > 0) {
+    const idx = Math.min(4, Math.max(1, parseInt(val, 10))) - 1;
+    const scVal = Math.max(0, parseFloat(subVal) || 0);
+    cfg.p2Prog[idx] = +scVal.toFixed(4);
+    cfg.p2Total = +(cfg.p2Count * cfg.p2Prog[3]).toFixed(2);
+  } else if (field === 'p2EqualPt' && cfg.maxP2 > 0) {
+    cfg.p2EqualPt = Math.max(0.01, parseFloat(val) || 0.25);
+    cfg.p2Total = +(cfg.p2Count * cfg.p2EqualPt * 4).toFixed(2);
+  } else if (field === 'p2Total' && cfg.maxP2 > 0) {
+    cfg.p2Total = Math.max(0, parseFloat(val) || 0);
+    if (cfg.p2Count > 0) {
+      const perQMax = cfg.p2Total / cfg.p2Count;
+      if (cfg.p2Mode === 'equal') {
+        cfg.p2EqualPt = +(perQMax / 4).toFixed(4);
+      } else {
+        const base4 = cfg.p2Prog[3] > 0 ? cfg.p2Prog[3] : 1.0;
+        const ratio = perQMax / base4;
+        cfg.p2Prog = cfg.p2Prog.map(x => +(x * ratio).toFixed(4));
+        cfg.p2Prog[3] = +perQMax.toFixed(4);
+      }
+    }
+  } else if (field === 'p3Count' && cfg.maxP3 > 0) {
+    cfg.p3Count = Math.min(cfg.maxP3, Math.max(0, parseInt(val, 10) || 0));
+    if (cfg.p3Mode === 'total') {
+      cfg.p3Pt = cfg.p3Count > 0 ? +(cfg.p3Total / cfg.p3Count).toFixed(4) : cfg.p3Pt;
+    } else {
+      cfg.p3Total = +(cfg.p3Count * cfg.p3Pt).toFixed(2);
+    }
+  } else if (field === 'p3Pt' && cfg.maxP3 > 0) {
+    cfg.p3Pt = Math.min(20, Math.max(0.01, parseFloat(val) || 0.25));
+    cfg.p3Mode = 'perQ';
+    cfg.p3Total = +(cfg.p3Count * cfg.p3Pt).toFixed(2);
+  } else if (field === 'p3Total' && cfg.maxP3 > 0) {
+    cfg.p3Total = Math.max(0, parseFloat(val) || 0);
+    cfg.p3Mode = 'total';
+    if (cfg.p3Count > 0) cfg.p3Pt = +(cfg.p3Total / cfg.p3Count).toFixed(4);
+  }
+
+  savePartsConfigMap();
+  syncPartsConfigUI();
+  renderAnswerKeyUI();
+  drawPrintSheet(document.getElementById('sheetCanvas'));
+  runSimulatedTest(true);
+  const totalAll = +((cfg.p1Total || 0) + (cfg.maxP2 ? (cfg.p2Total || 0) : 0) + (cfg.maxP3 ? (cfg.p3Total || 0) : 0)).toFixed(2);
+  showAppToast(`Đã cập nhật: P.I (${cfg.p1Count}c: ${cfg.p1Total}đ)${cfg.maxP2 ? ` · P.II (${cfg.p2Count}c: ${cfg.p2Total}đ)` : ''}${cfg.maxP3 ? ` · P.III (${cfg.p3Count}c: ${cfg.p3Total}đ)` : ''} — Tổng: ${totalAll}đ`, 'success');
+}
+
+function resetPartsConfigDefault() {
+  if (!DEFAULT_PARTS_CONFIG[currentTemplate]) return;
+  partsConfigMap[currentTemplate] = JSON.parse(JSON.stringify(DEFAULT_PARTS_CONFIG[currentTemplate]));
+  savePartsConfigMap();
+  syncPartsConfigUI();
+  renderAnswerKeyUI();
+  drawPrintSheet(document.getElementById('sheetCanvas'));
+  runSimulatedTest(true);
+  showAppToast('Đã khôi phục số câu và thang điểm mặc định cho mẫu phiếu này.', 'info');
 }
 
 function onTemplateChange() {
