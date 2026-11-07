@@ -670,6 +670,14 @@
         </div>
       </div>
 
+      <div id="scanFolderBar" class="row" style="display:none; background:#fef3c7; border:1.5px solid #f59e0b; padding:8px 12px; border-radius:10px; margin-bottom:10px; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1;">
+          <strong style="color:#92400e; font-size:0.84rem;">📁 Thư mục đề thi đang chấm:</strong>
+          <select id="scanFolderSelect" onchange="onScanFolderChange(this.value)" style="font-weight:700; color:#92400e; border:1.5px solid #f59e0b; padding:5px 10px; border-radius:8px; background:#fff; min-width:180px;"></select>
+          <span id="scanFolderCodesInfo" style="font-size:0.78rem; color:#78350f; font-weight:600;"></span>
+        </div>
+      </div>
+
       <div class="row row-3btn">
         <button class="btn btn-success" onclick="captureAndGrade()">⚡ Chụp & Chấm Ngay</button>
         <label class="btn btn-primary" style="background:#0284c7;">
@@ -762,7 +770,8 @@
             <option value="3">Mã đề 3 số</option>
           </select>
           <label>Mã đề:</label>
-          <input type="text" id="keyExamCode" value="1001" maxlength="4" inputmode="numeric" title="Gõ mã đề (4 chữ số) rồi Enter. Mã chưa có sẽ được tạo mới." style="width:85px; font-weight:bold; text-align:center;" onchange="onExamCodeInputChange()">
+          <input type="text" id="keyExamCode" value="1001" placeholder="1001" maxlength="4" inputmode="numeric" title="Gõ mã đề rồi nhấn Enter hoặc bấm Thêm mã này để lưu vào thư mục đang mở." style="width:85px; font-weight:bold; text-align:center;" onchange="onExamCodeInputChange(true)" onblur="if(this.value.trim() && !answerKeys[normalizeExamCode(this.value)]) onExamCodeInputChange(false);" onkeydown="if(event.key==='Enter'){event.preventDefault();onExamCodeInputChange(true);}">
+          <button type="button" class="btn btn-success" onclick="quickAddSingleExamCode()" title="Thêm mã đề đang gõ vào thư mục hiện tại (cho phép trùng mã đề với thư mục khác)">➕ Thêm mã này</button>
           <button class="btn btn-outline" onclick="randomFillKey()">🎲 Tạo Đáp Án Mẫu</button>
           <button class="btn btn-primary" onclick="saveCurrentKey()">💾 Lưu Đáp Án</button>
         </div>
@@ -1117,7 +1126,7 @@
       <label for="folderNameInput">Tên thư mục (tối đa 40 ký tự):</label>
       <input type="text" id="folderNameInput" class="modal-input" maxlength="40" placeholder="VD: Giữa kỳ 1 - Lịch sử 12"
              onkeydown="if(event.key==='Enter'){ event.preventDefault(); confirmFolderName(); }">
-      <p style="font-size:0.78rem; color:#64748b; margin:8px 0 0;">Thư mục chỉ dùng để sắp xếp các mã đề cho gọn, không ảnh hưởng đến việc quét và chấm.</p>
+      <p style="font-size:0.78rem; color:#64748b; margin:8px 0 0;">Mỗi thư mục lưu bộ mã đề &amp; đáp án độc lập — các thư mục khác nhau có thể dùng trùng mã đề (VD: cùng có 1001, 1002...).</p>
     </div>
     <div class="modal-footer" style="justify-content:flex-end;">
       <button class="btn btn-outline" onclick="closeFolderNameModal()">Hủy bỏ</button>
@@ -1130,20 +1139,30 @@
 <div id="moveCodesModal" class="modal-backdrop" onclick="if(event.target===this) closeMoveCodesModal()">
   <div class="modal-card" style="max-width: 540px;">
     <div class="modal-header">
-      <strong>📥 Chuyển mã đề vào thư mục</strong>
+      <strong>📥 Chuyển / Sao chép mã đề vào thư mục</strong>
       <button class="btn btn-danger btn-sm" onclick="closeMoveCodesModal()">✕ Đóng</button>
     </div>
     <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
-        <label style="margin:0;">Tích chọn các mã đề cần chuyển (<span id="moveCodesCount">0</span> đã chọn):</label>
+        <label style="margin:0;">Tích chọn các mã đề (<span id="moveCodesCount">0</span> đã chọn):</label>
         <span style="display:flex; gap:4px;">
           <button type="button" class="btn btn-outline btn-sm" onclick="moveCodesSelectAll(true)">Chọn tất cả</button>
           <button type="button" class="btn btn-outline btn-sm" onclick="moveCodesSelectAll(false)">Bỏ chọn</button>
         </span>
       </div>
       <div id="moveCodesGrid" class="move-code-grid"></div>
-      <label for="moveCodesTarget" style="display:block; margin:12px 0 6px;">Chuyển vào:</label>
+      <label for="moveCodesTarget" style="display:block; margin:12px 0 6px;">Thư mục đích:</label>
       <select id="moveCodesTarget" style="padding:7px 10px; font-weight:700; width:100%; border:1px solid #cbd5e1; border-radius:8px;"></select>
+      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:0.84rem;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="radio" name="moveCodesAction" value="move" checked>
+          <span>📥 Di chuyển sang thư mục đích</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="radio" name="moveCodesAction" value="copy">
+          <span>📋 Sao chép sang thư mục đích (giữ nguyên ở thư mục cũ)</span>
+        </label>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:flex-end;">
       <button class="btn btn-outline" onclick="closeMoveCodesModal()">Hủy bỏ</button>
@@ -1160,17 +1179,16 @@
       <button class="btn btn-danger btn-sm" onclick="closeAddCodesModal()">✕ Đóng</button>
     </div>
     <div class="modal-body" style="background:#fff; padding:14px 16px; text-align:left;">
+      <div id="addCodesFolderWrap" style="margin-bottom:10px;">
+        <label for="addCodesFolder" style="display:block; margin:0 0 6px; color:#1e40af;">📁 Thêm vào thư mục:</label>
+        <select id="addCodesFolder" onchange="this.dataset.userPicked='1'; updateAddCodesPreview();" style="padding:7px 10px; font-weight:700; width:100%; border:1.5px solid #3b82f6; border-radius:8px; background:#eff6ff; color:#1e3a8a;"></select>
+      </div>
       <label for="addCodesInput" id="addCodesLabel">Nhập các mã đề (mỗi mã gồm 4 chữ số):</label>
       <textarea id="addCodesInput" class="modal-textarea" placeholder="VD: 1001, 1002, 1003, 1004&#10;hoặc nhập dải: 2001-2008" oninput="updateAddCodesPreview()"></textarea>
       <p id="addCodesHelp" style="font-size:0.78rem; color:#64748b; margin:4px 0 8px;">
-        Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">2001-2008</span> = 8 mã đề). Tối đa 100 mã mỗi lần.
+        Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">2001-2008</span> = 8 mã đề). Các thư mục khác nhau được phép có mã đề trùng nhau.
       </p>
       <div id="addCodesPreview"></div>
-
-      <div id="addCodesFolderWrap">
-        <label for="addCodesFolder" style="display:block; margin:12px 0 6px;">📁 Lưu vào thư mục:</label>
-        <select id="addCodesFolder" style="padding:7px 10px; font-weight:700; width:100%; border:1px solid #cbd5e1; border-radius:8px;"></select>
-      </div>
 
       <label style="display:block; margin:12px 0 6px;">Khởi tạo đáp án cho các mã đề mới:</label>
       <label class="add-code-opt">
@@ -1512,10 +1530,11 @@ function syncWarpDimensions(template = currentTemplate) {
   }
 }
 syncWarpDimensions(currentTemplate);
-let answerKeys = JSON.parse(safeGetStorage(examKeysStorageName(), '{}'));
-// Thư mục đề thi: mỗi kiểu mã đề (3 số / 4 số) có bộ thư mục riêng, giống như kho đáp án
-let examFolders = loadExamFolders();   // { folders: [{id, name}], assign: { "1001": "<id thư mục>" } }
 let activeFolderView = 'all';          // 'all' = tất cả | 'none' = chưa phân loại | <id thư mục>
+let activeCodeFolderId = '';           // '' = Chưa phân loại | <id thư mục> của mã đề đang chọn
+// Thư mục đề thi: mỗi thư mục lưu bộ đáp án riêng trong byFolder[folderId][code], cho phép trùng mã đề giữa các thư mục khác nhau
+let examFolders = loadExamFolders();
+let answerKeys = getFolderKeys(activeCodeFolderId);
 let gradedList = JSON.parse(safeGetStorage('omr_graded_ult2026', '[]'));
 
 let lastColorCanvas = null;
@@ -2158,12 +2177,28 @@ function fillMissingP2(key) {
   return fixed;
 }
 
+function syncActiveAnswerKeysRef() {
+  if (!folderById(activeCodeFolderId)) activeCodeFolderId = '';
+  answerKeys = getFolderKeys(activeCodeFolderId);
+  return answerKeys;
+}
+
+function ensureCurrentCodeMaterialized(code) {
+  syncActiveAnswerKeysRef();
+  if (!answerKeys[code]) {
+    answerKeys[code] = createDefaultKey();
+  }
+  return answerKeys[code];
+}
+
 function renderAnswerKeyUI() {
-  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
-  if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
-  const currentKey = answerKeys[code];
+  syncActiveAnswerKeysRef();
+  const rawInput = document.getElementById('keyExamCode').value.trim();
+  const code = normalizeExamCode(rawInput) || DEFAULT_EXAM_CODE;
+  const isCommitted = Boolean(answerKeys[code]);
+  const currentKey = isCommitted ? answerKeys[code] : createDefaultKey();
   const _fixedP1 = fillMissingP1(currentKey), _fixedP2 = fillMissingP2(currentKey);
-  if (_fixedP1 > 0 || _fixedP2 > 0) persistKeys();
+  if (isCommitted && (_fixedP1 > 0 || _fixedP2 > 0)) persistKeys();
   const geo = getSheetGeometry(currentTemplate);
   renderExamCodeChips();
 
@@ -2186,7 +2221,10 @@ function renderAnswerKeyUI() {
       btn.className = 'opt-btn ' + (selected === opt ? 'selected' : '');
       btn.innerText = opt;
       btn.onclick = () => {
-        currentKey.p1[item.q] = opt;
+        document.getElementById('keyExamCode').value = code;
+        const targetKey = ensureCurrentCodeMaterialized(code);
+        targetKey.p1[item.q] = opt;
+        persistKeys();
         renderAnswerKeyUI();
       };
       grp.appendChild(btn);
@@ -2272,18 +2310,22 @@ function renderAnswerKeyUI() {
 }
 
 function setP2Key(q, sub, val) {
-  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
-  if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
-  fillMissingP2(answerKeys[code]);
-  answerKeys[code].p2[q][sub] = val;
-  persistKeys();            // tự lưu ngay: không cần bấm "Lưu Đáp Án" mới có hiệu lực khi chấm
+  const code = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
+  document.getElementById('keyExamCode').value = code;
+  const targetKey = ensureCurrentCodeMaterialized(code);
+  fillMissingP2(targetKey);
+  targetKey.p2[q][sub] = val;
+  persistKeys();
   renderAnswerKeyUI();
 }
 
 function updateP3Key(q, val) {
-  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
-  if (!answerKeys[code].p3) answerKeys[code].p3 = {};
-  answerKeys[code].p3[q] = val.trim();
+  const code = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
+  document.getElementById('keyExamCode').value = code;
+  const targetKey = ensureCurrentCodeMaterialized(code);
+  if (!targetKey.p3) targetKey.p3 = {};
+  targetKey.p3[q] = val.trim();
+  persistKeys();
 }
 
 function createRandomKey() {
@@ -2307,56 +2349,75 @@ function createRandomKey() {
 }
 
 function randomFillKey() {
-  const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
+  syncActiveAnswerKeysRef();
+  const code = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
+  document.getElementById('keyExamCode').value = code;
   answerKeys[code] = createRandomKey();
   saveCurrentKey();
   renderAnswerKeyUI();
 }
 
 function persistKeys() {
-  safeSetStorage(examKeysStorageName(), JSON.stringify(answerKeys));
+  syncActiveAnswerKeysRef();
+  persistFolders();
+  const flat = {};
+  if (examFolders && examFolders.byFolder) {
+    Object.keys(examFolders.byFolder).forEach(fid => {
+      const m = examFolders.byFolder[fid] || {};
+      Object.keys(m).forEach(c => { flat[c] = m[c]; });
+    });
+  }
+  Object.keys(answerKeys || {}).forEach(c => { flat[c] = answerKeys[c]; });
+  safeSetStorage(examKeysStorageName(), JSON.stringify(flat));
 }
 
 function saveCurrentKey() {
+  const code = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
+  document.getElementById('keyExamCode').value = code;
+  ensureCurrentCodeMaterialized(code);
   persistKeys();
+  renderExamCodeChips();
   playBeep(880, 80);
+  const f = folderById(activeCodeFolderId);
+  showAppToast(`Đã lưu đáp án mã đề ${code}${f ? ' (📁 ' + f.name + ')' : ''}.`, 'success');
 }
 
 /********************************************************************
- * 4b. QUẢN LÝ NHIỀU MÃ ĐỀ (THÊM HÀNG LOẠT / CHUYỂN / XÓA)
+ * 4b. QUẢN LÝ NHIỀU MÃ ĐỀ & THƯ MỤC ĐỘC LẬP (CHO PHÉP TRÙNG MÃ ĐỀ GIỮA CÁC THƯ MỤC)
  ********************************************************************/
-// Mã đề trên phiếu luôn đủ EXAM_CODE_LEN chữ số (3 số: "7" -> "007"; 4 số: "7" -> "0007") nên chuẩn hóa để tra đáp án khớp với mã quét được
 function normalizeExamCode(raw) {
   const digits = String(raw || '').replace(/\D/g, '').slice(0, EXAM_CODE_LEN);
   return digits ? digits.padStart(EXAM_CODE_LEN, '0') : '';
 }
 
-// Chuyển các mã đề đã lưu không đủ chữ số (VD: kiểu 4 số có mã "101" -> "0101") về dạng chuẩn.
-// Chỉ bù thêm số 0 ở đầu; mã dài hơn quy định được giữ nguyên (không cắt) để không mất dữ liệu.
 function migrateAnswerKeyCodes() {
+  if (!examFolders || !examFolders.byFolder) return;
   let changed = false;
-  Object.keys(answerKeys).forEach(k => {
-    if (String(k).length >= EXAM_CODE_LEN) return;
-    const nk = normalizeExamCode(k);
-    if (nk && nk !== k) {
-      if (!answerKeys[nk]) answerKeys[nk] = answerKeys[k];
-      delete answerKeys[k];
-      moveFolderAssignment(k, nk);
-      changed = true;
-    }
+  Object.keys(examFolders.byFolder).forEach(fid => {
+    const map = examFolders.byFolder[fid] || {};
+    Object.keys(map).forEach(k => {
+      if (String(k).length >= EXAM_CODE_LEN) return;
+      const nk = normalizeExamCode(k);
+      if (nk && nk !== k) {
+        if (!map[nk]) map[nk] = map[k];
+        delete map[k];
+        changed = true;
+      }
+    });
   });
+  syncActiveAnswerKeysRef();
   if (changed) persistKeys();
 }
 migrateAnswerKeyCodes();
 
-// Cập nhật mọi nơi hiển thị theo kiểu mã đề đang chọn (ô chọn ở tab 1/2/3, nhãn, ô nhập mã đề, hộp "Thêm nhiều mã đề")
 function syncExamLenUI() {
   document.querySelectorAll('.exam-len-select').forEach(el => { el.value = String(EXAM_CODE_LEN); });
   document.querySelectorAll('.exam-len-txt').forEach(el => { el.textContent = String(EXAM_CODE_LEN); });
   const inp = document.getElementById('keyExamCode');
   if (inp) {
     inp.maxLength = EXAM_CODE_LEN;
-    inp.title = `Gõ mã đề (${EXAM_CODE_LEN} chữ số) rồi Enter. Mã chưa có sẽ được tạo mới.`;
+    inp.placeholder = DEFAULT_EXAM_CODE;
+    inp.title = `Gõ mã đề (${EXAM_CODE_LEN} chữ số) rồi Enter. Mã chưa có trong thư mục đang chọn sẽ được tạo mới.`;
   }
   const three = EXAM_CODE_LEN === 3;
   const lbl = document.getElementById('addCodesLabel');
@@ -2366,40 +2427,68 @@ function syncExamLenUI() {
     ? 'VD: 101, 102, 103, 104\nhoặc nhập dải: 201-208'
     : 'VD: 1001, 1002, 1003, 1004\nhoặc nhập dải: 2001-2008';
   const help = document.getElementById('addCodesHelp');
-  if (help) help.innerHTML = `Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">${three ? '201-208' : '2001-2008'}</span> = 8 mã đề). Tối đa 100 mã mỗi lần.`;
+  if (help) help.innerHTML = `Ngăn cách bằng dấu phẩy, khoảng trắng hoặc xuống dòng. Dùng dấu <span class="code-pill">-</span> để thêm cả dải mã (VD: <span class="code-pill">${three ? '201-208' : '2001-2008'}</span> = 8 mã đề). Các thư mục khác nhau được phép có mã đề trùng nhau.`;
 }
 
-// Đổi kiểu mẫu phiếu: mã đề 3 số <-> 4 số. Mỗi kiểu có kho đáp án riêng nên không bị lẫn hay mất.
 function onExamCodeLenChange(val) {
   const len = parseInt(val, 10) === 3 ? 3 : 4;
   if (len === EXAM_CODE_LEN) { syncExamLenUI(); return; }
 
-  persistKeys(); // lưu bộ đáp án của kiểu cũ trước khi chuyển
+  persistKeys();
   EXAM_CODE_LEN = len;
   DEFAULT_EXAM_CODE = len === 3 ? '101' : '1001';
   safeSetStorage('omr_exam_code_len', String(len));
-  try {
-    answerKeys = JSON.parse(safeGetStorage(examKeysStorageName(), '{}')) || {};
-  } catch (e) {
-    answerKeys = {};
-  }
-  examFolders = loadExamFolders();   // thư mục của kiểu mã đề mới
+  examFolders = loadExamFolders();
   activeFolderView = 'all';
+  const allEntries = getAllCodeEntries();
+  if (allEntries.length) {
+    activeCodeFolderId = allEntries[0].folderId;
+  } else {
+    activeCodeFolderId = '';
+    getFolderKeys('')[DEFAULT_EXAM_CODE] = createDefaultKey();
+  }
+  syncActiveAnswerKeysRef();
   migrateAnswerKeyCodes();
 
   const input = document.getElementById('keyExamCode');
-  input.value = getSortedExamCodes()[0] || DEFAULT_EXAM_CODE;
-  if (!answerKeys[input.value]) {
-    answerKeys[input.value] = createDefaultKey();
-    persistKeys();
-  }
+  const firstEntries = getAllCodeEntries();
+  input.value = firstEntries.length ? firstEntries[0].code : DEFAULT_EXAM_CODE;
+  persistKeys();
   syncExamLenUI();
-  onTemplateChange(); // vẽ lại phiếu, bảng đáp án và khung chấm thử theo số cột mã đề mới
+  onTemplateChange();
   showAppToast(`Đã chọn mẫu phiếu mã đề ${len} số. Đáp án của kiểu mã đề ${len} số được lưu riêng.`, 'success');
 }
 
-function getSortedExamCodes() {
-  return Object.keys(answerKeys).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+function getSortedExamCodes(folderId = activeCodeFolderId) {
+  const map = getFolderKeys(folderId);
+  return Object.keys(map).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function getAllCodeEntries() {
+  const list = [];
+  if (!examFolders || !examFolders.byFolder) return list;
+  examFolders.folders.forEach(f => {
+    const codes = getSortedExamCodes(f.id);
+    codes.forEach(code => list.push({ folderId: f.id, folderName: f.name, code }));
+  });
+  const noneCodes = getSortedExamCodes('');
+  noneCodes.forEach(code => list.push({ folderId: '', folderName: 'Chưa phân loại', code }));
+  return list;
+}
+
+function entriesInView(view = activeFolderView) {
+  if (view === 'all') return getAllCodeEntries();
+  const fid = (view === 'none' || !folderById(view)) ? '' : view;
+  const f = folderById(fid);
+  return getSortedExamCodes(fid).map(code => ({
+    folderId: fid,
+    folderName: f ? f.name : 'Chưa phân loại',
+    code
+  }));
+}
+
+function codesInView(view = activeFolderView) {
+  return entriesInView(view).map(e => e.code);
 }
 
 function cloneKey(key) {
@@ -2409,57 +2498,129 @@ function cloneKey(key) {
 function renderExamCodeChips() {
   const wrap = document.getElementById('examCodeChips');
   if (!wrap) return;
-  const current = document.getElementById('keyExamCode').value.trim();
-  document.getElementById('countExamCodes').innerText = getSortedExamCodes().length;
+  const current = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
+  const allEntries = getAllCodeEntries();
+  document.getElementById('countExamCodes').innerText = allEntries.length;
   renderFolderUI();
-  const shown = codesInView();
+  const shown = entriesInView(activeFolderView);
   wrap.innerHTML = '';
   if (!shown.length) {
     const d = document.createElement('div');
     d.className = 'folder-empty';
-    d.textContent = activeFolderView === 'none'
-      ? 'Tất cả mã đề đã được xếp vào thư mục.'
-      : 'Thư mục này chưa có mã đề. Dùng "📥 Chuyển mã đề vào thư mục" hoặc "➕ Thêm nhiều mã đề" để thêm.';
+    if (activeFolderView === 'none') {
+      d.textContent = 'Tất cả mã đề đã được xếp vào thư mục.';
+    } else {
+      d.innerHTML = `Thư mục này chưa có mã đề. Bấm <button type="button" class="btn btn-success btn-sm" style="padding:3px 8px; font-size:0.75rem;" onclick="openAddCodesModal()">➕ Thêm nhiều mã đề</button> hoặc <button type="button" class="btn btn-outline btn-sm" style="padding:3px 8px; font-size:0.75rem;" onclick="saveCurrentKey()">💾 Lưu mã đề ${current} vào thư mục này</button>`;
+    }
     wrap.appendChild(d);
     return;
   }
-  shown.forEach(code => {
+  const hasFolders = examFolders.folders.length > 0;
+  shown.forEach(entry => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'code-chip' + (code === current ? ' active' : '');
-    btn.innerText = code;
-    const fol = folderOfCode(code);
-    if (fol) btn.title = '📁 ' + fol.name;
-    btn.onclick = () => selectExamCode(code);
+    const isAct = (entry.code === current && entry.folderId === activeCodeFolderId);
+    btn.className = 'code-chip' + (isAct ? ' active' : '');
+    if (hasFolders) {
+      const badgeTxt = entry.folderId ? ('📁 ' + entry.folderName) : '🗂️ Chưa PL';
+      btn.innerHTML = `${entry.code} <small style="font-weight:600; opacity:${isAct ? '0.95' : '0.78'}; font-size:0.74rem; margin-left:4px;">(${badgeTxt})</small>`;
+    } else {
+      btn.innerText = entry.code;
+    }
+    btn.title = entry.folderId ? ('📁 Thư mục: ' + entry.folderName) : '🗂️ Chưa phân loại';
+    btn.onclick = () => selectExamCode(entry.code, entry.folderId);
     wrap.appendChild(btn);
   });
 }
 
-function selectExamCode(code) {
+function quickAddSingleExamCode() {
+  const input = document.getElementById('keyExamCode');
+  const code = normalizeExamCode(input.value) || DEFAULT_EXAM_CODE;
+  input.value = code;
+
+  // Xác định thư mục đích: nếu đang ở 1 thư mục cụ thể thì thêm vào thư mục đó; nếu thư mục đó đã có mã này (hoặc đang ở Tất cả), tìm thư mục khác chưa có mã này để thêm vào
+  let targetFid = isRealFolderView() ? activeFolderView : (activeFolderView === 'none' ? '' : activeCodeFolderId);
+  targetFid = folderById(targetFid) ? targetFid : '';
+
+  if (getFolderKeys(targetFid)[code] && examFolders.folders.length > 0) {
+    const missingFolder = examFolders.folders.find(f => !getFolderKeys(f.id)[code]);
+    if (missingFolder) {
+      const prevKey = getFolderKeys(targetFid)[code];
+      getFolderKeys(missingFolder.id)[code] = prevKey ? cloneKey(prevKey) : createDefaultKey();
+      activeCodeFolderId = missingFolder.id;
+      if (activeFolderView !== 'all') activeFolderView = missingFolder.id;
+      syncActiveAnswerKeysRef();
+      persistKeys();
+      renderAnswerKeyUI();
+      playBeep(880, 80);
+      showAppToast(`Đã nhân bản mã đề ${code} sang thư mục "${missingFolder.name}" (cả 2 thư mục đều có mã ${code})!`, 'success');
+      return;
+    }
+  }
+
+  activeCodeFolderId = targetFid;
+  syncActiveAnswerKeysRef();
+  if (!answerKeys[code]) {
+    answerKeys[code] = createDefaultKey();
+    persistKeys();
+    renderAnswerKeyUI();
+    playBeep(880, 80);
+    const f = folderById(activeCodeFolderId);
+    showAppToast(`Đã thêm mã đề ${code}${f ? ' vào thư mục "' + f.name + '"' : ''}!`, 'success');
+  } else {
+    persistKeys();
+    renderAnswerKeyUI();
+    const f = folderById(activeCodeFolderId);
+    showAppToast(`Mã đề ${code} đã có trong ${f ? 'thư mục "' + f.name + '"' : '"Chưa phân loại"'}. Hãy tạo thêm thư mục mới nếu muốn lưu thêm mã ${code} ở thư mục khác.`, 'info');
+  }
+}
+
+function selectExamCode(code, folderId = activeCodeFolderId) {
+  const normFid = folderById(folderId) ? folderId : '';
+  activeCodeFolderId = normFid;
+  syncActiveAnswerKeysRef();
   document.getElementById('keyExamCode').value = code;
   renderAnswerKeyUI();
 }
 
-// Gõ trực tiếp vào ô "Mã đề": chuẩn hóa đủ số chữ số đang chọn (3 hoặc 4), mã chưa có thì tạo mới
-function onExamCodeInputChange() {
+// Gõ trực tiếp vào ô "Mã đề": tạo hoặc chọn mã đề ngay trong thư mục đang mở; nếu đang ở "Tất cả" mà thư mục hiện tại đã có mã đó thì tự thêm vào thư mục khác chưa có
+function onExamCodeInputChange(fromEnter = false) {
   const input = document.getElementById('keyExamCode');
   const code = normalizeExamCode(input.value);
+  let targetFid = isRealFolderView() ? activeFolderView : (activeFolderView === 'none' ? '' : activeCodeFolderId);
+  targetFid = folderById(targetFid) ? targetFid : '';
+
   if (!code) {
-    input.value = getSortedExamCodes()[0] || DEFAULT_EXAM_CODE;
+    const fallback = getSortedExamCodes(targetFid)[0] || DEFAULT_EXAM_CODE;
+    input.value = fallback;
     showAppToast(`Mã đề chỉ gồm chữ số (VD: ${DEFAULT_EXAM_CODE}).`, 'warn');
-  } else {
-    input.value = code;
-    if (!answerKeys[code]) {
-      answerKeys[code] = createDefaultKey();
-      persistKeys();
-      if (examFolders.folders.some(f => f.id === activeFolderView)) setCodesFolder([code], activeFolderView);
-      showAppToast(`Đã tạo mã đề ${code}.`, 'success');
+    renderAnswerKeyUI();
+    return;
+  }
+
+  input.value = code;
+  // Nếu đang ở chế độ xem "Tất cả" và mã đề đã có ở targetFid, kiểm tra xem có thư mục nào chưa có mã đề này không để thêm vào thư mục đó
+  if (activeFolderView === 'all' && getFolderKeys(targetFid)[code] && examFolders.folders.length > 0) {
+    const missingFolder = examFolders.folders.find(f => !getFolderKeys(f.id)[code]);
+    if (missingFolder) {
+      targetFid = missingFolder.id;
     }
+  }
+
+  activeCodeFolderId = targetFid;
+  syncActiveAnswerKeysRef();
+  if (!answerKeys[code]) {
+    answerKeys[code] = createDefaultKey();
+    persistKeys();
+    const f = folderById(activeCodeFolderId);
+    showAppToast(`Đã tạo mã đề ${code}${f ? ' trong thư mục "' + f.name + '"' : ''}.`, 'success');
+  } else if (fromEnter) {
+    const f = folderById(activeCodeFolderId);
+    showAppToast(`Đang mở mã đề ${code}${f ? ' (📁 ' + f.name + ')' : ''}.`, 'info');
   }
   renderAnswerKeyUI();
 }
 
-// Tách chuỗi nhập thành danh sách mã đề. Hỗ trợ: "1001, 1002 1003", xuống dòng, và dải "2001-2008"
 function parseExamCodeList(text) {
   const result = { codes: [], invalid: [] };
   const seen = new Set();
@@ -2496,6 +2657,16 @@ function parseExamCodeList(text) {
   return result;
 }
 
+function getAddCodesTargetValue() {
+  const folderSel = document.getElementById('addCodesFolder');
+  if (folderSel && examFolders.folders.length) {
+    const val = folderSel.value;
+    if (val === '__ALL_FOLDERS__') return '__ALL_FOLDERS__';
+    return folderById(val) ? val : '';
+  }
+  return isRealFolderView() ? activeFolderView : '';
+}
+
 function updateAddCodesPreview() {
   const box = document.getElementById('addCodesPreview');
   const text = document.getElementById('addCodesInput').value;
@@ -2508,25 +2679,102 @@ function updateAddCodesPreview() {
     d.textContent = msg;
     box.appendChild(d);
   };
+
   const { codes, invalid } = parseExamCodeList(text);
-  const fresh = codes.filter(c => !answerKeys[c]);
-  const existed = codes.filter(c => answerKeys[c]);
-  if (fresh.length) addLine('acp-ok', `✅ Sẽ thêm ${fresh.length} mã đề: ${fresh.join(', ')}`);
-  if (existed.length) addLine('acp-warn', `⚠️ Đã tồn tại, sẽ bỏ qua: ${existed.join(', ')}`);
+  const folderSel = document.getElementById('addCodesFolder');
+  let targetVal = getAddCodesTargetValue();
+
+  // Nếu người dùng chưa tự đổi dropdown thư mục mà thư mục mặc định đã có hết các mã này, tự động chọn sang thư mục chưa có mã đề đó
+  if (folderSel && !folderSel.dataset.userPicked && targetVal !== '__ALL_FOLDERS__' && codes.length && examFolders.folders.length) {
+    const curMap = getFolderKeys(targetVal);
+    const curFresh = codes.filter(c => !curMap[c]);
+    if (!curFresh.length) {
+      const altFolder = examFolders.folders.find(f => codes.some(c => !getFolderKeys(f.id)[c]));
+      if (altFolder) {
+        folderSel.value = altFolder.id;
+        targetVal = altFolder.id;
+      }
+    }
+  }
+
+  if (targetVal === '__ALL_FOLDERS__') {
+    let totalAdded = 0;
+    const perFolderDetails = [];
+    examFolders.folders.forEach(f => {
+      const m = getFolderKeys(f.id);
+      const fr = codes.filter(c => !m[c]);
+      if (fr.length) {
+        totalAdded += fr.length;
+        perFolderDetails.push(`📁 ${f.name} (+${fr.length}: ${fr.join(', ')})`);
+      }
+    });
+    if (totalAdded > 0) {
+      addLine('acp-ok', `✅ Sẽ thêm vào các thư mục: ${perFolderDetails.join('  •  ')}`);
+    } else if (codes.length) {
+      addLine('acp-warn', `⚠️ Tất cả các thư mục đều đã có sẵn mã đề: ${codes.join(', ')}`);
+    }
+  } else {
+    const targetMap = getFolderKeys(targetVal);
+    const fObj = folderById(targetVal);
+    const targetName = fObj ? `thư mục "${fObj.name}"` : '"Chưa phân loại"';
+    const fresh = codes.filter(c => !targetMap[c]);
+    const existed = codes.filter(c => targetMap[c]);
+    if (fresh.length) addLine('acp-ok', `✅ Sẽ thêm ${fresh.length} mã đề vào ${targetName}: ${fresh.join(', ')}`);
+    if (existed.length) {
+      const otherFolders = examFolders.folders.filter(f => f.id !== targetVal && existed.some(c => !getFolderKeys(f.id)[c]));
+      const hint = otherFolders.length
+        ? ` (Gợi ý: đổi mục "📁 Thêm vào thư mục" phía trên sang "${otherFolders[0].name}" hoặc "Tất cả các thư mục" để thêm mã trùng cho thư mục khác)`
+        : '';
+      addLine('acp-warn', `⚠️ Đã có sẵn trong ${targetName}, sẽ bỏ qua: ${existed.join(', ')}${hint}`);
+    }
+  }
   if (invalid.length) addLine('acp-err', `❌ Không hợp lệ: ${invalid.join(', ')}`);
 }
 
 function openAddCodesModal() {
   const sel = document.getElementById('addCodesCopyFrom');
-  const current = document.getElementById('keyExamCode').value.trim();
+  const current = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
   sel.innerHTML = '';
-  getSortedExamCodes().forEach(c => sel.appendChild(new Option(c, c, false, c === current)));
+  const allEntries = getAllCodeEntries();
+  const hasFolders = examFolders.folders.length > 0;
+  allEntries.forEach(e => {
+    const val = `${e.folderId}::${e.code}`;
+    const label = hasFolders ? `${e.code} (${e.folderId ? '📁 ' + e.folderName : '🗂️ Chưa phân loại'})` : e.code;
+    const isSel = (e.code === current && e.folderId === activeCodeFolderId);
+    sel.appendChild(new Option(label, val, false, isSel));
+  });
+  if (!allEntries.length) {
+    sel.appendChild(new Option(DEFAULT_EXAM_CODE, `::${DEFAULT_EXAM_CODE}`, true, true));
+  }
   document.getElementById('addCodesInput').value = '';
   document.getElementById('addCodesPreview').innerHTML = '';
   document.querySelector('input[name="addCodesInit"][value="copy"]').checked = true;
   const folderSel = document.getElementById('addCodesFolder');
-  document.getElementById('addCodesFolderWrap').style.display = examFolders.folders.length ? '' : 'none';
-  fillFolderSelect(folderSel, examFolders.folders.some(f => f.id === activeFolderView) ? activeFolderView : '');
+  delete folderSel.dataset.userPicked;
+  document.getElementById('addCodesFolderWrap').style.display = hasFolders ? '' : 'none';
+  if (hasFolders) {
+    folderSel.innerHTML = '';
+    if (examFolders.folders.length >= 2) {
+      folderSel.appendChild(new Option('📂 Tất cả các thư mục (cùng thêm bộ mã đề này vào mọi thư mục)', '__ALL_FOLDERS__'));
+    }
+    examFolders.folders.forEach(f => {
+      const cnt = getSortedExamCodes(f.id).length;
+      folderSel.appendChild(new Option(`📁 ${f.name} (đang có ${cnt} mã đề)`, f.id));
+    });
+    folderSel.appendChild(new Option(`🗂️ Chưa phân loại (đang có ${getSortedExamCodes('').length} mã đề)`, ''));
+
+    if (isRealFolderView()) {
+      folderSel.value = activeFolderView;
+    } else if (activeFolderView === 'none') {
+      folderSel.value = '';
+    } else {
+      // Nếu đang ở chế độ xem "Tất cả", ưu tiên thư mục đang trống (vừa tạo) hoặc chọn "Tất cả các thư mục"
+      const emptyFolder = examFolders.folders.find(f => getSortedExamCodes(f.id).length === 0);
+      if (emptyFolder) folderSel.value = emptyFolder.id;
+      else if (examFolders.folders.length >= 2) folderSel.value = '__ALL_FOLDERS__';
+      else folderSel.value = examFolders.folders[0].id;
+    }
+  }
   document.getElementById('addCodesModal').classList.add('open');
   setTimeout(() => document.getElementById('addCodesInput').focus(), 50);
 }
@@ -2541,54 +2789,134 @@ function confirmAddCodes() {
     showAppToast('Có mã đề không hợp lệ, vui lòng kiểm tra lại.', 'error');
     return;
   }
-  const fresh = codes.filter(c => !answerKeys[c]);
-  if (!fresh.length) {
-    showAppToast(codes.length ? 'Các mã đề này đều đã tồn tại.' : 'Hãy nhập ít nhất 1 mã đề.', 'warn');
+  if (!codes.length) {
+    showAppToast('Hãy nhập ít nhất 1 mã đề.', 'warn');
     return;
   }
 
   const mode = document.querySelector('input[name="addCodesInit"]:checked').value;
-  const copyFrom = document.getElementById('addCodesCopyFrom').value;
-  fresh.forEach(code => {
-    if (mode === 'copy' && answerKeys[copyFrom]) answerKeys[code] = cloneKey(answerKeys[copyFrom]);
-    else if (mode === 'random') answerKeys[code] = createRandomKey();
-    else answerKeys[code] = createDefaultKey();
-  });
-  persistKeys();
-  const folderSel = document.getElementById('addCodesFolder');
-  const targetFolder = folderSel && examFolders.folders.length ? folderSel.value : '';
-  if (targetFolder) {
-    setCodesFolder(fresh, targetFolder);
-    activeFolderView = targetFolder;   // chuyển sang xem thư mục vừa thêm mã đề vào
+  const copyFromRaw = document.getElementById('addCodesCopyFrom').value || '';
+  let sourceKey = null;
+  if (mode === 'copy') {
+    const sepIdx = copyFromRaw.indexOf('::');
+    if (sepIdx >= 0) {
+      const srcFid = copyFromRaw.slice(0, sepIdx);
+      const srcCode = copyFromRaw.slice(sepIdx + 2);
+      sourceKey = getFolderKeys(srcFid)[srcCode] || null;
+    } else if (answerKeys[copyFromRaw]) {
+      sourceKey = answerKeys[copyFromRaw];
+    }
   }
+  const makeNewKey = () => {
+    if (mode === 'copy' && sourceKey) return cloneKey(sourceKey);
+    if (mode === 'random') return createRandomKey();
+    return createDefaultKey();
+  };
+
+  let targetVal = getAddCodesTargetValue();
+  if (targetVal === '__ALL_FOLDERS__') {
+    let addedTotal = 0;
+    let lastFid = examFolders.folders[0] ? examFolders.folders[0].id : '';
+    let firstCode = codes[0];
+    examFolders.folders.forEach(f => {
+      const m = getFolderKeys(f.id);
+      codes.forEach(code => {
+        if (!m[code]) {
+          m[code] = makeNewKey();
+          addedTotal++;
+          lastFid = f.id;
+        }
+      });
+    });
+    if (!addedTotal) {
+      showAppToast('Các mã đề này đều đã có sẵn trong tất cả các thư mục.', 'warn');
+      return;
+    }
+    activeFolderView = 'all';
+    activeCodeFolderId = lastFid;
+    syncActiveAnswerKeysRef();
+    persistKeys();
+    closeAddCodesModal();
+    selectExamCode(firstCode, lastFid);
+    playBeep(880, 80);
+    showAppToast(`Đã thêm mã đề (${codes.join(', ')}) vào tất cả các thư mục!`, 'success');
+    return;
+  }
+
+  let targetFid = folderById(targetVal) ? targetVal : '';
+  let targetMap = getFolderKeys(targetFid);
+  let fresh = codes.filter(c => !targetMap[c]);
+
+  // Nếu thư mục đang chọn đã có sẵn các mã này, tự động tìm thư mục khác chưa có để thêm vào (giúp 2 thư mục khác nhau cùng có mã đề giống nhau)
+  if (!fresh.length && examFolders.folders.length) {
+    const altFolder = examFolders.folders.find(f => codes.some(c => !getFolderKeys(f.id)[c]));
+    if (altFolder) {
+      targetFid = altFolder.id;
+      targetMap = getFolderKeys(targetFid);
+      fresh = codes.filter(c => !targetMap[c]);
+    }
+  }
+
+  const fObj = folderById(targetFid);
+  const targetName = fObj ? `thư mục "${fObj.name}"` : '"Chưa phân loại"';
+  if (!fresh.length) {
+    showAppToast(`Các mã đề này đều đã có trong ${targetName}.`, 'warn');
+    return;
+  }
+
+  fresh.forEach(code => {
+    targetMap[code] = makeNewKey();
+  });
+
+  if (activeFolderView !== 'all') {
+    activeFolderView = targetFid ? targetFid : (examFolders.folders.length ? 'none' : 'all');
+  }
+  activeCodeFolderId = targetFid;
+  syncActiveAnswerKeysRef();
+  persistKeys();
   closeAddCodesModal();
-  selectExamCode(fresh[0]);
+  selectExamCode(fresh[0], targetFid);
   playBeep(880, 80);
-  showAppToast(`Đã thêm ${fresh.length} mã đề: ${fresh.join(', ')}`, 'success');
+  showAppToast(`Đã thêm ${fresh.length} mã đề vào ${targetName}: ${fresh.join(', ')}`, 'success');
 }
 
 function deleteCurrentCode() {
-  const code = document.getElementById('keyExamCode').value.trim();
-  const codes = getSortedExamCodes();
-  if (codes.length <= 1) {
-    showAppToast('Cần giữ lại ít nhất 1 mã đề.', 'warn');
+  const code = normalizeExamCode(document.getElementById('keyExamCode').value);
+  const allEntries = getAllCodeEntries();
+  if (allEntries.length <= 1) {
+    showAppToast('Cần giữ lại ít nhất 1 mã đề trong hệ thống.', 'warn');
     return;
   }
-  showAppConfirm(`Xóa đáp án của mã đề ${code}? Thao tác này không thể hoàn tác.`, () => {
-    const idx = codes.indexOf(code);
-    delete answerKeys[code];
+  const curMap = getFolderKeys(activeCodeFolderId);
+  if (!curMap[code]) {
+    showAppToast('Thư mục này chưa có mã đề để xóa.', 'warn');
+    return;
+  }
+  const f = folderById(activeCodeFolderId);
+  const fLabel = f ? ` trong thư mục "${f.name}"` : '';
+  showAppConfirm(`Xóa đáp án của mã đề ${code}${fLabel}? (Các mã đề trùng tên ở thư mục khác vẫn được giữ nguyên).`, () => {
+    const codesInCur = getSortedExamCodes(activeCodeFolderId);
+    const idx = codesInCur.indexOf(code);
+    delete curMap[code];
     persistKeys();
-    removeCodeFromFolders(code);
-    const rest = getSortedExamCodes();
-    selectExamCode(rest[Math.max(0, Math.min(idx, rest.length - 1))]);
-    showAppToast(`Đã xóa mã đề ${code}.`, 'info');
+    const restInView = entriesInView(activeFolderView);
+    if (restInView.length) {
+      const nextEntry = restInView[Math.max(0, Math.min(idx, restInView.length - 1))];
+      selectExamCode(nextEntry.code, nextEntry.folderId);
+    } else {
+      const anyLeft = getAllCodeEntries();
+      if (anyLeft.length && activeFolderView === 'all') {
+        selectExamCode(anyLeft[0].code, anyLeft[0].folderId);
+      } else {
+        renderAnswerKeyUI();
+      }
+    }
+    showAppToast(`Đã xóa mã đề ${code}${fLabel}.`, 'info');
   });
 }
 
 /********************************************************************
- * 4c. THƯ MỤC ĐỀ THI (NHÓM CÁC MÃ ĐỀ THEO KỲ THI / MÔN HỌC / LỚP)
- *  • Thư mục chỉ để sắp xếp & lọc danh sách mã đề; không ảnh hưởng việc quét, chấm điểm hay đáp án.
- *  • Lưu riêng cho từng kiểu mã đề (3 số / 4 số), cùng cách tách kho đáp án.
+ * 4c. THƯ MỤC ĐỀ THI (MỖI THƯ MỤC CÓ KHO MÃ ĐỀ & ĐÁP ÁN ĐỘC LẬP)
  ********************************************************************/
 function examFoldersStorageName(len = EXAM_CODE_LEN) {
   return len === 3 ? 'omr_folders_ult2026_m3' : 'omr_folders_ult2026';
@@ -2597,61 +2925,66 @@ function examFoldersStorageName(len = EXAM_CODE_LEN) {
 function loadExamFolders() {
   let data = null;
   try { data = JSON.parse(safeGetStorage(examFoldersStorageName(), 'null')); } catch (e) { data = null; }
-  const out = { folders: [], assign: {} };
+  const out = { folders: [], byFolder: { '': {} } };
   if (data && Array.isArray(data.folders)) {
     data.folders.forEach(f => {
       if (f && typeof f.id === 'string' && typeof f.name === 'string' && f.name.trim()) {
-        out.folders.push({ id: f.id, name: f.name.trim().slice(0, 40) });
+        const id = f.id;
+        out.folders.push({ id, name: f.name.trim().slice(0, 40) });
+        out.byFolder[id] = {};
       }
     });
   }
-  if (data && data.assign && typeof data.assign === 'object') {
-    Object.keys(data.assign).forEach(code => {
-      if (out.folders.some(f => f.id === data.assign[code])) out.assign[code] = data.assign[code];
+  if (data && data.byFolder && typeof data.byFolder === 'object') {
+    Object.keys(data.byFolder).forEach(fid => {
+      const targetFid = out.folders.some(f => f.id === fid) ? fid : '';
+      const srcMap = data.byFolder[fid];
+      if (srcMap && typeof srcMap === 'object') {
+        if (!out.byFolder[targetFid]) out.byFolder[targetFid] = {};
+        Object.keys(srcMap).forEach(code => {
+          if (srcMap[code] && typeof srcMap[code] === 'object') {
+            out.byFolder[targetFid][code] = srcMap[code];
+          }
+        });
+      }
+    });
+  } else {
+    let legacyKeys = {};
+    try { legacyKeys = JSON.parse(safeGetStorage(examKeysStorageName(), '{}')) || {}; } catch (e) { legacyKeys = {}; }
+    const assign = (data && data.assign && typeof data.assign === 'object') ? data.assign : {};
+    Object.keys(legacyKeys).forEach(code => {
+      const fid = (assign[code] && out.folders.some(f => f.id === assign[code])) ? assign[code] : '';
+      if (!out.byFolder[fid]) out.byFolder[fid] = {};
+      out.byFolder[fid][code] = legacyKeys[code];
     });
   }
+  const totalCodes = Object.keys(out.byFolder).reduce((acc, fid) => acc + Object.keys(out.byFolder[fid] || {}).length, 0);
+  if (totalCodes === 0) {
+    out.byFolder[''][DEFAULT_EXAM_CODE] = createDefaultKey();
+  }
   return out;
+}
+
+function getFolderKeys(folderId = '') {
+  if (!examFolders) return {};
+  if (!examFolders.byFolder) examFolders.byFolder = { '': {} };
+  const fid = (folderId && examFolders.folders.some(f => f.id === folderId)) ? folderId : '';
+  if (!examFolders.byFolder[fid]) examFolders.byFolder[fid] = {};
+  return examFolders.byFolder[fid];
 }
 
 function persistFolders() {
   safeSetStorage(examFoldersStorageName(), JSON.stringify(examFolders));
 }
 
-function folderById(id) { return examFolders.folders.find(f => f.id === id) || null; }
-function folderOfCode(code) { return folderById(examFolders.assign[code]); }
+function folderById(id) { return (examFolders && examFolders.folders) ? (examFolders.folders.find(f => f.id === id) || null) : null; }
+function folderOfCode(code, folderId = activeCodeFolderId) { return folderById(folderId); }
 function isRealFolderView() { return !!folderById(activeFolderView); }
-
-function codesInView(view = activeFolderView) {
-  const all = getSortedExamCodes();
-  if (view === 'all') return all;
-  if (view === 'none') return all.filter(c => !folderOfCode(c));
-  return all.filter(c => examFolders.assign[c] === view);
-}
-
-function setCodesFolder(codes, folderId) {
-  codes.forEach(c => {
-    if (folderId && folderById(folderId)) examFolders.assign[c] = folderId;
-    else delete examFolders.assign[c];
-  });
-  persistFolders();
-}
-
-function removeCodeFromFolders(code) {
-  if (examFolders.assign[code]) { delete examFolders.assign[code]; persistFolders(); }
-}
-
-function moveFolderAssignment(oldCode, newCode) {
-  if (!examFolders.assign[oldCode]) return;
-  if (!examFolders.assign[newCode]) examFolders.assign[newCode] = examFolders.assign[oldCode];
-  delete examFolders.assign[oldCode];
-  persistFolders();
-}
 
 function newFolderId() {
   return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-// Đổ danh sách thư mục vào một ô <select>: giá trị rỗng = "Chưa phân loại"
 function fillFolderSelect(sel, value) {
   if (!sel) return;
   sel.innerHTML = '';
@@ -2660,17 +2993,68 @@ function fillFolderSelect(sel, value) {
   sel.value = folderById(value) ? value : '';
 }
 
+function syncScanFolderBarUI() {
+  const bar = document.getElementById('scanFolderBar');
+  const sel = document.getElementById('scanFolderSelect');
+  const info = document.getElementById('scanFolderCodesInfo');
+  if (!bar || !sel) return;
+  const hasFolders = examFolders.folders.length > 0;
+  bar.style.display = hasFolders ? 'flex' : 'none';
+  if (!hasFolders) return;
+
+  const allEntries = getAllCodeEntries();
+  sel.innerHTML = '';
+  sel.appendChild(new Option(`📂 Tất cả thư mục (${allEntries.length} mã đề)`, 'all'));
+  examFolders.folders.forEach(f => {
+    const cnt = getSortedExamCodes(f.id).length;
+    sel.appendChild(new Option(`📁 ${f.name} (${cnt} mã đề)`, f.id));
+  });
+  const noneCnt = getSortedExamCodes('').length;
+  sel.appendChild(new Option(`🗂️ Chưa phân loại (${noneCnt} mã đề)`, 'none'));
+  sel.value = (activeFolderView === 'all' || activeFolderView === 'none' || folderById(activeFolderView)) ? activeFolderView : 'all';
+
+  if (info) {
+    const gradingMap = getGradingAnswerKeysMap();
+    const codes = Object.keys(gradingMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    info.textContent = codes.length
+      ? `Mã đề áp dụng: ${codes.slice(0, 10).join(', ')}${codes.length > 10 ? ', …' : ''}`
+      : 'Chưa có mã đề trong mục này';
+  }
+}
+
+function onScanFolderChange(view) {
+  setFolderView(view);
+  const f = folderById(view);
+  const label = view === 'all' ? 'Tất cả thư mục' : (view === 'none' ? 'Chưa phân loại' : (f ? f.name : ''));
+  showAppToast(`Đã chọn chấm theo: ${label}`, 'info');
+}
+
+function getGradingAnswerKeysMap() {
+  if (isRealFolderView()) {
+    return getFolderKeys(activeFolderView);
+  }
+  if (activeFolderView === 'none') {
+    return getFolderKeys('');
+  }
+  const merged = {};
+  const noneMap = getFolderKeys('');
+  Object.keys(noneMap).forEach(c => { merged[c] = noneMap[c]; });
+  examFolders.folders.forEach(f => {
+    const m = getFolderKeys(f.id);
+    Object.keys(m).forEach(c => { merged[c] = m[c]; });
+  });
+  const preferred = getFolderKeys(activeCodeFolderId);
+  Object.keys(preferred).forEach(c => { merged[c] = preferred[c]; });
+  return merged;
+}
+
 function renderFolderUI() {
   const bar = document.getElementById('folderBar');
   if (!bar) return;
-  // dọn dữ liệu: mã đề đã bị xóa thì gỡ khỏi thư mục
-  let dirty = false;
-  Object.keys(examFolders.assign).forEach(c => { if (!answerKeys[c]) { delete examFolders.assign[c]; dirty = true; } });
-  if (dirty) persistFolders();
   if (activeFolderView !== 'all' && activeFolderView !== 'none' && !folderById(activeFolderView)) activeFolderView = 'all';
   if (activeFolderView === 'none' && !examFolders.folders.length) activeFolderView = 'all';
 
-  const all = getSortedExamCodes();
+  const allEntries = getAllCodeEntries();
   const hasFolders = examFolders.folders.length > 0;
   bar.innerHTML = '';
   bar.style.display = hasFolders ? '' : 'none';
@@ -2688,9 +3072,9 @@ function renderFolderUI() {
     b.onclick = () => setFolderView(view);
     bar.appendChild(b);
   };
-  addTab('all', '📂 Tất cả', all.length);
-  examFolders.folders.forEach(f => addTab(f.id, '📁 ' + f.name, all.filter(c => examFolders.assign[c] === f.id).length));
-  if (hasFolders) addTab('none', '🗂️ Chưa phân loại', all.filter(c => !folderOfCode(c)).length);
+  addTab('all', '📂 Tất cả', allEntries.length);
+  examFolders.folders.forEach(f => addTab(f.id, '📁 ' + f.name, getSortedExamCodes(f.id).length));
+  if (hasFolders) addTab('none', '🗂️ Chưa phân loại', getSortedExamCodes('').length);
 
   const real = isRealFolderView();
   document.getElementById('btnRenameFolder').style.display = real ? '' : 'none';
@@ -2698,27 +3082,72 @@ function renderFolderUI() {
   document.getElementById('folderHint').style.display = hasFolders ? 'none' : '';
   const assignWrap = document.getElementById('folderAssignWrap');
   assignWrap.style.display = hasFolders ? 'flex' : 'none';
-  const cur = document.getElementById('keyExamCode').value.trim();
-  fillFolderSelect(document.getElementById('curCodeFolderSel'), examFolders.assign[cur] || '');
+  fillFolderSelect(document.getElementById('curCodeFolderSel'), activeCodeFolderId || '');
+  syncScanFolderBarUI();
 }
 
 function setFolderView(view) {
   activeFolderView = view;
-  const list = codesInView();
-  const cur = document.getElementById('keyExamCode').value.trim();
-  if (list.length && !list.includes(cur)) selectExamCode(list[0]);   // mở luôn mã đề đầu tiên của thư mục
-  else renderExamCodeChips();
+  const cur = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
+  if (view === 'none') {
+    activeCodeFolderId = '';
+    syncActiveAnswerKeysRef();
+    const list = getSortedExamCodes('');
+    if (list.length) selectExamCode(list.includes(cur) ? cur : list[0], '');
+    else renderAnswerKeyUI();
+  } else if (folderById(view)) {
+    activeCodeFolderId = view;
+    syncActiveAnswerKeysRef();
+    const list = getSortedExamCodes(view);
+    if (list.length) selectExamCode(list.includes(cur) ? cur : list[0], view);
+    else renderAnswerKeyUI();
+  } else {
+    const all = getAllCodeEntries();
+    const keep = all.find(e => e.code === cur && e.folderId === activeCodeFolderId) || all.find(e => e.code === cur) || all[0];
+    if (keep) selectExamCode(keep.code, keep.folderId);
+    else renderAnswerKeyUI();
+  }
 }
 
-// Đổi thư mục của mã đề đang chọn (ô chọn nhanh)
+// Đổi thư mục của mã đề đang chọn: nếu đang ở 1 thư mục thật và chọn sang thư mục thật khác thì SAO CHÉP sang thư mục mới (hoặc chuyển khỏi Chưa phân loại) để 2 thư mục cùng giữ được mã đề giống nhau
 function onCurrentCodeFolderChange(folderId) {
-  const code = document.getElementById('keyExamCode').value.trim();
-  if (!code || !answerKeys[code]) return;
-  setCodesFolder([code], folderId || null);
-  if (activeFolderView !== 'all') activeFolderView = folderId || 'none';   // đi theo mã đề sang thư mục mới
-  renderExamCodeChips();
-  const f = folderById(folderId);
-  showAppToast(f ? `Đã chuyển mã đề ${code} vào thư mục "${f.name}".` : `Đã đưa mã đề ${code} về "Chưa phân loại".`, 'success');
+  const code = normalizeExamCode(document.getElementById('keyExamCode').value) || DEFAULT_EXAM_CODE;
+  const srcFid = activeCodeFolderId;
+  const dstFid = folderById(folderId) ? folderId : '';
+  if (srcFid === dstFid) return;
+  const srcMap = getFolderKeys(srcFid);
+  const dstMap = getFolderKeys(dstFid);
+  const keyData = srcMap[code] ? cloneKey(srcMap[code]) : createDefaultKey();
+
+  const applyToTarget = (keepInSource) => {
+    dstMap[code] = keyData;
+    if (!keepInSource && srcMap[code]) {
+      delete srcMap[code];
+    }
+    activeCodeFolderId = dstFid;
+    if (activeFolderView !== 'all') activeFolderView = dstFid || 'none';
+    syncActiveAnswerKeysRef();
+    persistKeys();
+    renderAnswerKeyUI();
+    const f = folderById(dstFid);
+    if (keepInSource && srcFid) {
+      const sf = folderById(srcFid);
+      showAppToast(`Đã thêm bản sao mã đề ${code} vào "${f ? f.name : 'Chưa phân loại'}" (vẫn giữ mã ${code} ở "${sf ? sf.name : ''}").`, 'success');
+    } else {
+      showAppToast(f ? `Đã chuyển mã đề ${code} vào thư mục "${f.name}".` : `Đã đưa mã đề ${code} về "Chưa phân loại".`, 'success');
+    }
+  };
+
+  // Nếu mã đề đang ở "Chưa phân loại" -> chuyển thẳng vào thư mục đích; nếu đang ở 1 thư mục cụ thể và chọn sang thư mục khác -> giữ ở cả 2 thư mục để tránh mất mã đề ở thư mục cũ
+  const keepBoth = Boolean(srcFid && dstFid);
+  if (dstMap[code]) {
+    const f = folderById(dstFid);
+    const dstName = f ? `thư mục "${f.name}"` : '"Chưa phân loại"';
+    showAppConfirm(`Trong ${dstName} đã có mã đề ${code}. Bạn có muốn cập nhật đáp án mã đề ${code} hiện tại sang ${dstName} không?`, () => applyToTarget(keepBoth));
+    renderFolderUI();
+    return;
+  }
+  applyToTarget(keepBoth);
 }
 
 /* ---------- Tạo / đổi tên / xóa thư mục ---------- */
@@ -2761,32 +3190,60 @@ function confirmFolderName() {
   if (examFolders.folders.length >= 50) { showAppToast('Tối đa 50 thư mục.', 'warn'); return; }
   const f = { id: newFolderId(), name };
   examFolders.folders.push(f);
-  persistFolders();
+  if (!examFolders.byFolder[f.id]) examFolders.byFolder[f.id] = {};
   activeFolderView = f.id;
+  activeCodeFolderId = f.id;
+  syncActiveAnswerKeysRef();
+  persistKeys();
   closeFolderNameModal();
-  renderExamCodeChips();
-  showAppToast(`Đã tạo thư mục "${name}". Bấm "📥 Chuyển mã đề vào thư mục" để đưa mã đề vào.`, 'success');
+  renderAnswerKeyUI();
+  showAppToast(`Đã tạo thư mục "${name}". Bấm "➕ Thêm nhiều mã đề" để thêm mã đề vào thư mục này.`, 'success');
 }
 
 function deleteActiveFolder() {
   const f = folderById(activeFolderView);
   if (!f) return;
-  const n = codesInView().length;
-  showAppConfirm(`Xóa thư mục "${f.name}"? ${n ? `${n} mã đề trong thư mục` : 'Các mã đề'} KHÔNG bị xóa, chỉ chuyển về "Chưa phân loại".`, () => {
+  const folderCodes = getSortedExamCodes(f.id);
+  const n = folderCodes.length;
+  showAppConfirm(`Xóa thư mục "${f.name}"? ${n ? `${n} mã đề trong thư mục sẽ được chuyển về "Chưa phân loại" (hoặc xóa thư mục trống).` : 'Thư mục này đang trống.'}`, () => {
+    const folderMap = getFolderKeys(f.id);
+    const noneMap = getFolderKeys('');
+    Object.keys(folderMap).forEach(c => {
+      if (!noneMap[c]) noneMap[c] = folderMap[c];
+    });
+    delete examFolders.byFolder[f.id];
     examFolders.folders = examFolders.folders.filter(x => x.id !== f.id);
-    Object.keys(examFolders.assign).forEach(c => { if (examFolders.assign[c] === f.id) delete examFolders.assign[c]; });
-    persistFolders();
     activeFolderView = 'all';
-    renderExamCodeChips();
+    const all = getAllCodeEntries();
+    activeCodeFolderId = all.length ? all[0].folderId : '';
+    syncActiveAnswerKeysRef();
+    persistKeys();
+    if (all.length) selectExamCode(all[0].code, all[0].folderId);
+    else renderAnswerKeyUI();
     showAppToast(`Đã xóa thư mục "${f.name}".`, 'info');
   });
 }
 
-/* ---------- Chuyển nhiều mã đề vào thư mục ---------- */
+/* ---------- Chuyển / Sao chép nhiều mã đề vào thư mục ---------- */
 function updateMoveCodesCount() {
   const grid = document.getElementById('moveCodesGrid');
+  const checkedInputs = grid.querySelectorAll('input:checked');
   grid.querySelectorAll('.move-code-item').forEach(l => l.classList.toggle('checked', l.querySelector('input').checked));
-  document.getElementById('moveCodesCount').textContent = grid.querySelectorAll('input:checked').length;
+  document.getElementById('moveCodesCount').textContent = checkedInputs.length;
+
+  // Nếu người dùng tích chọn mã đề đang nằm trong 1 thư mục cụ thể (không phải Chưa phân loại), tự động chuyển mặc định sang "Sao chép" để cả 2 thư mục cùng giữ được mã đề đó
+  const hasFolderSource = Array.from(checkedInputs).some(cb => {
+    const sep = cb.value.indexOf('::');
+    const srcFid = sep >= 0 ? cb.value.slice(0, sep) : '';
+    return Boolean(srcFid);
+  });
+  const copyRadio = document.querySelector('input[name="moveCodesAction"][value="copy"]');
+  const moveRadio = document.querySelector('input[name="moveCodesAction"][value="move"]');
+  if (hasFolderSource && copyRadio && !copyRadio.dataset.userChanged) {
+    copyRadio.checked = true;
+  } else if (!hasFolderSource && moveRadio && !moveRadio.dataset.userChanged) {
+    moveRadio.checked = true;
+  }
 }
 
 function openMoveCodesModal() {
@@ -2795,26 +3252,36 @@ function openMoveCodesModal() {
     openFolderNameModal('create');
     return;
   }
+  // Mặc định thư mục đích là thư mục đang mở (nếu đang mở 1 thư mục cụ thể)
+  const defaultTarget = isRealFolderView() ? activeFolderView : examFolders.folders[0].id;
+  fillFolderSelect(document.getElementById('moveCodesTarget'), defaultTarget);
+
+  document.querySelectorAll('input[name="moveCodesAction"]').forEach(r => {
+    delete r.dataset.userChanged;
+    r.onchange = () => {
+      document.querySelectorAll('input[name="moveCodesAction"]').forEach(x => { x.dataset.userChanged = '1'; });
+    };
+  });
+  const moveRadio = document.querySelector('input[name="moveCodesAction"][value="move"]');
+  if (moveRadio) moveRadio.checked = true;
+
   const grid = document.getElementById('moveCodesGrid');
   grid.innerHTML = '';
-  getSortedExamCodes().forEach(code => {
+  const allEntries = getAllCodeEntries();
+  allEntries.forEach(entry => {
     const lab = document.createElement('label');
     lab.className = 'move-code-item';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
-    cb.value = code;
+    cb.value = `${entry.folderId}::${entry.code}`;
     cb.onchange = updateMoveCodesCount;
     lab.appendChild(cb);
-    lab.appendChild(document.createTextNode(code));
-    const fol = folderOfCode(code);
-    if (fol) {
-      const sm = document.createElement('small');
-      sm.textContent = '📁 ' + fol.name;
-      lab.appendChild(sm);
-    }
+    lab.appendChild(document.createTextNode(entry.code));
+    const sm = document.createElement('small');
+    sm.textContent = entry.folderId ? ('📁 ' + entry.folderName) : '🗂️ Chưa PL';
+    lab.appendChild(sm);
     grid.appendChild(lab);
   });
-  fillFolderSelect(document.getElementById('moveCodesTarget'), isRealFolderView() ? activeFolderView : examFolders.folders[0].id);
   updateMoveCodesCount();
   document.getElementById('moveCodesModal').classList.add('open');
 }
@@ -2829,17 +3296,44 @@ function moveCodesSelectAll(flag) {
 }
 
 function confirmMoveCodes() {
-  const codes = Array.from(document.querySelectorAll('#moveCodesGrid input:checked')).map(cb => cb.value);
-  if (!codes.length) { showAppToast('Hãy tích chọn ít nhất 1 mã đề.', 'warn'); return; }
-  const target = document.getElementById('moveCodesTarget').value;
-  setCodesFolder(codes, target || null);
-  const f = folderById(target);
-  if (activeFolderView !== 'all') activeFolderView = target || 'none';   // đi theo các mã đề sang thư mục mới
+  const selected = Array.from(document.querySelectorAll('#moveCodesGrid input:checked')).map(cb => cb.value);
+  if (!selected.length) { showAppToast('Hãy tích chọn ít nhất 1 mã đề.', 'warn'); return; }
+  const target = document.getElementById('moveCodesTarget').value || '';
+  const dstFid = folderById(target) ? target : '';
+  const dstMap = getFolderKeys(dstFid);
+  const actionEl = document.querySelector('input[name="moveCodesAction"]:checked');
+  const isCopy = actionEl && actionEl.value === 'copy';
+
+  let count = 0;
+  let firstCode = null;
+  selected.forEach(raw => {
+    const sep = raw.indexOf('::');
+    const srcFid = sep >= 0 ? raw.slice(0, sep) : '';
+    const code = sep >= 0 ? raw.slice(sep + 2) : raw;
+    if (srcFid === dstFid) return;
+    const srcMap = getFolderKeys(srcFid);
+    if (!srcMap[code]) return;
+    dstMap[code] = cloneKey(srcMap[code]);
+    if (!isCopy) delete srcMap[code];
+    if (!firstCode) firstCode = code;
+    count++;
+  });
+
+  if (!count) {
+    showAppToast('Hãy chọn thư mục đích khác với thư mục hiện tại của mã đề.', 'warn');
+    return;
+  }
+
+  const f = folderById(dstFid);
+  activeFolderView = dstFid || 'none';
+  activeCodeFolderId = dstFid;
+  syncActiveAnswerKeysRef();
+  persistKeys();
   closeMoveCodesModal();
-  const first = codes.find(c => codesInView().includes(c));
-  if (first) selectExamCode(first); else renderExamCodeChips();
+  if (firstCode) selectExamCode(firstCode, dstFid); else renderAnswerKeyUI();
   playBeep(880, 80);
-  showAppToast(f ? `Đã chuyển ${codes.length} mã đề vào thư mục "${f.name}".` : `Đã đưa ${codes.length} mã đề về "Chưa phân loại".`, 'success');
+  const verb = isCopy ? 'Đã sao chép' : 'Đã chuyển';
+  showAppToast(f ? `${verb} ${count} mã đề vào thư mục "${f.name}".` : `${verb} ${count} mã đề về "Chưa phân loại".`, 'success');
 }
 
 function isShortAnswerMatch(studentRaw, keyRaw) {
@@ -3688,15 +4182,19 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     if (bestPos) drawBoth(bestPos.x, bestPos.y, 10 + ovAdjId, '#3b82f6', 2.4);
   });
 
-  // Tô sai mã đề (cột bỏ trống / tô 2 ô / mã không có trong danh sách đáp án) → không chấm, không lưu vào bảng điểm
+  const gradingKeyMap = getGradingAnswerKeysMap();
+  const gradingFolderObj = isRealFolderView() ? folderById(activeFolderView) : null;
+  const gradingFolderLabel = gradingFolderObj ? ` trong thư mục "${gradingFolderObj.name}"` : (activeFolderView === 'none' ? ' trong "Chưa phân loại"' : '');
+
+  // Tô sai mã đề (cột bỏ trống / tô 2 ô / mã không có trong danh sách đáp án của thư mục đang chấm) → không chấm, không lưu vào bảng điểm
   const strictCode = document.getElementById('strictExamCodeToggle');
   if (!isInitialPreview && (!strictCode || strictCode.checked)) {
     let why = null;
     if (maDeBad.length) {
       why = `Mã đề tô sai (${maDeBad.join(', ')}; đọc được "${maDeShown}")`;
-    } else if (!answerKeys[maDeStr]) {
-      const have = getSortedExamCodes();
-      why = `Mã đề ${maDeStr} không có trong danh sách đáp án (đang có: ${have.slice(0, 8).join(', ')}${have.length > 8 ? ', …' : ''})`;
+    } else if (!gradingKeyMap[maDeStr]) {
+      const have = Object.keys(gradingKeyMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      why = `Mã đề ${maDeStr} không có trong danh sách đáp án${gradingFolderLabel} (đang có: ${have.slice(0, 8).join(', ')}${have.length > 8 ? ', …' : ''})`;
     }
     if (why) {
       freeMats();
@@ -3708,15 +4206,15 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr + (rosterLookup(sbdStr) ? ' — ' + rosterLookup(sbdStr) : '');
 
   const fallbackCode = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
-  const activeKey = answerKeys[maDeStr] || answerKeys[fallbackCode] || createDefaultKey();
+  const activeKey = gradingKeyMap[maDeStr] || gradingKeyMap[fallbackCode] || answerKeys[fallbackCode] || createDefaultKey();
   const keyGapsInRange = geo.p1.filter(it => !['A', 'B', 'C', 'D'].includes(activeKey.p1 && activeKey.p1[it.q])).length;
   const _gapP1 = fillMissingP1(activeKey), _gapP2 = fillMissingP2(activeKey);
   if (_gapP1 > 0 || _gapP2 > 0) persistKeys();
   if (keyGapsInRange > 0 && !isInitialPreview) {
-    showAppToast(`⚠️ Đáp án mã đề ${answerKeys[maDeStr] ? maDeStr : fallbackCode} còn thiếu ${keyGapsInRange} câu — đã tạm ghi "A". Hãy mở tab Đáp án, kiểm tra rồi bấm Lưu.`, 'warn');
+    showAppToast(`⚠️ Đáp án mã đề ${gradingKeyMap[maDeStr] ? maDeStr : fallbackCode} còn thiếu ${keyGapsInRange} câu — đã tạm ghi "A". Hãy mở tab Đáp án, kiểm tra rồi bấm Lưu.`, 'warn');
   }
-  if (!answerKeys[maDeStr] && !isInitialPreview) {
-    showAppToast(`⚠️ Mã đề ${maDeStr} chưa có đáp án! Đang chấm tạm theo đáp án mã đề ${fallbackCode}.`, 'warn');
+  if (!gradingKeyMap[maDeStr] && !isInitialPreview) {
+    showAppToast(`⚠️ Mã đề ${maDeStr} chưa có đáp án${gradingFolderLabel}! Đang chấm tạm theo đáp án mã đề ${fallbackCode}.`, 'warn');
   }
 
   const pCfg = getActivePartsConfig(currentTemplate);
@@ -3887,7 +4385,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   };
 
   // Báo kết quả bằng âm thanh ngay khi đã có điểm (không chờ bước lưu ảnh bên dưới)
-  if (!isInitialPreview) playScanResultSound(answerKeys[maDeStr] ? 'ok' : 'warn');
+  if (!isInitialPreview) playScanResultSound(gradingKeyMap[maDeStr] ? 'ok' : 'warn');
 
   // Tạo ảnh đóng dấu kết quả (Stamped Canvas) và lưu vào IndexedDB
   lastColorCanvas = createStampedAnnotatedCanvas(rawSheetColor, record);
@@ -4150,8 +4648,7 @@ function buildRandomMockSheetData() {
   const randomSbd = '0209' + String(1 + Math.floor(Math.random() * 99)).padStart(2, '0');
 
   const code = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
-  if (!answerKeys[code]) answerKeys[code] = createDefaultKey();
-  const key = answerKeys[code];
+  const key = answerKeys[code] || createDefaultKey();
 
   const mock = {
     sbd: randomSbd.split(''),
@@ -5913,11 +6410,17 @@ window.addEventListener('DOMContentLoaded', () => {
     tplSelect.value = currentTemplate;
   }
   const keyInput = document.getElementById('keyExamCode');
-  const savedCodes = getSortedExamCodes();
-  if (savedCodes.length) {
-    if (!answerKeys[keyInput.value.trim()]) keyInput.value = savedCodes[0];
+  const allEntries = getAllCodeEntries();
+  if (allEntries.length) {
+    const curVal = keyInput.value.trim();
+    const match = allEntries.find(e => e.code === curVal) || allEntries[0];
+    activeCodeFolderId = match.folderId;
+    syncActiveAnswerKeysRef();
+    keyInput.value = match.code;
   } else {
-    keyInput.value = DEFAULT_EXAM_CODE; // kho đáp án trống (VD: mới chuyển sang mã đề 3 số)
+    activeCodeFolderId = '';
+    syncActiveAnswerKeysRef();
+    keyInput.value = DEFAULT_EXAM_CODE;
   }
   syncExamLenUI();
   onTemplateChange();
