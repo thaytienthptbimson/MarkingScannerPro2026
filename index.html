@@ -455,18 +455,60 @@
     }
     .code-chip:hover { border-color: var(--primary); }
     .code-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-    /* Thư mục đề thi */
-    .folder-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1; }
+    /* Thư mục đề thi & kho ảnh theo thư mục — co giãn linh hoạt vừa khít chiều ngang màn hình ĐT */
+    .code-manager { max-width: 100%; overflow: hidden; }
+    .folder-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+      gap: 6px;
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
     .folder-tab {
-      padding: 5px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff;
-      color: #334155; font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: 0.15s;
+      display: inline-flex; align-items: center; justify-content: space-between; gap: 4px;
+      width: 100%; min-width: 0; max-width: 100%;
+      padding: 6px 9px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff;
+      color: #334155; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: 0.15s;
+      overflow: hidden; box-sizing: border-box;
+    }
+    .folder-tab > span:first-child {
+      min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
     }
     .folder-tab:hover { border-color: #f59e0b; }
     .folder-tab.active { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
-    .folder-tab .ft-count { margin-left: 6px; font-weight: 700; opacity: 0.7; font-size: 0.76rem; }
-    .folder-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
-    .folder-assign { display: none; align-items: center; gap: 6px; font-size: 0.8rem; color: #475569; margin-left: 4px; }
-    .folder-assign select { padding: 4px 8px; font-weight: 700; border: 1px solid #cbd5e1; border-radius: 6px; max-width: 200px; }
+    .folder-tab .ft-count {
+      flex: 0 0 auto; margin-left: 4px; padding: 1px 6px; border-radius: 999px;
+      background: rgba(15, 23, 42, 0.08); font-weight: 700; font-size: 0.72rem; line-height: 1.3;
+    }
+    .folder-tab.active .ft-count { background: rgba(146, 64, 14, 0.16); color: #92400e; }
+    .folder-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; max-width: 100%; }
+    .folder-assign { display: none; align-items: center; gap: 6px; font-size: 0.8rem; color: #475569; max-width: 100%; flex-wrap: wrap; }
+    .folder-assign select { padding: 4px 8px; font-weight: 700; border: 1px solid #cbd5e1; border-radius: 6px; max-width: 100%; min-width: 0; flex: 1 1 140px; text-overflow: ellipsis; }
+    .row-folder-select {
+      padding: 4px 6px; font-size: 0.76rem !important; font-weight: 700; border-radius: 6px;
+      width: 100%; min-width: 90px; max-width: 145px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+    }
+    #scanFolderBar { max-width: 100%; overflow: hidden; }
+    #scanFolderSelect {
+      flex: 1 1 150px; min-width: 0; max-width: 100%;
+      text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+    }
+    @media (max-width: 480px) {
+      .folder-bar { grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 5px; }
+      .folder-tab { padding: 5px 7px; font-size: 0.75rem; }
+      .row-folder-select { min-width: 78px; max-width: 110px; padding: 3px 4px; font-size: 0.72rem !important; }
+    }
+    @media (orientation: landscape) and (max-height: 540px) {
+      .folder-bar { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 5px; }
+      .folder-tab { padding: 4px 8px; font-size: 0.76rem; }
+      .top-stack { padding-top: 2px; padding-bottom: 2px; }
+      header { padding: 5px 10px; }
+      .tabs { padding: 3px 5px; margin-top: 3px; }
+      .tab-btn { min-height: 28px; padding: 2px 8px; }
+    }
     .folder-hint, .folder-empty { font-size: 0.8rem; color: #64748b; padding: 4px 2px; }
     .modal-input {
       width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px;
@@ -673,7 +715,7 @@
       <div id="scanFolderBar" class="row" style="background:#fef3c7; border:1.5px solid #f59e0b; padding:8px 12px; border-radius:10px; margin-bottom:10px; justify-content:space-between; align-items:center;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1;">
           <strong style="color:#92400e; font-size:0.84rem;">📁 Thư mục mở chấm &amp; lưu ảnh:</strong>
-          <select id="scanFolderSelect" onchange="onScanFolderChange(this.value)" style="font-weight:700; color:#92400e; border:1.5px solid #f59e0b; padding:5px 10px; border-radius:8px; background:#fff; min-width:180px;"></select>
+          <select id="scanFolderSelect" onchange="onScanFolderChange(this.value)" style="font-weight:700; color:#92400e; border:1.5px solid #f59e0b; padding:5px 8px; border-radius:8px; background:#fff; min-width:0; max-width:100%; flex:1 1 150px;"></select>
           <span id="scanFolderCodesInfo" style="font-size:0.78rem; color:#78350f; font-weight:600;"></span>
         </div>
         <button type="button" class="btn btn-outline btn-sm" style="border-color:#f59e0b; color:#92400e; background:#fffbeb;" onclick="openFolderNameModal('create')">📁 + Tạo thư mục</button>
@@ -3115,7 +3157,7 @@ function syncScanFolderBarUI() {
 
   const allEntries = getAllCodeEntries();
   sel.innerHTML = '';
-  sel.appendChild(new Option(`📂 Tự động lưu theo thư mục chứa mã đề (${allEntries.length} mã đề)`, 'all'));
+  sel.appendChild(new Option(`📂 Tự động theo mã đề (${allEntries.length} mã)`, 'all'));
   examFolders.folders.forEach(f => {
     const cnt = getSortedExamCodes(f.id).length;
     sel.appendChild(new Option(`📁 ${f.name} (${cnt} mã đề)`, f.id));
@@ -3186,6 +3228,7 @@ function renderFolderUI() {
     c.textContent = count;
     b.appendChild(t);
     b.appendChild(c);
+    b.title = label + ' (' + count + ' mã đề)';
     b.onclick = () => setFolderView(view);
     bar.appendChild(b);
   };
@@ -5710,6 +5753,7 @@ function renderResultsFolderBar() {
     b.type = 'button';
     b.className = 'folder-tab' + (resultsFolderView === view ? ' active' : '');
     b.innerHTML = `<span>${escAttr(title)}</span><span class="ft-count">${count}</span>`;
+    b.title = title + ' (' + count + ' bài)';
     b.onclick = () => setResultsFolderView(view);
     bar.appendChild(b);
   };
@@ -5729,10 +5773,11 @@ function renderResultsFolderBar() {
   const activeF = folderById(resultsFolderView);
   if (activeF) {
     const codes = getSortedExamCodes(activeF.id);
-    if (lbl) lbl.innerText = `📁 Thư mục: ${activeF.name}`;
-    if (hint) hint.innerText = codes.length ? `Mã đề trong thư mục: ${codes.join(', ')}` : 'Chưa có mã đề trong thư mục này';
-    if (btnZip) btnZip.innerText = `📦 Tải Ảnh Thư Mục "${activeF.name}" (.ZIP)`;
-    if (btnClear) btnClear.innerText = `🗑️ Xóa Lịch Sử & Ảnh Thư Mục Này`;
+    const shortName = activeF.name.length > 18 ? (activeF.name.slice(0, 18) + '…') : activeF.name;
+    if (lbl) lbl.innerText = `📁 ${activeF.name}`;
+    if (hint) hint.innerText = codes.length ? `Mã đề: ${codes.join(', ')}` : 'Chưa có mã đề trong thư mục này';
+    if (btnZip) btnZip.innerText = `📦 Tải Ảnh "${shortName}" (.ZIP)`;
+    if (btnClear) btnClear.innerText = `🗑️ Xóa Ảnh Thư Mục Này`;
   } else if (resultsFolderView === 'none') {
     if (lbl) lbl.innerText = '🗂️ Chưa phân loại';
     if (hint) hint.innerText = 'Các phiếu chấm chưa gắn vào thư mục đề thi';
@@ -5756,7 +5801,7 @@ function buildRowFolderCellHtml(r) {
   examFolders.folders.forEach(f => {
     opts += `<option value="${escAttr(f.id)}" ${fInfo.id === f.id ? 'selected' : ''}>📁 ${escAttr(f.name)}</option>`;
   });
-  return `<select onchange="setRecordFolder('${r.id}', this.value)" title="Thư mục lưu ảnh bài chấm này" style="padding:4px 6px; font-size:0.78rem; font-weight:700; color:${fInfo.id ? '#92400e' : '#475569'}; background:${fInfo.id ? '#fef3c7' : '#f8fafc'}; border:1px solid ${fInfo.id ? '#f59e0b' : '#cbd5e1'}; border-radius:6px; max-width:155px;">${opts}</select>`;
+  return `<select class="row-folder-select" onchange="setRecordFolder('${r.id}', this.value)" title="Thư mục lưu ảnh: ${escAttr(fInfo.name || 'Chưa phân loại')}" style="color:${fInfo.id ? '#92400e' : '#475569'}; background:${fInfo.id ? '#fef3c7' : '#f8fafc'}; border:1px solid ${fInfo.id ? '#f59e0b' : '#cbd5e1'};">${opts}</select>`;
 }
 
 async function renderResultsTable() {
