@@ -996,7 +996,7 @@
               <th>Điểm P2</th>
               <th>P3 / TL</th>
               <th>Tổng điểm</th>
-              <th>Xem & Tải Ảnh Bài Làm</th>
+              <th>Xem, Tải & Xóa Ảnh Bài Làm</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -1039,6 +1039,7 @@
       <label><input type="checkbox" id="slideLoop" onchange="slideSetLoop(this.checked)"> Lặp lại</label>
       <button type="button" class="slide-btn" id="slideZoomBtn" onclick="slideToggleZoom()" title="Phóng to / vừa khung (phím Z)">🔍 Phóng to</button>
       <button type="button" class="slide-btn" onclick="slideDownloadCurrent()">⬇️ Tải ảnh</button>
+      <button type="button" class="slide-btn" style="background:#b91c1c; border-color:#ef4444; color:#fff;" onclick="slideDeleteCurrent()" title="Xóa riêng ảnh phiếu đang xem">🗑️ Xóa ảnh này</button>
     </div>
   </div>
 </div>
@@ -1055,10 +1056,11 @@
     </div>
     <div class="modal-footer">
       <span id="modalSubInfo" style="font-size:0.83rem; font-weight:600; color:#334155;"></span>
-      <div style="display:flex; gap:8px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-warning" onclick="slideFromModal()">🎞️ Chạy slide từ bài này</button>
         <button class="btn btn-outline" onclick="shareModalImage()">📤 Chia sẻ Zalo / ĐT</button>
         <button class="btn btn-success" onclick="downloadModalImage()">⬇️ Tải Ảnh Này (.JPG)</button>
+        <button class="btn btn-danger" onclick="deleteModalImage()">🗑️ Xóa Ảnh Này</button>
       </div>
     </div>
   </div>
@@ -1111,6 +1113,27 @@
     <div class="modal-footer" style="justify-content:flex-end;">
       <button class="btn btn-outline" onclick="closeAppConfirm(false)">Hủy bỏ</button>
       <button class="btn btn-danger" onclick="closeAppConfirm(true)">Đồng ý</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL XÓA RIÊNG TỪNG FILE ẢNH / BÀI CHẤM -->
+<div id="deleteItemModal" class="modal-backdrop" style="z-index:2800;" onclick="if(event.target===this) closeDeleteItemModal()">
+  <div class="modal-card" style="max-width: 480px;">
+    <div class="modal-header" style="background:#991b1b;">
+      <strong>🗑️ Xóa ảnh / bài chấm đã chọn</strong>
+      <button class="btn btn-danger btn-sm" onclick="closeDeleteItemModal()">✕</button>
+    </div>
+    <div class="modal-body" style="background:#fff; padding:16px; text-align:left; font-size:0.9rem; color:#1e293b;">
+      <p id="deleteItemInfo" style="font-weight:700; color:#1e3a8a; margin-bottom:8px;"></p>
+      <p id="deleteItemDesc" style="color:#475569; line-height:1.5; font-size:0.85rem;">
+        Bạn muốn <b>chỉ xóa riêng file ảnh đã chụp</b> (vẫn giữ lại kết quả điểm trong bảng điểm) hay <b>xóa cả bài chấm và ảnh</b> này khỏi danh sách?
+      </p>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end; gap:8px;">
+      <button type="button" class="btn btn-outline" onclick="closeDeleteItemModal()">Hủy bỏ</button>
+      <button type="button" id="btnDeleteImgOnly" class="btn btn-warning" onclick="confirmDeleteSingleRecord('image_only')">🖼️ Chỉ xóa file ảnh (Giữ điểm)</button>
+      <button type="button" id="btnDeleteRecordBoth" class="btn btn-danger" onclick="confirmDeleteSingleRecord('both')">🗑️ Xóa cả bài &amp; ảnh</button>
     </div>
   </div>
 </div>
@@ -1420,6 +1443,20 @@ async function getImageFromDB(id) {
       req.onerror = () => resolve(null);
     });
   } catch (e) { return null; }
+}
+
+async function deleteImageFromDB(id) {
+  if (!id) return false;
+  delete memoryImageCache[id];
+  try {
+    const db = await initImageDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(id);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch (e) { return false; }
 }
 
 async function clearAllImagesInDB() {
@@ -4589,6 +4626,95 @@ async function downloadSingleRowImage(recordId) {
   triggerImageDownload(dataUrl, buildImageFileName(rec));
 }
 
+let pendingDeleteRecordId = null;
+
+async function promptDeleteSingleRecord(recordId) {
+  const rec = gradedList.find(r => r.id === recordId);
+  if (!rec) return;
+  pendingDeleteRecordId = recordId;
+  const nm = getRecordName(rec);
+  const infoEl = document.getElementById('deleteItemInfo');
+  if (infoEl) {
+    infoEl.innerText = `SBD: ${rec.sbd}${nm ? ' — ' + nm : ''} | Mã đề: ${rec.made} | Tổng điểm: ${Number(rec.total).toFixed(2)}đ`;
+  }
+  const dataUrl = rec.imgDeleted ? null : await getImageFromDB(recordId);
+  const hasImg = Boolean(dataUrl);
+  const btnImgOnly = document.getElementById('btnDeleteImgOnly');
+  const btnBoth = document.getElementById('btnDeleteRecordBoth');
+  const descEl = document.getElementById('deleteItemDesc');
+  if (hasImg) {
+    if (btnImgOnly) btnImgOnly.style.display = '';
+    if (btnBoth) btnBoth.innerText = '🗑️ Xóa cả bài & ảnh';
+    if (descEl) {
+      descEl.innerHTML = 'Chọn <b>Chỉ xóa file ảnh (Giữ điểm)</b> nếu bạn muốn giải phóng ảnh chụp của phiếu này nhưng vẫn giữ điểm số trong bảng điểm, hoặc chọn <b>Xóa cả bài &amp; ảnh</b> để xóa hoàn toàn phiếu này.';
+    }
+  } else {
+    if (btnImgOnly) btnImgOnly.style.display = 'none';
+    if (btnBoth) btnBoth.innerText = '🗑️ Xóa dòng điểm này';
+    if (descEl) {
+      descEl.innerHTML = 'File ảnh của phiếu này đã được xóa trước đó. Bạn có muốn xóa luôn dòng điểm của phiếu này khỏi bảng điểm không?';
+    }
+  }
+  const modal = document.getElementById('deleteItemModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeDeleteItemModal() {
+  pendingDeleteRecordId = null;
+  const modal = document.getElementById('deleteItemModal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function confirmDeleteSingleRecord(mode) {
+  const recordId = pendingDeleteRecordId;
+  closeDeleteItemModal();
+  if (!recordId) return;
+  const idx = gradedList.findIndex(r => r.id === recordId);
+  if (idx < 0) return;
+  const rec = gradedList[idx];
+
+  await deleteImageFromDB(recordId);
+
+  if (mode === 'image_only') {
+    rec.imgDeleted = true;
+    safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
+    if (currentModalRecordId === recordId) closeImageModal();
+    renderResultsTable();
+    if (slideOpen) slideGoto(slideIdx);
+    showAppToast(`Đã xóa file ảnh của SBD ${rec.sbd} (vẫn giữ lại điểm ${Number(rec.total).toFixed(2)}đ trong bảng điểm).`, 'info');
+  } else {
+    gradedList.splice(idx, 1);
+    safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
+    if (currentModalRecordId === recordId) closeImageModal();
+    if (currentLatestRecord && currentLatestRecord.id === recordId) {
+      currentLatestRecord = gradedList[0] || null;
+    }
+    renderResultsTable();
+    if (slideOpen) {
+      if (!gradedList.length) closeSlideshow();
+      else slideGoto(Math.min(slideIdx, gradedList.length - 1));
+    }
+    showAppToast(`Đã xóa bài chấm và file ảnh của SBD ${rec.sbd}.`, 'info');
+  }
+}
+
+function deleteModalImage() {
+  if (!currentModalRecordId) return;
+  promptDeleteSingleRecord(currentModalRecordId);
+}
+
+function slideDeleteCurrent() {
+  const r = gradedList[slideIdx];
+  if (!r) return;
+  if (slidePlaying) {
+    slidePlaying = false;
+    slideUpdatePlayUI();
+    clearTimeout(slideTimer);
+    slideTimer = null;
+  }
+  promptDeleteSingleRecord(r.id);
+}
+
 // Đóng gói toàn bộ ảnh bài chấm của cả lớp thành 1 file .ZIP duy nhất
 async function downloadAllImagesAsZip() {
   if (!gradedList.length) {
@@ -5435,7 +5561,9 @@ async function renderResultsTable() {
       <td>${i + 1}</td>
       <td>
         <img id="thumb_${r.id}" class="thumb-img" src="" alt="Phiếu" title="Bấm để phóng to bài làm"
+             style="${r.imgDeleted ? 'display:none;' : ''}"
              onclick="openImageModal('${r.id}')">
+        <span id="noimg_${r.id}" style="display:${r.imgDeleted ? 'inline-block' : 'none'}; font-size:0.72rem; color:#94a3b8; font-style:italic; line-height:1.2;">Đã xóa<br>ảnh</span>
       </td>
       <td><strong style="color:#1e40af">${r.sbd}</strong></td>
       <td><input type="text" id="nm_${r.id}" class="name-input" autocomplete="off" placeholder="Nhập họ tên…"
@@ -5448,9 +5576,10 @@ async function renderResultsTable() {
       <td>${r.scoreP3OrEssay}</td>
       <td><strong style="color:#dc2626; font-size:0.95rem;">${r.total.toFixed(2)}</strong></td>
       <td>
-        <div style="display:flex; gap:4px; justify-content:center;">
-          <button class="btn btn-primary btn-sm" onclick="openImageModal('${r.id}')">🖼️ Xem Phiếu</button>
-          <button class="btn btn-success btn-sm" onclick="downloadSingleRowImage('${r.id}')">⬇️ Tải Ảnh</button>
+        <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">
+          <button id="btnView_${r.id}" class="btn btn-primary btn-sm" onclick="openImageModal('${r.id}')" ${r.imgDeleted ? 'disabled style="opacity:0.45; cursor:not-allowed;"' : ''}>🖼️ Xem Phiếu</button>
+          <button id="btnDl_${r.id}" class="btn btn-success btn-sm" onclick="downloadSingleRowImage('${r.id}')" ${r.imgDeleted ? 'disabled style="opacity:0.45; cursor:not-allowed;"' : ''}>⬇️ Tải Ảnh</button>
+          <button class="btn btn-danger btn-sm" onclick="promptDeleteSingleRecord('${r.id}')" title="Xóa riêng file ảnh hoặc xóa bài chấm này">🗑️ Xóa Ảnh</button>
         </div>
       </td>
     </tr>
@@ -5458,10 +5587,18 @@ async function renderResultsTable() {
 
   // Nạp bất đồng bộ ảnh thu nhỏ từ IndexedDB vào từng dòng
   filtered.forEach(async (r) => {
-    if (!r.id) return;
+    if (!r.id || r.imgDeleted) return;
     const dataUrl = await getImageFromDB(r.id);
     const imgEl = document.getElementById(`thumb_${r.id}`);
-    if (imgEl && dataUrl) imgEl.src = dataUrl;
+    const noImgEl = document.getElementById(`noimg_${r.id}`);
+    if (imgEl && dataUrl) {
+      imgEl.src = dataUrl;
+      imgEl.style.display = '';
+      if (noImgEl) noImgEl.style.display = 'none';
+    } else if (imgEl) {
+      imgEl.style.display = 'none';
+      if (noImgEl) noImgEl.style.display = 'inline-block';
+    }
   });
 }
 
@@ -5480,7 +5617,7 @@ function exportExcel() {
     'Điểm Phần II (Đ/S)': r.scoreP2,
     'Điểm P3 / Tự luận': r.scoreP3OrEssay,
     'Tổng Điểm': r.total,
-    'Tên File Ảnh Minh Chứng': buildImageFileName(r)
+    'Tên File Ảnh Minh Chứng': r.imgDeleted ? '(Đã xóa ảnh)' : buildImageFileName(r)
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 13 }, { wch: 30 }, { wch: 9 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 11 }, { wch: 34 }];
