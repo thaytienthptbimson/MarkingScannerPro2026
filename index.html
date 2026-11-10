@@ -2154,7 +2154,7 @@ function drawStandardSheet(targetCanvas, mockData = null, scale = 1) {
     ctx.textAlign = 'left';
     ctx.font = 'bold 13.5px Arial';
     ctx.fillStyle = '#000';
-    ctx.fillText(`PHẦN III: TRẢ LỜI NGẮN (${geo.p3.length} câu • ${+(pCfgSheet.p3Total || 0).toFixed(2)} điểm - Viết kết quả và tô tròn tương ứng)`, 28, 730);
+    ctx.fillText(`PHẦN III: TRẢ LỜI NGẮN (${geo.p3.length} câu • ${+(pCfgSheet.p3Total || 0).toFixed(2)} điểm - Tô bắt đầu từ cột 1 bên trái, mỗi cột 1 ô)`, 28, 730);
     ctx.strokeRect(28, 738, 784, 405);
 
     const rowLabels = ['-', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -2380,7 +2380,7 @@ function renderAnswerKeyUI() {
       wrapPtP3.style.display = 'flex';
       const p3HeaderEl = secP3.querySelector('h4');
       if (p3HeaderEl) {
-        p3HeaderEl.innerText = `PHẦN III: Trả lời ngắn (${geo.p3.length} câu • ${pCfgKey.p3Pt}đ/câu • Thang điểm: ${+(pCfgKey.p3Total || 0).toFixed(2)}đ)`;
+        p3HeaderEl.innerText = `PHẦN III: Trả lời ngắn (${geo.p3.length} câu • ${pCfgKey.p3Pt}đ/câu • Thang điểm: ${+(pCfgKey.p3Total || 0).toFixed(2)}đ — Quy định Bộ GD&ĐT: bắt buộc tô liên tiếp từ cột 1 bên trái)`;
       }
       const gridP3 = document.getElementById('keyGridP3');
       gridP3.innerHTML = '';
@@ -3824,7 +3824,7 @@ function pickFilledInRow(ratios, thr) {
   return out;
 }
 
-// Phần II: tf = [[tỉ lệ Đ, tỉ lệ S], ...] của MỘT câu (4 ý a-d) → ['Đ' | 'S' | null, ...]
+// Phần II: tf = [[tỉ lệ Đ, tỉ lệ S], ...] của MỘT câu (4 ý a-d) → ['Đ' | 'S' | 'BOTH' | null, ...]
 function pickP2Choices(tf, thr) {
   const all = [];
   tf.forEach(pair => { all.push(pair[0], pair[1]); });
@@ -3839,29 +3839,47 @@ function pickP2Choices(tf, thr) {
     const hi = Math.max(t, f);
     const markT = t >= thr && t >= hi * 0.6 && t - base >= need;   // cùng tiêu chí với Phần I
     const markF = f >= thr && f >= hi * 0.6 && f - base >= need;
-    return (markT && !markF) ? 'Đ' : ((markF && !markT) ? 'S' : null);   // tô cả 2 hoặc không tô → bỏ qua
+    if (markT && markF) return 'BOTH';                             // tô cả Đúng và Sai → phạm quy Bộ GD&ĐT
+    return markT ? 'Đ' : (markF ? 'S' : null);
   });
 }
 
-// Phần III: một cột ký tự → chỉ số ô được tô, hoặc -1 nếu cột để trống
-function pickDigitInColumn(ratios, thr) {
+// Phần III: một cột ký tự → danh sách tất cả chỉ số ô được tô trong cột (để bắt lỗi tô ≥ 2 ô trên cùng 1 cột)
+function pickDigitInColumnMulti(ratios, thr) {
   let bi = -1, bm = thr;
   ratios.forEach((r, i) => { if (r > bm) { bm = r; bi = i; } });
-  if (bi < 0) return -1;
+  if (bi < 0) return [];
   const sorted = ratios.slice().sort((a, b) => a - b);
   const n = sorted.length;
   const med = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
-  return (bm - med >= readMarginFor(thr)) ? bi : -1;
+  const need = readMarginFor(thr);
+  if (bm - med < need) return [];
+  const out = [];
+  ratios.forEach((r, i) => {
+    if (r >= thr && r >= bm * 0.65 && r - med >= need) out.push(i);
+  });
+  return out;
 }
 
-// SBD / Mã đề: một cột 10 chữ số → { idx: ô đậm nhất (hoặc -1), state: 'ok' | 'blank' | 'multi' }
+// Phần III (tương thích): trả về chỉ số 1 ô nếu cột chỉ tô đúng 1 ô
+function pickDigitInColumn(ratios, thr) {
+  const arr = pickDigitInColumnMulti(ratios, thr);
+  return arr.length === 1 ? arr[0] : -1;
+}
+
+// SBD / Mã đề: một cột 10 chữ số → { idx: ô đậm nhất (hoặc -1), state: 'ok' | 'blank' | 'multi', idxs: [...] }
 function analyzeIdColumn(ratios, thr) {
   let bi = -1, bm = thr;
   ratios.forEach((r, i) => { if (r > bm) { bm = r; bi = i; } });
-  if (bi < 0) return { idx: -1, state: 'blank' };
+  if (bi < 0) return { idx: -1, state: 'blank', idxs: [] };
   const sorted = ratios.slice().sort((a, b) => b - a);
-  if (sorted[0] - sorted[1] >= 0.15) return { idx: bi, state: 'ok' };
-  return { idx: bi, state: sorted[0] >= 0.7 ? 'multi' : 'blank' };
+  if (sorted[0] - sorted[1] >= 0.15) return { idx: bi, state: 'ok', idxs: [bi] };
+  if (sorted[0] >= 0.7) {
+    const idxs = [];
+    ratios.forEach((r, i) => { if (r >= thr && r >= sorted[0] * 0.65) idxs.push(i); });
+    return { idx: bi, state: 'multi', idxs: idxs.length ? idxs : [bi] };
+  }
+  return { idx: bi, state: 'blank', idxs: [] };
 }
 
 /* ---- BỘ ĐỌC Ô TÔ THEO ĐỘ ĐẬM TRÊN ẢNH XÁM (dùng cho mọi mẫu phiếu khi có OpenCV) ----
@@ -3979,7 +3997,7 @@ function inkFaintCandidate(M, bubbles, thr) {
   return (bz >= t.rel * 0.55 && bz < t.rel && e.s[bi] >= t.abs * 0.6) ? bi : -1;
 }
 
-// Phần II: 4 ý (mỗi ý 2 ô Đ/S) của một câu → ['Đ' | 'S' | null, ...]
+// Phần II: 4 ý (mỗi ý 2 ô Đ/S) của một câu → ['Đ' | 'S' | 'BOTH' | null, ...]
 function inkPickP2(M, statements, thr) {
   const t = inkLimits(thr), all = [];
   statements.forEach(st => { all.push(M.score(st.trueOpt), M.score(st.falseOpt)); });
@@ -3989,27 +4007,118 @@ function inkPickP2(M, statements, thr) {
     const T = zOf(st.trueOpt), F = zOf(st.falseOpt), hi = Math.max(T.z, F.z);
     const mT = T.z >= t.rel && T.s >= t.abs && T.z >= hi * INK_MULTI;
     const mF = F.z >= t.rel && F.s >= t.abs && F.z >= hi * INK_MULTI;
-    return (mT && !mF) ? 'Đ' : ((mF && !mT) ? 'S' : null);  // tô cả 2 hoặc không tô → bỏ qua
+    if (mT && mF) return 'BOTH';                            // tô cả 2 ô Đúng và Sai → phạm quy Bộ GD&ĐT
+    return mT ? 'Đ' : (mF ? 'S' : null);
   });
 }
 
-// Phần III: một cột ký tự → chỉ số ô được tô, hoặc -1 nếu cột để trống
-function inkPickCol(M, bubbles, thr) {
+// Phần III: trả về mảng tất cả chỉ số ô được tô trong 1 cột (để phát hiện tô ≥ 2 ô trong cùng 1 cột)
+function inkPickColMulti(M, bubbles, thr) {
   const t = inkLimits(thr), e = inkExcess(M, bubbles, inkMedian);
   let bi = -1, bz = -9;
   e.z.forEach((v, i) => { if (v > bz) { bz = v; bi = i; } });
-  return (bz >= t.rel && e.s[bi] >= t.abs) ? bi : -1;
+  if (bi < 0 || bz < t.rel || e.s[bi] < t.abs) return [];
+  const out = [];
+  e.z.forEach((v, i) => {
+    if (v >= t.rel && e.s[i] >= t.abs && v >= bz * INK_MULTI) out.push(i);
+  });
+  return out;
 }
 
-// SBD / Mã đề: một cột 10 chữ số → { idx: ô đậm nhất (hoặc -1), state: 'ok' | 'blank' | 'multi' }
+// Phần III (tương thích): trả về chỉ số 1 ô nếu cột chỉ tô đúng 1 ô
+function inkPickCol(M, bubbles, thr) {
+  const arr = inkPickColMulti(M, bubbles, thr);
+  return arr.length === 1 ? arr[0] : -1;
+}
+
+// Kiểm tra quy định tô Phần III (Trả lời ngắn) của Bộ GD&ĐT:
+// 1. Phải bắt đầu tô từ cột 1 (cột đầu tiên bên trái), viết và tô liên tiếp từ trái sang phải.
+// 2. Không được bỏ trống cột bên trái rồi mới tô ở cột bên phải (VD: [ ][3][6][0] hoặc [ ][ ][ ][4] là SAI QUY ĐỊNH).
+// 3. Không được bỏ trống cột ở giữa (VD: [3][ ][6][0] là SAI QUY ĐỊNH).
+// 4. Mỗi cột chỉ được tô tối đa 1 ô tròn.
+// 5. Dấu '-' chỉ ở cột 1 và sau nó phải có chữ số; dấu ',' chỉ ở cột 2 hoặc 3, giữa các chữ số, tối đa 1 dấu ','.
+function validateP3ByMoetRule(colBubbles) {
+  const counts = colBubbles.map(arr => arr.length);
+  const totalMarkedCols = counts.filter(c => c > 0).length;
+  const rawDisplay = colBubbles.map(arr => {
+    if (arr.length === 0) return '□';
+    if (arr.length === 1) return arr[0].char;
+    return '[' + arr.map(b => b.char).join('') + ']';
+  }).join('');
+
+  if (totalMarkedCols === 0) {
+    return { valid: false, studentStr: '', rawDisplay: '(Trống)', reason: 'Bỏ trống' };
+  }
+  // Kiểm tra tô nhiều ô trong cùng 1 cột
+  for (let c = 0; c < counts.length; c++) {
+    if (counts[c] > 1) {
+      return {
+        valid: false,
+        studentStr: '',
+        rawDisplay,
+        reason: `Sai quy định: cột ${c + 1} tô ${counts[c]} ô`
+      };
+    }
+  }
+  // Quy định bắt buộc của Bộ GD&ĐT: Phải tô bắt đầu từ cột 1 (cột đầu tiên bên trái)
+  if (counts[0] === 0) {
+    const firstNonEmpty = counts.findIndex(c => c > 0) + 1;
+    return {
+      valid: false,
+      studentStr: '',
+      rawDisplay,
+      reason: `Sai quy định Bộ GD&ĐT: bỏ trống cột 1 (tô từ cột ${firstNonEmpty})`
+    };
+  }
+  // Không được tô cách quãng (có cột trống nằm giữa các cột đã tô)
+  let seenEmpty = false;
+  for (let c = 0; c < counts.length; c++) {
+    if (counts[c] === 0) {
+      seenEmpty = true;
+    } else if (seenEmpty) {
+      return {
+        valid: false,
+        studentStr: '',
+        rawDisplay,
+        reason: 'Sai quy định Bộ GD&ĐT: tô cách cột trống ở giữa'
+      };
+    }
+  }
+  // Chuỗi ký tự liên tiếp tính từ cột 1 bên trái
+  const chars = colBubbles.filter(arr => arr.length === 1).map(arr => arr[0].char);
+  const studentStr = chars.join('');
+  // Kiểm tra quy tắc dấu '-' và dấu ','
+  if (chars[0] === '-' && chars.length < 2) {
+    return { valid: false, studentStr: '', rawDisplay, reason: 'Sai quy định: chỉ tô dấu âm (-)' };
+  }
+  const commaPositions = [];
+  chars.forEach((ch, idx) => { if (ch === ',') commaPositions.push(idx); });
+  if (commaPositions.length > 1) {
+    return { valid: false, studentStr: '', rawDisplay, reason: 'Sai quy định: tô nhiều dấu phẩy (,)' };
+  }
+  if (commaPositions.length === 1) {
+    const cPos = commaPositions[0];
+    const prevCh = chars[cPos - 1];
+    const nextCh = chars[cPos + 1];
+    if (!prevCh || prevCh === '-' || !nextCh) {
+      return { valid: false, studentStr: '', rawDisplay, reason: 'Sai quy định vị trí dấu phẩy (,)' };
+    }
+  }
+  return { valid: true, studentStr, rawDisplay: studentStr, reason: '' };
+}
+
+// SBD / Mã đề: một cột 10 chữ số → { idx: ô đậm nhất (hoặc -1), state: 'ok' | 'blank' | 'multi', idxs: [...] }
 function inkAnalyzeId(M, bubbles, thr) {
   const t = inkLimits(thr), e = inkExcess(M, bubbles, inkMedian);
   let bi = -1, bz = -9;
   e.z.forEach((v, i) => { if (v > bz) { bz = v; bi = i; } });
-  if (bz < t.rel || e.s[bi] < t.abs) return { idx: -1, state: 'blank' };
-  const srt = e.z.slice().sort((a, b) => b - a);
-  if (srt[1] >= bz * INK_MULTI && srt[1] >= t.rel) return { idx: bi, state: 'multi' };
-  return { idx: bi, state: 'ok' };
+  if (bz < t.rel || e.s[bi] < t.abs) return { idx: -1, state: 'blank', idxs: [] };
+  const idxs = [];
+  e.z.forEach((v, i) => {
+    if (v >= t.rel && e.s[i] >= t.abs && v >= bz * INK_MULTI) idxs.push(i);
+  });
+  if (idxs.length > 1) return { idx: bi, state: 'multi', idxs };
+  return { idx: bi, state: 'ok', idxs: [bi] };
 }
 
 // Tạo bức ảnh hoàn chỉnh có dải Banner thông tin học sinh + Điểm số đóng dấu ở trên cùng
@@ -4321,13 +4430,25 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     drawCircleOverlay(ctxBin, x + dx, y + dy, r, color, lw);
   };
 
-  // 1. Đọc Số Báo Danh
+  // 1. Đọc Số Báo Danh (kiểm tra mỗi cột tô đúng 1 ô theo quy định Bộ GD&ĐT)
   let sbdStr = '';
-  geo.sbd.forEach(col => {
+  const sbdBad = [];
+  geo.sbd.forEach((col, cIdx) => {
     const a = readIdCol(col);
     const bestPos = a.idx >= 0 ? col[a.idx] : null;
-    sbdStr += bestPos ? bestPos.digit : '0';
-    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10 + ovAdjId, '#3b82f6', 2.4);
+    if (a.state === 'blank') {
+      sbdStr += '0';
+      sbdBad.push(`cột ${cIdx + 1} trống`);
+    } else if (a.state === 'multi') {
+      sbdStr += bestPos ? bestPos.digit : '0';
+      sbdBad.push(`cột ${cIdx + 1} tô nhiều ô`);
+      (a.idxs || [a.idx]).forEach(idx => {
+        if (col[idx]) drawBoth(col[idx].x, col[idx].y, 10 + ovAdjId, '#ef4444', 2.6);
+      });
+    } else {
+      sbdStr += bestPos ? bestPos.digit : '0';
+      if (bestPos) drawBoth(bestPos.x, bestPos.y, 10 + ovAdjId, '#3b82f6', 2.4);
+    }
   });
 
   // 2. Đọc Mã đề — mỗi cột phải có ĐÚNG 1 ô được tô ('?' = cột bỏ trống, '*' = cột tô 2 ô trở lên)
@@ -4338,10 +4459,19 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     const bestPos = a.idx >= 0 ? col[a.idx] : null;
     const bestD = bestPos ? bestPos.digit : '0';
     maDeStr += bestD;
-    if (a.state === 'blank') { maDeShown += '?'; maDeBad.push(`cột ${cIdx + 1} bỏ trống (hoặc tô quá mờ)`); }
-    else if (a.state === 'multi') { maDeShown += '*'; maDeBad.push(`cột ${cIdx + 1} tô nhiều ô`); }
-    else maDeShown += bestD;
-    if (bestPos) drawBoth(bestPos.x, bestPos.y, 10 + ovAdjId, '#3b82f6', 2.4);
+    if (a.state === 'blank') {
+      maDeShown += '?';
+      maDeBad.push(`cột ${cIdx + 1} bỏ trống (hoặc tô quá mờ)`);
+    } else if (a.state === 'multi') {
+      maDeShown += '*';
+      maDeBad.push(`cột ${cIdx + 1} tô nhiều ô`);
+      (a.idxs || [a.idx]).forEach(idx => {
+        if (col[idx]) drawBoth(col[idx].x, col[idx].y, 10 + ovAdjId, '#ef4444', 2.6);
+      });
+    } else {
+      maDeShown += bestD;
+      if (bestPos) drawBoth(bestPos.x, bestPos.y, 10 + ovAdjId, '#3b82f6', 2.4);
+    }
   });
 
   const gradingKeyMap = getGradingAnswerKeysMap();
@@ -4436,15 +4566,19 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
           ]), thresholdRatio);
       item.statements.forEach((st, si) => {
         const choice = choices[si];
-        const chosenPos = choice === 'Đ' ? st.trueOpt : (choice === 'S' ? st.falseOpt : null);
-
         const rightSub = normalizeP2Val(activeKey.p2 && activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : '') || 'Đ';
         const rightPos = rightSub === 'Đ' ? st.trueOpt : st.falseOpt;
 
         if (choice === rightSub) {
           clusterRight++;
+          const chosenPos = choice === 'Đ' ? st.trueOpt : st.falseOpt;
           drawBoth(chosenPos.x, chosenPos.y, 11, '#22c55e', 3);
+        } else if (choice === 'BOTH') {
+          drawBoth(st.trueOpt.x, st.trueOpt.y, 11, '#ef4444', 3);
+          drawBoth(st.falseOpt.x, st.falseOpt.y, 11, '#ef4444', 3);
+          drawBoth(rightPos.x, rightPos.y, 13, '#eab308', 2.2);
         } else {
+          const chosenPos = choice === 'Đ' ? st.trueOpt : (choice === 'S' ? st.falseOpt : null);
           if (chosenPos) drawBoth(chosenPos.x, chosenPos.y, 11, '#ef4444', 3);
           drawBoth(rightPos.x, rightPos.y, 11, '#eab308', 2.4);
         }
@@ -4453,7 +4587,7 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       scoreP2 += qPts;
       p2Report.push({
         q: item.q,
-        read: choices.map(c => c || '–').join(' '),
+        read: choices.map(c => c === 'BOTH' ? 'Đ+S' : (c || '–')).join(' '),
         key: item.statements.map(st => normalizeP2Val(activeKey.p2 && activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : '') || 'Đ').join(' '),
         right: clusterRight,
         pts: qPts
@@ -4462,9 +4596,10 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   }
   scoreP2 = +scoreP2.toFixed(2);
 
-  // 5. Chấm Phần III
+  // 5. Chấm Phần III theo đúng Quy định tô của Bộ GD&ĐT (bắt buộc tô liên tiếp từ cột 1 bên trái, mỗi cột tối đa 1 ô)
   let scoreP3 = 0;
   let correctP3 = 0;
+  let invalidP3RuleCount = 0;
   const essayScore = parseFloat(document.getElementById('manualEssay').value) || 0;
   const ptP3 = pCfg.p3Pt || parseFloat(document.getElementById('ptP3').value) || 0.25;
   const readoutBox = document.getElementById('p3ReadoutBox');
@@ -4479,26 +4614,31 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
 
   if (currentTemplate === '2026_3P' && geo.p3.length > 0) {
     geo.p3.forEach(item => {
-      let studentStr = '';
+      const colBubbles = [];
       const chosenBubbles = [];
       item.cols.forEach(col => {
-        const bi = useInk
-          ? inkPickCol(inkModel, col.bubbles, thresholdRatio)
-          : pickDigitInColumn(col.bubbles.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
-        const bestB = bi >= 0 ? col.bubbles[bi] : null;
-        studentStr += bestB ? bestB.char : '';
-        if (bestB) chosenBubbles.push(bestB);
+        const idxs = useInk
+          ? inkPickColMulti(inkModel, col.bubbles, thresholdRatio)
+          : pickDigitInColumnMulti(col.bubbles.map(b => measureBubble(b.x, b.y, 6)), thresholdRatio);
+        const picked = idxs.map(i => col.bubbles[i]).filter(Boolean);
+        colBubbles.push(picked);
+        picked.forEach(b => chosenBubbles.push(b));
       });
 
-      const expectedStr = (activeKey.p3 && activeKey.p3[item.q]) ? activeKey.p3[item.q] : '';
-      const isOk = isShortAnswerMatch(studentStr, expectedStr);
+      const moetCheck = validateP3ByMoetRule(colBubbles);
+      if (!moetCheck.valid && chosenBubbles.length > 0) {
+        invalidP3RuleCount++;
+      }
+
+      const expectedStr = (activeKey.p3 && activeKey.p3[item.q]) ? String(activeKey.p3[item.q]).trim() : '';
+      const isOk = moetCheck.valid && isShortAnswerMatch(moetCheck.studentStr, expectedStr);
 
       if (isOk) {
         correctP3++;
         chosenBubbles.forEach(b => drawBoth(b.x, b.y, 10, '#22c55e', 2.8));
       } else {
         chosenBubbles.forEach(b => drawBoth(b.x, b.y, 10, '#ef4444', 2.8));
-        const expChars = expectedStr.replace('.', ',').split('').slice(0, 4);
+        const expChars = expectedStr.replace(/\./g, ',').split('').slice(0, 4);
         item.cols.forEach((col, cIdx) => {
           const targetCh = expChars[cIdx];
           if (targetCh) {
@@ -4510,7 +4650,10 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
 
       const chip = document.createElement('div');
       chip.className = 'p3-chip ' + (isOk ? 'ok' : 'err');
-      chip.innerHTML = `<strong>Câu ${item.q}:</strong> ${studentStr || '(Trống)'}<br><small>Đ/A: ${expectedStr}</small>`;
+      const errNote = (!moetCheck.valid && chosenBubbles.length > 0)
+        ? `<br><span style="color:#b91c1c; font-weight:700; font-size:0.68rem;">⚠️ ${moetCheck.reason}</span>`
+        : '';
+      chip.innerHTML = `<strong>P.III Câu ${item.q}:</strong> ${moetCheck.rawDisplay}${errNote}<br><small>Đ/A (từ cột 1): ${expectedStr}</small>`;
       readoutBox.appendChild(chip);
     });
     scoreP3 = pCfg.p3Mode === 'total'
@@ -4524,6 +4667,13 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     if (faintP1) parts.push(`${faintP1} câu có nét rất nhạt, CHƯA tính điểm (vòng xanh lơ — nếu đúng là học sinh đã tô, kéo "Độ nhạy chì" xuống rồi chấm lại)`);
     if (multiP1) parts.push(`${multiP1} câu tô nhiều ô`);
     document.getElementById('scanMsg').innerText += '  •  Phần I: ' + parts.join('; ');
+  }
+  if (!isInitialPreview && invalidP3RuleCount > 0) {
+    document.getElementById('scanMsg').innerText += `  •  ⚠️ Phần III: ${invalidP3RuleCount} câu tô sai quy định Bộ GD&ĐT (bỏ trống cột 1 bên trái / tô cách cột / tô nhiều ô) → 0 điểm`;
+    document.getElementById('scanMsg').style.color = '#d97706';
+  }
+  if (!isInitialPreview && sbdBad.length > 0) {
+    document.getElementById('scanMsg').innerText += `  •  ⚠️ SBD tô lỗi (${sbdBad.join(', ')})`;
   }
 
   const extraOrP3 = +(scoreP3 + essayScore).toFixed(2);
