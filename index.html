@@ -231,7 +231,7 @@
     }
 
     /* Camera & Live OpenCV Overlay */
-    /* ===== CAMERA TOÀN MÀN HÌNH: phủ kín cả trang, có nút quay lại màn hình chính ===== */
+    /* ===== CAMERA TOÀN MÀN HÌNH: phủ kín cả trang, chỉ giữ nút quay lại màn hình chính ===== */
     body.cam-fs-open { overflow: hidden; }
     .cam-wrap {
       position: fixed; inset: 0; z-index: 2000; background: #000;
@@ -239,16 +239,19 @@
       padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
       touch-action: none; overscroll-behavior: contain;
     }
-    .cam-status-bar {
-      flex: none; display: flex; align-items: center; gap: 8px;
-      background: rgba(15, 23, 42, 0.95); color: #fff; padding: 6px 8px;
-      font-size: 0.78rem; font-weight: 600;
-    }
-    .cam-status-bar #camLiveStatus { flex: 1 1 auto; min-width: 0; line-height: 1.25; }
+    /* Màn hình camera chỉ còn đúng 1 nút: quay lại màn hình chính (nổi ở giữa mép trên, tránh 4 ô vuông căn chấm ở góc) */
     .cam-back-btn {
-      flex: none; background: #fff; color: #1e3a8a; font-weight: 800; font-size: 0.82rem;
-      padding: 9px 12px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      position: absolute; z-index: 5;
+      top: calc(env(safe-area-inset-top, 0px) + 10px); left: 50%; transform: translateX(-50%);
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 44px; padding: 10px 22px; white-space: nowrap;
+      background: rgba(15, 23, 42, 0.72); color: #fff; font-size: 0.95rem; font-weight: 800;
+      border: 1.5px solid rgba(255, 255, 255, 0.6); border-radius: 999px; cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
     }
+    .cam-back-btn:active { background: rgba(30, 58, 138, 0.9); }
     .scanner-box { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; background: #000; overflow: hidden; }
     .scanner-box video {
       position: absolute; inset: 0; width: 100%; height: 100%;
@@ -260,18 +263,6 @@
       background: transparent !important; box-shadow: none !important;
       max-width: none; object-fit: contain; /* cùng cách hiển thị với <video> để khung ngắm khớp hình */
     }
-    .cam-last-result {
-      flex: none; background: #052e16; color: #bbf7d0; border-top: 1px solid #16a34a;
-      padding: 6px 10px; font-size: 0.8rem; font-weight: 700; text-align: center; line-height: 1.3;
-    }
-    .cam-bottom-bar {
-      flex: none; display: flex; flex-wrap: nowrap; gap: 8px; padding: 8px 10px;
-      background: rgba(15, 23, 42, 0.95);
-    }
-    .cam-bottom-bar .btn {
-      flex: 1 1 0; min-width: 0; justify-content: center; text-align: center;
-      white-space: normal; line-height: 1.2; padding: 11px 6px; font-size: 0.82rem;
-    }
     .card { scroll-margin-top: 112px; } /* khi cuộn tới kết quả không bị thanh trên cùng che */
 
     .canvas-preview-wrap {
@@ -279,37 +270,6 @@
       padding: 8px; border-radius: 8px;
     }
     canvas { max-width: 100%; height: auto; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
-
-    /* Student Identity Banner */
-    .student-banner {
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
-      background: linear-gradient(90deg, #eff6ff, #dbeafe);
-      border: 2px solid #93c5fd; border-radius: 10px;
-      padding: 10px 14px; margin-bottom: 10px;
-    }
-    .st-name { font-size: 1.08rem; font-weight: 800; color: #1e3a8a; }
-    .st-class { font-size: 0.86rem; font-weight: 700; color: #1d4ed8; background: #fff; padding: 3px 10px; border-radius: 20px; border: 1px solid #93c5fd; }
-
-    /* Score Banner */
-    .score-banner {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-      background: #f8fafc; border: 2px solid #cbd5e1; border-radius: 10px;
-      padding: 10px; margin-bottom: 10px; text-align: center;
-    }
-    .score-box .lbl { font-size: 0.68rem; color: #475569; font-weight: 700; }
-    .score-box .val { font-size: 1.05rem; font-weight: 800; color: var(--primary); }
-    .score-box.total .val { color: var(--danger); font-size: 1.3rem; }
-
-    .p3-readout {
-      display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
-      margin-bottom: 10px;
-    }
-    .p3-chip {
-      background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;
-      padding: 5px; text-align: center; font-size: 0.76rem;
-    }
-    .p3-chip.ok { background: #dcfce7; border-color: #22c55e; color: #166534; }
-    .p3-chip.err { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
 
     .table-wrap { overflow-x: auto; max-height: 460px; overflow-y: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
@@ -603,10 +563,6 @@
           <div class="cfg-note">🔒 Chỉ chấm khi nhận diện đủ 4 chấm đen ở 4 góc phiếu.</div>
       <div class="row" style="justify-content: space-between; margin-bottom:0; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
         <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-          <label style="color:#1e40af; cursor:pointer; display:flex; align-items:center; gap:5px;">
-            <input type="checkbox" id="autoScanToggle" checked style="width:16px; height:16px;">
-            Tự động chụp khi nhận diện đủ 4 chấm đen (Auto-Scan)
-          </label>
           <label style="color:#15803d; cursor:pointer; display:flex; align-items:center; gap:5px;">
             <input type="checkbox" id="autoDownloadImgToggle" style="width:16px; height:16px;">
             Tự động tải file ảnh (.JPG) về máy sau mỗi lần chấm
@@ -739,65 +695,11 @@
       </div>
 
       <div id="cameraContainer" class="cam-wrap" style="display:none;">
-        <div class="cam-status-bar">
-          <button type="button" class="btn cam-back-btn" onclick="exitCameraFullscreen()" title="Tắt camera và quay lại màn hình chính để xem kết quả">⬅ Màn hình chính</button>
-          <span id="camLiveStatus">📷 Đang khởi động ống kính Camera...</span>
-        </div>
-
         <div class="scanner-box">
           <video id="video" playsinline webkit-playsinline autoplay muted></video>
           <canvas id="liveOverlayCanvas"></canvas>
         </div>
-
-        <div id="camLastResult" class="cam-last-result" style="display:none;"></div>
-
-        <div class="cam-bottom-bar">
-          <button type="button" class="btn btn-success" onclick="captureAndGrade()" style="box-shadow:0 2px 6px rgba(0,0,0,0.18);">
-            ⚡ CHỤP & CHẤM PHIẾU NGAY
-          </button>
-          <label class="btn btn-primary" style="background:#0284c7; box-shadow:0 2px 6px rgba(0,0,0,0.18);">
-            📸 Mở Camera Gốc ĐT
-            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(event)">
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">
-        <span>Kết Quả Nhận Diện & Ảnh Bài Chấm Đã Đóng Dấu Điểm</span>
-        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-          <span id="scanMsg" style="font-size:0.8rem; color:#16a34a;">Sẵn sàng quét phiếu</span>
-          <button class="btn btn-success btn-sm" onclick="downloadCurrentGradedImage()">
-            💾 Lưu Ảnh Bài Này (.JPG)
-          </button>
-          <button class="btn btn-outline btn-sm" onclick="shareCurrentGradedImage()">
-            📤 Chia sẻ Zalo / ĐT
-          </button>
-          <button class="btn btn-outline btn-sm" onclick="toggleVisionMode()">
-            👁️ Xem Nhị Phân OpenCV
-          </button>
-        </div>
-      </div>
-
-      <!-- Băng rôn hiển thị Số báo danh đọc được từ phiếu -->
-      <div class="student-banner">
-        <span style="font-size:0.76rem; color:#475569; font-weight:700;">SỐ BÁO DANH ĐỌC ĐƯỢC TỪ PHIẾU:</span>
-        <span class="st-class" id="resStudentSBD" style="background:#1e3a8a; color:#fff; font-size:1rem; padding:4px 14px;">SBD: ------</span>
-      </div>
-
-      <div class="score-banner">
-        <div class="score-box"><div class="lbl">MÃ ĐỀ</div><div class="val" id="resMeta">---</div></div>
-        <div class="score-box"><div class="lbl">PHẦN I (ABCD)</div><div class="val" id="resP1">0.00</div></div>
-        <div class="score-box"><div class="lbl">PHẦN II (Đ/S)</div><div class="val" id="resP2">0.00</div></div>
-        <div class="score-box"><div class="lbl" id="lblP3OrEssay">TỰ LUẬN / P.III</div><div class="val" id="resP3">0.00</div></div>
-        <div class="score-box total"><div class="lbl">TỔNG ĐIỂM</div><div class="val" id="resTotal">0.00</div></div>
-      </div>
-
-      <div id="p3ReadoutBox" class="p3-readout"></div>
-
-      <div class="canvas-preview-wrap">
-        <canvas id="resultCanvas" width="840" height="1255"></canvas>
+        <button type="button" class="cam-back-btn" onclick="exitCameraFullscreen()" title="Tắt camera và quay lại màn hình chính">⬅ Màn hình chính</button>
       </div>
     </div>
   </div>
@@ -1630,10 +1532,6 @@ let examFolders = loadExamFolders();
 let answerKeys = getFolderKeys(activeCodeFolderId);
 let gradedList = JSON.parse(safeGetStorage('omr_graded_ult2026', '[]'));
 
-let lastColorCanvas = null;
-let lastBinaryCanvas = null;
-let currentLatestRecord = null;
-let showBinaryView = false;
 let currentModalRecordId = null;
 
 function getSheetGeometry(template) {
@@ -4242,8 +4140,6 @@ function rejectScanNoMarkers(reason) {
     : (currentTemplate === 'NGANG_CUSTOM'
         ? '❌ Chưa căn chỉnh được phiếu ngang — chưa chấm. Hãy chụp lại: chừa lề trắng quanh phiếu, thấy rõ cả 4 chấm đen góc (không bị cắt khỏi khung hình) và đúng Mẫu 4 – Phiếu Ngang.'
         : '❌ Chưa nhận diện đủ 4 chấm đen ở 4 góc phiếu — chưa chấm. Hãy canh/chụp lại cho thấy rõ cả 4 góc.');
-  const msgEl = document.getElementById('scanMsg');
-  if (msgEl) { msgEl.innerText = text; msgEl.style.color = '#dc2626'; }
   const now = Date.now();
   if (now - lastNoMarkerToastAt > 3000) {
     lastNoMarkerToastAt = now;
@@ -4254,14 +4150,6 @@ function rejectScanNoMarkers(reason) {
 let lastBadCodeAlertAt = 0;
 function rejectScanBadExamCode(why) {
   const text = `❌ ${why} — KHÔNG CHẤM phiếu này. Nhờ thí sinh tô lại mã đề, hoặc thêm đáp án cho mã đề ở tab Đáp án.`;
-  const msgEl = document.getElementById('scanMsg');
-  if (msgEl) { msgEl.innerText = text; msgEl.style.color = '#dc2626'; }
-  const camEl = document.getElementById('camLastResult');
-  if (camEl && document.body.classList.contains('cam-fs-open')) {
-    camEl.style.display = 'block';
-    camEl.style.background = '#450a0a'; camEl.style.color = '#fecaca'; camEl.style.borderTopColor = '#dc2626';
-    camEl.innerText = '❌ ' + why + ' — KHÔNG CHẤM';
-  }
   const now = Date.now();
   if (now - lastBadCodeAlertAt > 3000) {
     lastBadCodeAlertAt = now;
@@ -4343,13 +4231,9 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
         if (currentTemplate === 'NGANG_CUSTOM') {
           try { landscapeShifts = computeLandscapeShifts(warpedGray); } catch (e) { landscapeShifts = null; }
         }
-        document.getElementById('scanMsg').innerText = '✅ Đã bắt 4 góc OpenCV & đóng dấu điểm lên ảnh phiếu!';
-        document.getElementById('scanMsg').style.color = '#16a34a';
       } else {
         cv.resize(src, warpedColor, new cv.Size(WARP_W, WARP_H));
         cv.resize(gray, warpedGray, new cv.Size(WARP_W, WARP_H));
-        document.getElementById('scanMsg').innerText = '⚠️ Đã chấm theo khung chuẩn & hiển thị ảnh phiếu.';
-        document.getElementById('scanMsg').style.color = '#d97706';
       }
 
       // Cửa sổ lọc 21px nhỏ hơn đường kính ô tô (22px) của phiếu ngang ≤ 40 câu nên lõi ô tô nhạt bị "thủng lỗ"
@@ -4384,8 +4268,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     rawSheetColor = fallbackData.rawSheetColor;
     rawSheetBin = fallbackData.rawSheetBin;
     pureMask = fallbackData.mask;
-    document.getElementById('scanMsg').innerText = '✅ Đã chấm & hiển thị ảnh phiếu (Chế độ Vision AI Trực Tiếp)!';
-    document.getElementById('scanMsg').style.color = '#16a34a';
   }
 
   const shiftXY = (x, y) => landscapeShifts ? landscapeShiftAt(landscapeShifts, x, y) : [0, 0];
@@ -4495,8 +4377,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
     }
   }
 
-  document.getElementById('resStudentSBD').innerText = 'SBD: ' + sbdStr + (rosterLookup(sbdStr) ? ' — ' + rosterLookup(sbdStr) : '');
-
   const fallbackCode = document.getElementById('keyExamCode').value.trim() || DEFAULT_EXAM_CODE;
   const activeKey = gradingKeyMap[maDeStr] || gradingKeyMap[fallbackCode] || answerKeys[fallbackCode] || createDefaultKey();
   const keyGapsInRange = geo.p1.filter(it => !['A', 'B', 'C', 'D'].includes(activeKey.p1 && activeKey.p1[it.q])).length;
@@ -4551,7 +4431,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
 
   // 4. Chấm Phần II
   let scoreP2 = 0;
-  const p2Report = [];   // mỗi câu: máy đọc được gì, đáp án đang dùng là gì, được mấy ý
   const progScale = pCfg.p2Mode === 'equal'
     ? [0, +(pCfg.p2EqualPt * 1).toFixed(4), +(pCfg.p2EqualPt * 2).toFixed(4), +(pCfg.p2EqualPt * 3).toFixed(4), +(pCfg.p2EqualPt * 4).toFixed(4)]
     : [0, pCfg.p2Prog[0], pCfg.p2Prog[1], pCfg.p2Prog[2], pCfg.p2Prog[3]];
@@ -4585,13 +4464,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
       });
       const qPts = +(progScale[clusterRight] || 0).toFixed(2);
       scoreP2 += qPts;
-      p2Report.push({
-        q: item.q,
-        read: choices.map(c => c === 'BOTH' ? 'Đ+S' : (c || '–')).join(' '),
-        key: item.statements.map(st => normalizeP2Val(activeKey.p2 && activeKey.p2[item.q] ? activeKey.p2[item.q][st.sub] : '') || 'Đ').join(' '),
-        right: clusterRight,
-        pts: qPts
-      });
     });
   }
   scoreP2 = +scoreP2.toFixed(2);
@@ -4602,16 +4474,6 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   let invalidP3RuleCount = 0;
   const essayScore = parseFloat(document.getElementById('manualEssay').value) || 0;
   const ptP3 = pCfg.p3Pt || parseFloat(document.getElementById('ptP3').value) || 0.25;
-  const readoutBox = document.getElementById('p3ReadoutBox');
-  readoutBox.innerHTML = '';
-
-  p2Report.forEach(r => {
-    const chip = document.createElement('div');
-    chip.className = 'p3-chip ' + (r.right === 4 ? 'ok' : 'err');
-    chip.innerHTML = `<strong>P.II Câu ${r.q}:</strong> ${r.read}<br><small>Đ/A: ${r.key} · ${r.right}/4 ý = ${r.pts}đ</small>`;
-    readoutBox.appendChild(chip);
-  });
-
   if (currentTemplate === '2026_3P' && geo.p3.length > 0) {
     geo.p3.forEach(item => {
       const colBubbles = [];
@@ -4647,33 +4509,25 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
           }
         });
       }
-
-      const chip = document.createElement('div');
-      chip.className = 'p3-chip ' + (isOk ? 'ok' : 'err');
-      const errNote = (!moetCheck.valid && chosenBubbles.length > 0)
-        ? `<br><span style="color:#b91c1c; font-weight:700; font-size:0.68rem;">⚠️ ${moetCheck.reason}</span>`
-        : '';
-      chip.innerHTML = `<strong>P.III Câu ${item.q}:</strong> ${moetCheck.rawDisplay}${errNote}<br><small>Đ/A (từ cột 1): ${expectedStr}</small>`;
-      readoutBox.appendChild(chip);
     });
     scoreP3 = pCfg.p3Mode === 'total'
       ? +((correctP3 * pCfg.p3Total) / Math.max(1, geo.p3.length)).toFixed(2)
       : +(correctP3 * ptP3).toFixed(2);
   }
 
+  const scanWarnings = []; // cảnh báo hiện bằng thông báo nổi sau khi chấm xong
   if (!isInitialPreview && (blankP1 || multiP1)) {
     const parts = [];
     if (blankP1) parts.push(`${blankP1} câu không thấy ô tô (vòng vàng = đáp án đúng chưa được tô)`);
     if (faintP1) parts.push(`${faintP1} câu có nét rất nhạt, CHƯA tính điểm (vòng xanh lơ — nếu đúng là học sinh đã tô, kéo "Độ nhạy chì" xuống rồi chấm lại)`);
     if (multiP1) parts.push(`${multiP1} câu tô nhiều ô`);
-    document.getElementById('scanMsg').innerText += '  •  Phần I: ' + parts.join('; ');
+    scanWarnings.push('Phần I: ' + parts.join('; '));
   }
   if (!isInitialPreview && invalidP3RuleCount > 0) {
-    document.getElementById('scanMsg').innerText += `  •  ⚠️ Phần III: ${invalidP3RuleCount} câu tô sai quy định Bộ GD&ĐT (bỏ trống cột 1 bên trái / tô cách cột / tô nhiều ô) → 0 điểm`;
-    document.getElementById('scanMsg').style.color = '#d97706';
+    scanWarnings.push(`Phần III: ${invalidP3RuleCount} câu tô sai quy định Bộ GD&ĐT (bỏ trống cột 1 bên trái / tô cách cột / tô nhiều ô) → 0 điểm`);
   }
   if (!isInitialPreview && sbdBad.length > 0) {
-    document.getElementById('scanMsg').innerText += `  •  ⚠️ SBD tô lỗi (${sbdBad.join(', ')})`;
+    scanWarnings.push(`SBD tô lỗi (${sbdBad.join(', ')})`);
   }
 
   const extraOrP3 = +(scoreP3 + essayScore).toFixed(2);
@@ -4703,60 +4557,34 @@ async function processOMRCanvas(sourceCanvas, isInitialPreview = false) {
   if (!isInitialPreview) playScanResultSound(gradingKeyMap[maDeStr] ? 'ok' : 'warn');
 
   // Tạo ảnh đóng dấu kết quả (Stamped Canvas) và lưu vào IndexedDB
-  lastColorCanvas = createStampedAnnotatedCanvas(rawSheetColor, record);
-  lastBinaryCanvas = createStampedAnnotatedCanvas(rawSheetBin, record);
-  currentLatestRecord = record;
+  const stampedCanvas = createStampedAnnotatedCanvas(rawSheetColor, record);
 
-  const imgDataUrl = lastColorCanvas.toDataURL('image/jpeg', 0.84);
+  const imgDataUrl = stampedCanvas.toDataURL('image/jpeg', 0.84);
   // Lưu ảnh có thể bị treo trên một số trình duyệt (chế độ riêng tư, WebView) → tối đa chờ 2.5 giây rồi vẫn hiện điểm
   await Promise.race([saveImageToDB(recordId, imgDataUrl), new Promise(res => setTimeout(() => res(false), 2500))]);
-
-  renderResultCanvasView();
-
-  // Cập nhật thông số lên Banner
-  document.getElementById('resMeta').innerText = maDeStr;
-  document.getElementById('resP1').innerText = `${scoreP1.toFixed(2)} (${correctP1}/${geo.p1.length})`;
-  document.getElementById('resP2').innerText = scoreP2.toFixed(2);
-  document.getElementById('lblP3OrEssay').innerText = currentTemplate === '2026_3P' ? 'PHẦN III (TLN)' : 'TỰ LUẬN / CỘNG';
-  document.getElementById('resP3').innerText = extraOrP3.toFixed(2);
-  document.getElementById('resTotal').innerText = totalScore.toFixed(2);
 
   if (!isInitialPreview) {
     gradedList.unshift(record);
     safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
-    if (record.folderName) {
-      const msgEl = document.getElementById('scanMsg');
-      if (msgEl) msgEl.innerText += ` • 📁 Đã lưu ảnh vào thư mục "${record.folderName}"`;
-    }
     renderResultsTable();
-    updateCamLastResult(record);
+
+    // Báo kết quả bằng thông báo nổi (hiện được cả trên màn hình camera toàn màn hình)
+    {
+      const nm = getRecordName(record);
+      const fTxt = record.folderName ? ` · 📁 ${record.folderName}` : '';
+      const hint = document.body.classList.contains('cam-fs-open') ? '' : ' — xem ảnh ở tab Bảng Điểm & Ảnh';
+      showAppToast(`✅ Đã chấm: ${nm ? nm + ' · ' : ''}SBD ${record.sbd} · Mã đề ${record.made} · ${Number(record.total).toFixed(2)} điểm${fTxt}${hint}`, 'success');
+    }
+    if (scanWarnings.length) showAppToast('⚠️ ' + scanWarnings.join('  •  '), 'warn');
 
     // Nếu bật chế độ "Tự động tải ảnh về máy sau mỗi lần chấm"
     if (document.getElementById('autoDownloadImgToggle').checked) {
       triggerImageDownload(imgDataUrl, buildImageFileName(record));
     }
-  } else {
-    document.getElementById('scanMsg').innerText = '✅ Phiếu mẫu đang hiển thị — Bấm Bật Camera Sau hoặc Tải Ảnh Phiếu để quét';
   }
 
   freeMats();
   return true;
-}
-
-function renderResultCanvasView() {
-  const resCanvas = document.getElementById('resultCanvas');
-  const ctx = resCanvas.getContext('2d');
-  const source = showBinaryView ? lastBinaryCanvas : lastColorCanvas;
-  if (source) {
-    resCanvas.width = source.width;
-    resCanvas.height = source.height;
-    ctx.drawImage(source, 0, 0);
-  }
-}
-
-function toggleVisionMode() {
-  showBinaryView = !showBinaryView;
-  renderResultCanvasView();
 }
 
 function drawCircleOverlay(ctx, x, y, r, color, lw) {
@@ -4817,15 +4645,6 @@ function triggerImageDownload(dataUrl, filename) {
   showAppToast('Đang tải file: ' + filename, 'success');
 }
 
-function downloadCurrentGradedImage() {
-  if (!lastColorCanvas || !currentLatestRecord) {
-    showAppToast('Chưa có bài chấm nào! Hãy quét một phiếu trước.', 'warn');
-    return;
-  }
-  const dataUrl = lastColorCanvas.toDataURL('image/jpeg', 0.9);
-  triggerImageDownload(dataUrl, buildImageFileName(currentLatestRecord));
-}
-
 async function shareImageByDataUrl(dataUrl, rec) {
   const filename = buildImageFileName(rec);
   const shareText = `SBD: ${rec.sbd} | Mã đề: ${rec.made} | Điểm: ${rec.total.toFixed(2)}`;
@@ -4857,14 +4676,6 @@ async function shareImageByDataUrl(dataUrl, rec) {
       triggerImageDownload(dataUrl, filename);
     }
   } catch (e) {}
-}
-
-function shareCurrentGradedImage() {
-  if (!lastColorCanvas || !currentLatestRecord) {
-    showAppToast('Chưa có bài chấm nào để chia sẻ!', 'warn');
-    return;
-  }
-  shareImageByDataUrl(lastColorCanvas.toDataURL('image/jpeg', 0.9), currentLatestRecord);
 }
 
 async function openImageModal(recordId) {
@@ -4972,9 +4783,6 @@ async function confirmDeleteSingleRecord(mode) {
     gradedList.splice(idx, 1);
     safeSetStorage('omr_graded_ult2026', JSON.stringify(gradedList));
     if (currentModalRecordId === recordId) closeImageModal();
-    if (currentLatestRecord && currentLatestRecord.id === recordId) {
-      currentLatestRecord = gradedList[0] || null;
-    }
     renderResultsTable();
     if (slideOpen) {
       const rem = getSlideList();
@@ -5168,16 +4976,12 @@ async function startCamera() {
   lockCamPortrait();
   const camBox = document.getElementById('cameraContainer');
   const video = document.getElementById('video');
-  const statusEl = document.getElementById('camLiveStatus');
 
   // Hiển thị ngay khung ngắm Camera để người dùng luôn thấy giao diện quét
   camBox.style.display = 'flex';
   video.style.display = 'block';
   document.body.classList.add('cam-fs-open');
   pushCamFsHistory();
-  const lastRes = document.getElementById('camLastResult');
-  if (lastRes) { lastRes.style.display = 'none'; lastRes.innerText = ''; }
-  if (statusEl) statusEl.innerText = '⏳ Đang kết nối ống kính Camera...';
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     stopCamera();
@@ -5221,9 +5025,7 @@ async function startCamera() {
     await video.play().catch(() => {});
     layoutCamStage();
 
-    if (statusEl) {
-      statusEl.innerText = '🟢 Camera Sau đang hoạt động — Canh 4 chấm đen ở 4 góc phiếu vào khung ngắm';
-    }
+    showAppToast('📷 Canh 4 chấm đen ở 4 góc phiếu vào 4 ô vuông — máy tự chấm khi nhận đủ', 'info');
     stableCornerFrames = 0;
     if (autoScanTimer) clearInterval(autoScanTimer);
     autoScanTimer = setInterval(scanVideoFrameWithOpenCV, 240);
@@ -5251,14 +5053,10 @@ function stopCamera(hideBox = true) {
   }
 }
 
-// Nút "Màn hình chính": tắt camera, trở về trang chính và cuộn tới khung kết quả vừa chấm
+// Nút "Màn hình chính": tắt camera và trở về đầu trang chính
 function exitCameraFullscreen() {
   stopCamera();
-  setTimeout(() => {
-    const sbd = document.getElementById('resStudentSBD');
-    const card = sbd && sbd.closest('.card');
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 60);
+  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60);
 }
 
 // Nút Back của điện thoại / trình duyệt cũng chỉ thoát camera toàn màn hình, không thoát khỏi ứng dụng
@@ -5279,17 +5077,6 @@ window.addEventListener('popstate', () => {
   }
 });
 
-// Hiện kết quả vừa chấm ngay trong màn hình camera để biết phiếu đã được chấm
-function updateCamLastResult(rec) {
-  const el = document.getElementById('camLastResult');
-  if (!el || !document.body.classList.contains('cam-fs-open')) return;
-  el.style.display = 'block';
-  el.style.background = ''; el.style.color = ''; el.style.borderTopColor = '';
-  const fInfo = getRecordFolderInfo(rec);
-  const fTxt = fInfo.name ? ` · 📁 ${fInfo.name}` : '';
-  el.innerText = `✅ Vừa chấm: ${getRecordName(rec) ? getRecordName(rec) + ' · ' : ''}SBD ${rec.sbd} · Mã đề ${rec.made}${fTxt} · ${Number(rec.total).toFixed(2)} điểm — đã lưu ảnh (${gradedList.length} bài)`;
-}
-
 function drawViewfinderGuide(oCtx, w, h, detectedCorners = null) {
   oCtx.clearRect(0, 0, w, h);
   if (detectedCorners) {
@@ -5304,25 +5091,23 @@ function drawViewfinderGuide(oCtx, w, h, detectedCorners = null) {
     oCtx.stroke();
     return;
   }
-  // Khung căn chỉnh 4 góc mặc định giúp người dùng dễ đặt phiếu vào Camera
+  // Khung căn chỉnh 4 góc mặc định giúp người dùng dễ đặt phiếu vào Camera:
+  // 4 hình vuông nhỏ (đặt đúng vị trí cho 4 ô vuông đen ở 4 góc phiếu lọt vào giữa)
   const padX = w * 0.08;
   const padY = h * 0.07;
-  const len = Math.min(w, h) * 0.08;
-  oCtx.strokeStyle = 'rgba(59, 130, 246, 0.85)';
-  oCtx.lineWidth = 5;
-
-  // Góc trên trái
-  oCtx.beginPath();
-  oCtx.moveTo(padX, padY + len); oCtx.lineTo(padX, padY); oCtx.lineTo(padX + len, padY);
-  // Góc trên phải
-  oCtx.moveTo(w - padX - len, padY); oCtx.lineTo(w - padX, padY); oCtx.lineTo(w - padX, padY + len);
-  // Góc dưới phải
-  oCtx.moveTo(w - padX, h - padY - len); oCtx.lineTo(w - padX, h - padY); oCtx.lineTo(w - padX - len, h - padY);
-  // Góc dưới trái
-  oCtx.moveTo(padX + len, h - padY); oCtx.lineTo(padX, h - padY); oCtx.lineTo(padX, h - padY - len);
-  oCtx.stroke();
+  // to gấp đôi bản trước (0.075 → 0.15); giới hạn để ô không bị tràn ra ngoài mép khung hình
+  const side = Math.min(Math.max(60, Math.round(Math.min(w, h) * 0.15)), 2 * (Math.min(padX, padY) - 4));
+  const half = side / 2;
+  oCtx.fillStyle = 'rgba(59, 130, 246, 0.25)';
+  oCtx.strokeStyle = 'rgba(59, 130, 246, 0.95)';
+  oCtx.lineWidth = 4;
+  [[padX, padY], [w - padX, padY], [w - padX, h - padY], [padX, h - padY]].forEach(([cx, cy]) => {
+    oCtx.fillRect(cx - half, cy - half, side, side);
+    oCtx.strokeRect(cx - half, cy - half, side, side);
+  });
 }
 
+let lastCvWaitToastAt = 0;
 function scanVideoFrameWithOpenCV() {
   if (!videoStream || isProcessingFrame) return;
   const video = document.getElementById('video');
@@ -5360,26 +5145,17 @@ function scanVideoFrameWithOpenCV() {
 
     drawViewfinderGuide(oCtx, w, h, corners);
 
-    const camStatus = document.getElementById('camLiveStatus');
-    if (camStatus) {
-      camStatus.innerText = !cvReady
-        ? '⏳ Đang chờ OpenCV nạp xong để nhận diện 4 chấm đen...'
-        : (corners
-            ? (document.getElementById('autoScanToggle').checked
-                ? '🟢 Đã thấy đủ 4 chấm đen — giữ yên phiếu để tự chấm...'
-                : '🟢 Đã thấy đủ 4 chấm đen — bấm Chụp & Chấm Ngay')
-            : (currentTemplate === 'NGANG_CUSTOM'
-                ? '🔎 Chưa căn chỉnh được phiếu ngang — thấy đủ 4 chấm đen góc, chừa lề trắng quanh phiếu'
-                : '🔎 Chưa thấy đủ 4 chấm đen ở 4 góc — canh lại phiếu'));
+    if (!cvReady && Date.now() - lastCvWaitToastAt > 6000) {
+      lastCvWaitToastAt = Date.now();
+      showAppToast('⏳ Đang chờ OpenCV nạp xong để nhận diện 4 chấm đen...', 'info');
     }
 
     if (corners) {
-      if (document.getElementById('autoScanToggle').checked) {
-        stableCornerFrames++;
-        if (stableCornerFrames >= 3) {
-          stableCornerFrames = -5;
-          processOMRCanvas(tempC);
-        }
+      // Camera toàn màn hình không còn nút chụp → luôn tự chấm khi thấy đủ 4 góc ổn định
+      stableCornerFrames++;
+      if (stableCornerFrames >= 3) {
+        stableCornerFrames = -5;
+        processOMRCanvas(tempC);
       }
     } else {
       stableCornerFrames = 0;
@@ -5413,20 +5189,11 @@ function handleImageUpload(e) {
       c.getContext('2d').drawImage(img, 0, 0);
       if (document.body.classList.contains('cam-fs-open')) stopCamera();
       processOMRCanvas(c);
-      const resEl = document.getElementById('resultCanvas');
-      if (resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
   e.target.value = '';
-}
-
-function runSimulatedTest(isInitialPreview = false) {
-  const mock = buildRandomMockSheetData();
-  const simCanvas = document.createElement('canvas');
-  drawStandardSheet(simCanvas, mock);
-  processOMRCanvas(simCanvas, isInitialPreview);
 }
 
 
@@ -6442,7 +6209,6 @@ function onCustomQCountChange(val) {
   syncPartsConfigUI();
   renderAnswerKeyUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
-  runSimulatedTest(true);
   showAppToast(`Đã cập nhật phiếu ngang: ${customQCount} câu (Thang điểm ${customTotalScore}đ).`, 'success');
 }
 
@@ -6454,7 +6220,6 @@ function onCustomTotalScoreChange(val) {
   safeSetStorage('omr_custom_score_mode', customScoreMode);
   syncCustomInputsUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
-  runSimulatedTest(true);
   showAppToast(`Đã đặt tổng điểm: ${customTotalScore}đ (${+(customTotalScore / customQCount).toFixed(4)}đ/câu).`, 'success');
 }
 
@@ -6469,7 +6234,6 @@ function onCustomPtPerQChange(val) {
     safeSetStorage('omr_custom_score_mode', customScoreMode);
     syncCustomInputsUI();
     drawPrintSheet(document.getElementById('sheetCanvas'));
-    runSimulatedTest(true);
     showAppToast(`Đã đặt ${pt}đ/câu (Tổng điểm ${customQCount} câu = ${customTotalScore}đ).`, 'success');
   }
 }
@@ -6484,7 +6248,6 @@ function applyCustomPreset(qCount, totalPts) {
   syncCustomInputsUI();
   renderAnswerKeyUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
-  runSimulatedTest(true);
   showAppToast(`Đã chọn mẫu phiếu ngang: ${customQCount} câu - ${customTotalScore} điểm.`, 'success');
 }
 
@@ -6679,7 +6442,6 @@ function onPartConfigChange(field, val, subVal) {
   syncPartsConfigUI();
   renderAnswerKeyUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
-  runSimulatedTest(true);
   const totalAll = +((cfg.p1Total || 0) + (cfg.maxP2 ? (cfg.p2Total || 0) : 0) + (cfg.maxP3 ? (cfg.p3Total || 0) : 0)).toFixed(2);
   showAppToast(`Đã cập nhật: P.I (${cfg.p1Count}c: ${cfg.p1Total}đ)${cfg.maxP2 ? ` · P.II (${cfg.p2Count}c: ${cfg.p2Total}đ)` : ''}${cfg.maxP3 ? ` · P.III (${cfg.p3Count}c: ${cfg.p3Total}đ)` : ''} — Tổng: ${totalAll}đ`, 'success');
 }
@@ -6691,7 +6453,6 @@ function resetPartsConfigDefault() {
   syncPartsConfigUI();
   renderAnswerKeyUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
-  runSimulatedTest(true);
   showAppToast('Đã khôi phục số câu và thang điểm mặc định cho mẫu phiếu này.', 'info');
 }
 
@@ -6721,12 +6482,9 @@ function onTemplateChange() {
   };
   const cfgCur = document.getElementById('cfgCurrent');
   if (cfgCur) cfgCur.innerText = (cfgMap[currentTemplate] || '') + ` · Mã đề ${EXAM_CODE_LEN} số`;
-  document.getElementById('p3ReadoutBox').innerHTML = '';
   syncCustomInputsUI();
   renderAnswerKeyUI();
   drawPrintSheet(document.getElementById('sheetCanvas'));
-  // Luôn hiển thị ngay hình ảnh phiếu đã chấm mẫu trên khung kết quả để không bao giờ bị trắng trang
-  runSimulatedTest(true);
 }
 
 function downloadSheetImage() {
