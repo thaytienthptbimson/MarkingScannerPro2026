@@ -54,7 +54,7 @@
     .status-row #cvStatus { flex: 0 1 auto; }
     @media (min-width: 481px) { .status-row .cv-badge { font-size: 0.74rem; padding: 3px 10px; } }
 
-    /* 3 nút: Chụp & Chấm Ngay / Chụp Bằng Camera ĐT / Tải Ảnh Phiếu — luôn nằm trên 1 hàng, chia đều */
+    /* Nhóm nút cùng hàng — luôn nằm trên 1 hàng, chia đều */
     .row-3btn, .row-1line { flex-wrap: nowrap; gap: 6px; }
     .row-3btn > .btn, .row-1line > .btn { flex: 1 1 0; min-width: 0; justify-content: center; text-align: center; white-space: normal; line-height: 1.2; padding: 8px 4px; font-size: 0.74rem; }
     @media (min-width: 481px) { .row-3btn > .btn, .row-1line > .btn { font-size: 0.83rem; padding: 8px 12px; } }
@@ -72,37 +72,42 @@
     @keyframes licShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
     .lic-shake { animation: licShake 0.3s; }
 
-    /* Navigation 4 chức năng — gọn, bo tròn 4 góc */
+    /* Navigation 4 chức năng — to, rõ, chạm dễ: điện thoại xếp 4 cột đều nhau (số + biểu tượng, chữ bên dưới) */
     .tabs {
-      display: flex; gap: 5px;
-      margin-top: 4px; padding: 5px 6px; background: #fff;
-      border-radius: 14px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.10);
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;
+      margin-top: 4px; padding: 7px 8px; background: #fff;
+      border-radius: 16px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.10);
     }
     .tab-btn {
       --tc: #2563eb; --tc-bg: #dbeafe;
-      flex: 0 0 auto; min-width: 0; min-height: 32px;
-      display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px;
-      padding: 3px 9px; border: 1.5px solid var(--tc); border-radius: 10px;
+      min-width: 0; min-height: 68px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      padding: 6px 3px; border: 2px solid var(--tc); border-radius: 13px;
       background: var(--tc-bg); color: var(--tc);
-      font-size: 0.74rem; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden;
-      cursor: pointer; transition: background 0.15s, color 0.15s;
+      font-size: 0.8rem; font-weight: 800; line-height: 1.15; text-align: center;
+      cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
+    .tab-btn:active { transform: scale(0.97); }
+    .tab-btn .tab-top { display: flex; align-items: center; justify-content: center; gap: 6px; }
     .tab-btn .tab-num {
-      width: 20px; height: 20px; border-radius: 50%; flex: none;
+      width: 28px; height: 28px; border-radius: 50%; flex: none;
       display: inline-flex; align-items: center; justify-content: center;
-      background: var(--tc); color: #fff; font-size: 0.74rem; font-weight: 800;
+      background: var(--tc); color: #fff; font-size: 1rem; font-weight: 900;
     }
-    .tab-btn.active { flex: 1 1 auto; background: var(--tc); color: #fff; }
+    .tab-btn .tab-ico { font-size: 1.4rem; line-height: 1; }
+    .tab-btn .tab-txt { display: block; }
+    .tab-btn.active { background: var(--tc); color: #fff; box-shadow: 0 3px 9px rgba(15, 23, 42, 0.28); }
     .tab-btn.active .tab-num { background: #fff; color: var(--tc); }
     .tab-btn.tab-1 { --tc: #2563eb; --tc-bg: #dbeafe; }
     .tab-btn.tab-2 { --tc: #16a34a; --tc-bg: #dcfce7; }
     .tab-btn.tab-3 { --tc: #ea580c; --tc-bg: #ffedd5; }
     .tab-btn.tab-4 { --tc: #7c3aed; --tc-bg: #ede9fe; }
-    /* Điện thoại: tab không chọn chỉ hiện số + biểu tượng, tab đang chọn hiện đủ chữ */
-    .tab-btn:not(.active) .tab-txt { display: none; }
+    /* Màn hình rộng: số + biểu tượng + chữ trên 1 hàng */
     @media (min-width: 481px) {
-      .tab-btn { flex: 1 1 0; font-size: 0.82rem; }
-      .tab-btn:not(.active) .tab-txt { display: inline; }
+      .tab-btn { flex-direction: row; gap: 10px; min-height: 58px; padding: 8px 14px; font-size: 1.05rem; }
+      .tab-btn .tab-num { width: 30px; height: 30px; }
+      .tab-btn .tab-ico { font-size: 1.5rem; }
     }
 
     .container { max-width: 1080px; margin: 12px auto; padding: 0 10px; }
@@ -197,6 +202,16 @@
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-outline { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
     .btn-sm { padding: 5px 9px; font-size: 0.76rem; border-radius: 6px; }
+    /* Nút chính trang Quét Chấm: to, nổi bật, chạm dễ bằng ngón cái */
+    .btn-scan-main {
+      width: 100%; min-height: 88px; padding: 16px 12px; justify-content: center; gap: 12px;
+      font-size: clamp(1.3rem, 6.4vw, 1.9rem); font-weight: 900; letter-spacing: 0.5px; line-height: 1.1;
+      text-align: center; color: #fff; border-radius: 18px;
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      box-shadow: 0 6px 18px rgba(21, 128, 61, 0.45);
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    .btn-scan-main:active { transform: scale(0.98); box-shadow: 0 3px 10px rgba(21, 128, 61, 0.4); }
     .name-input { width: 100%; min-width: 160px; text-align: left; font-weight: 600; }
     .roster-info { font-size: 0.76rem; color: #475569; line-height: 1.5; }
 
@@ -466,8 +481,8 @@
       .folder-tab { padding: 4px 8px; font-size: 0.76rem; }
       .top-stack { padding-top: 2px; padding-bottom: 2px; }
       header { padding: 5px 10px; }
-      .tabs { padding: 3px 5px; margin-top: 3px; }
-      .tab-btn { min-height: 28px; padding: 2px 8px; }
+      .tabs { padding: 4px 6px; margin-top: 3px; }
+      .tab-btn { min-height: 44px; padding: 3px 10px; }
     }
     .folder-hint, .folder-empty { font-size: 0.8rem; color: #64748b; padding: 4px 2px; }
     .modal-input {
@@ -523,10 +538,10 @@
 </header>
 
 <nav class="tabs">
-  <button class="tab-btn tab-1 active" title="Quét Chấm" onclick="switchTab('tab-scan', this)"><span class="tab-num">1</span><span class="tab-label"><span class="tab-ico">📷</span><span class="tab-txt"> Quét Chấm</span></span></button>
-  <button class="tab-btn tab-2" title="Đáp Án" onclick="switchTab('tab-key', this)"><span class="tab-num">2</span><span class="tab-label"><span class="tab-ico">🔑</span><span class="tab-txt"> Đáp Án</span></span></button>
-  <button class="tab-btn tab-3" title="In Phiếu" onclick="switchTab('tab-sheet', this)"><span class="tab-num">3</span><span class="tab-label"><span class="tab-ico">🖨️</span><span class="tab-txt"> In Phiếu</span></span></button>
-  <button class="tab-btn tab-4" title="Bảng Điểm & Ảnh" onclick="switchTab('tab-results', this)"><span class="tab-num">4</span><span class="tab-label"><span class="tab-ico">📊</span><span class="tab-txt"> Bảng Điểm & Ảnh</span></span></button>
+  <button class="tab-btn tab-1 active" title="Quét Chấm" onclick="switchTab('tab-scan', this)"><span class="tab-top"><span class="tab-num">1</span><span class="tab-ico">📷</span></span><span class="tab-txt">Quét Chấm</span></button>
+  <button class="tab-btn tab-2" title="Đáp Án" onclick="switchTab('tab-key', this)"><span class="tab-top"><span class="tab-num">2</span><span class="tab-ico">🔑</span></span><span class="tab-txt">Đáp Án</span></button>
+  <button class="tab-btn tab-3" title="In Phiếu" onclick="switchTab('tab-sheet', this)"><span class="tab-top"><span class="tab-num">3</span><span class="tab-ico">🖨️</span></span><span class="tab-txt">In Phiếu</span></button>
+  <button class="tab-btn tab-4" title="Bảng Điểm & Ảnh" onclick="switchTab('tab-results', this)"><span class="tab-top"><span class="tab-num">4</span><span class="tab-ico">📊</span></span><span class="tab-txt">Bảng Điểm & Ảnh</span></button>
 </nav>
 </div>
 
@@ -677,21 +692,15 @@
         <button type="button" class="btn btn-outline btn-sm" style="border-color:#f59e0b; color:#92400e; background:#fffbeb;" onclick="openFolderNameModal('create')">📁 + Tạo thư mục</button>
       </div>
 
-      <div class="row row-3btn">
-        <button class="btn btn-success" onclick="captureAndGrade()">⚡ Chụp & Chấm Ngay</button>
+      <div style="margin-bottom:10px;">
+        <button type="button" class="btn btn-scan-main" onclick="startCamera()">📷 QUÉT ĐỂ CHẤM</button>
+      </div>
+
+      <div class="row row-1line">
         <label class="btn btn-primary" style="background:#0284c7;">
           📸 Chụp Bằng Camera ĐT
           <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImageUpload(event)">
         </label>
-        <label class="btn btn-outline">
-          🖼️ Tải Ảnh Phiếu
-          <input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
-        </label>
-      </div>
-
-      <div class="row row-1line">
-        <button class="btn btn-primary" onclick="startCamera()">📷 Bật Camera Sau</button>
-        <button class="btn btn-danger" onclick="stopCamera()">⏹ Tắt Camera</button>
       </div>
 
       <div id="cameraContainer" class="cam-wrap" style="display:none;">
@@ -4985,7 +4994,7 @@ async function startCamera() {
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     stopCamera();
-    showAppToast('Trình duyệt này không hỗ trợ mở camera trực tiếp. Hãy dùng "Chụp Bằng Camera ĐT" hoặc "Tải Ảnh Phiếu".', 'error');
+    showAppToast('Trình duyệt này không hỗ trợ mở camera trực tiếp. Hãy dùng "Chụp Bằng Camera ĐT".', 'error');
     return;
   }
 
@@ -5032,7 +5041,7 @@ async function startCamera() {
   } catch (err) {
     // Không mở được camera (chưa cấp quyền / không có camera) → đóng khung và hướng dẫn cách khác
     stopCamera();
-    showAppToast('Không mở được camera (chưa cấp quyền hoặc thiết bị không có camera). Hãy cho phép camera, hoặc dùng "Chụp Bằng Camera ĐT" / "Tải Ảnh Phiếu".', 'error');
+    showAppToast('Không mở được camera (chưa cấp quyền hoặc thiết bị không có camera). Hãy cho phép camera, hoặc dùng "Chụp Bằng Camera ĐT".', 'error');
   }
 }
 
@@ -5164,16 +5173,6 @@ function scanVideoFrameWithOpenCV() {
     try { drawViewfinderGuide(oCtx, w, h, null); } catch (_) {}
   }
   isProcessingFrame = false;
-}
-
-function captureAndGrade() {
-  const video = document.getElementById('video');
-  if (videoStream && video.videoWidth) {
-    processOMRCanvas(grabVideoFrame(video));
-    return;
-  }
-  // Chưa bật camera → không chấm gì cả, nhắc người dùng
-  showAppToast('Chưa bật camera! Bấm "Bật Camera Sau", hoặc dùng "Chụp Bằng Camera ĐT" / "Tải Ảnh Phiếu".', 'warn');
 }
 
 function handleImageUpload(e) {
